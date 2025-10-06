@@ -61,6 +61,10 @@ from infra.repos.factory import users_repo
 from fastapi.responses import RedirectResponse, StreamingResponse
 from infra.repos.mailer_factory import mailer
 from utils.email_templates import render_onboarding_email
+from services.gmail import GmailService
+from services.calendar import CalendarService
+from services import llm as llm_service
+from infra.repos.factory import audit_repo
 import yaml
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -201,10 +205,13 @@ app.add_middleware(
     allow_headers=["*"] + ["Authorization", "Content-Type"],
 )
 
+
 # Request-ID middleware for structured tracing
 @app.middleware("http")
 async def add_request_id(request: Request, call_next):
-    rid = request.headers.get("x-request-id") or os.getenv("REQUEST_ID_PREFIX", "req_") + secrets.token_hex(8)
+    rid = request.headers.get("x-request-id") or os.getenv(
+        "REQUEST_ID_PREFIX", "req_"
+    ) + secrets.token_hex(8)
     try:
         response = await call_next(request)
     except Exception as exc:
@@ -357,7 +364,9 @@ async def nylas_webhook(req: Request) -> Dict[str, Any]:
 
 # WhatsApp webhook verification and handler
 @app.get("/whatsapp/webhook")
-async def whatsapp_verify(mode: str = Query(""), token: str = Query(""), challenge: str = Query("")):
+async def whatsapp_verify(
+    mode: str = Query(""), token: str = Query(""), challenge: str = Query("")
+):
     verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
     if mode == "subscribe" and token and verify_token and token == verify_token:
         return Response(content=challenge, media_type="text/plain")
@@ -393,6 +402,89 @@ async def actions_execute(req: ExecuteRequest) -> Dict[str, Any]:
         dry_run=req.dry_run,
         tenant_id=req.tenant_id or "tenant-default",
     )
+
+
+# Actions scanning and approvals endpoints (POC)
+class ScanIn(BaseModel):
+    domains: List[str] = Field(default_factory=list)
+
+
+@app.post("/actions/scan")
+async def actions_scan(body: ScanIn) -> List[Dict[str, Any]]:
+    context = {"domains": body.domains}
+    # TODO: enrich context with unread emails and calendar state
+    core_ctx = {}
+    approvals = llm_service.summarise_and_propose(context, core_ctx)
+    # Audit proposal
+    try:
+        rid = secrets.token_hex(8)
+        audit_repo().write(
+            {
+                "request_id": rid,
+                "tenant_id": TENANT_DEFAULT,
+                "dry_run": True,
+                "actions": approvals,
+                "results": {"source": "actions_scan"},
+            }
+        )
+    except Exception:
+        pass
+    return approvals
+
+
+@app.post("/actions/approve/{approval_id}")
+async def actions_approve(approval_id: str) -> Dict[str, Any]:
+    # POC: echo approval and mark status approved
+    return {"id": approval_id, "status": "approved"}
+
+
+class EditIn(BaseModel):
+    instructions: str
+
+
+@app.post("/actions/edit/{approval_id}")
+async def actions_edit(approval_id: str, body: EditIn) -> Dict[str, Any]:
+    return {"id": approval_id, "status": "edited", "instructions": body.instructions}
+
+
+@app.post("/actions/skip/{approval_id}")
+async def actions_skip(approval_id: str) -> Dict[str, Any]:
+    return {"id": approval_id, "status": "skipped"}
+
+
+# Email endpoints
+class DraftIn(BaseModel):
+    to: List[str] = Field(default_factory=list)
+    subject: str = ""
+    body: str = ""
+    tone: Optional[str] = None
+
+
+@app.post("/email/drafts")
+async def email_create_draft(body: DraftIn) -> Dict[str, Any]:
+    g = GmailService()
+    d = g.create_draft(body.to, body.subject, body.body)
+    return d
+
+
+@app.post("/email/send/{draft_id}")
+async def email_send(draft_id: str) -> Dict[str, Any]:
+    g = GmailService()
+    out = g.send(draft_id)
+    return out
+
+
+# Calendar endpoints
+@app.post("/calendar/plan-today")
+async def calendar_plan_today() -> Dict[str, Any]:
+    c = CalendarService()
+    return {"plan": c.list_today()}
+
+
+@app.post("/calendar/reschedule")
+async def calendar_reschedule(body: Dict[str, Any]) -> Dict[str, Any]:
+    c = CalendarService()
+    return c.create_or_update(body)
 
 
 class AdminIssueCredentialsIn(BaseModel):
