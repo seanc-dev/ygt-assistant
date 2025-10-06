@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ygt-assistant/contracts/draft.schema.json",
+  "title": "Draft",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "to", "subject", "body", "status"],
+  "properties": {
+    "id": { "type": "string" },
+    "to": { "type": "array", "items": { "type": "string" } },
+    "subject": { "type": "string" },
+    "body": { "type": "string" },
+    "tone": { "type": "string" },
+    "status": { "type": "string" },
+    "risk": { "type": "string" }
+  }
+}
