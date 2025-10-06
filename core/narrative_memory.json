@@ -1,0 +1,90 @@
+{
+  "themes": {
+    "theme_4f010fcc": {
+      "topic": "High Confidence Theme",
+      "summary": "High confidence theme",
+      "last_updated": "2025-07-28",
+      "source_refs": [],
+      "confidence": 0.9,
+      "tags": []
+    },
+    "theme_afc7a343": {
+      "topic": "Medium Confidence Theme",
+      "summary": "Medium confidence theme",
+      "last_updated": "2025-07-28",
+      "source_refs": [],
+      "confidence": 0.6,
+      "tags": []
+    },
+    "theme_fece5aaf": {
+      "topic": "Work Activities",
+      "summary": "User has events related to work: Team Standup, Project Review, Team Standup, Project Review, Gym Session, Project Review, Daily Standup, Weekly Review, Team Meeting, Work Meeting, Gym Session, Team Standup, Project Review, Gym Session, Project Review, Daily Standup, Weekly Review, Team Meeting, Work Meeting, Gym Session, Team Meeting",
+      "last_updated": "2025-09-17",
+      "source_refs": [
+        "event_Team Standup"
+      ],
+      "confidence": 0.9,
+      "tags": [
+        "work"
+      ]
+    },
+    "theme_b8493c67": {
+      "topic": "Social Activities",
+      "summary": "User has events related to social: Coffee with Friends, Coffee with Friends",
+      "last_updated": "2025-07-28",
+      "source_refs": [
+        "event_Coffee with Friends"
+      ],
+      "confidence": 0.7,
+      "tags": [
+        "social"
+      ]
+    },
+    "theme_bf130e4c": {
+      "topic": "Health Activities",
+      "summary": "User has events related to health: Daily Workout, Daily Workout, Daily Workout",
+      "last_updated": "2025-07-28",
+      "source_refs": [
+        "event_Daily Workout"
+      ],
+      "confidence": 0.7999999999999999,
+      "tags": [
+        "health"
+      ]
+    }
+  },
+  "patterns": {
+    "pattern_b5e44145": {
+      "pattern": "Daily Pattern",
+      "datetime": "9:00am",
+      "recurrence": "daily",
+      "last_seen": "2025-07-28",
+      "confidence": 0.5,
+      "context": ""
+    },
+    "pattern_ef4ee160": {
+      "pattern": "Weekly Pattern",
+      "datetime": "5:00pm",
+      "recurrence": "weekly",
+      "last_seen": "2025-07-28",
+      "confidence": 0.5,
+      "context": ""
+    },
+    "pattern_16549a09": {
+      "pattern": "Daily Workout",
+      "datetime": "07:00",
+      "recurrence": "daily",
+      "last_seen": "2025-07-28",
+      "confidence": 0.8999999999999999,
+      "context": "Recurring daily event"
+    },
+    "pattern_c7f2037a": {
+      "pattern": "Daily Standup",
+      "datetime": "09:00",
+      "recurrence": "FREQ=DAILY;COUNT=5",
+      "last_seen": "2025-09-15",
+      "confidence": 0.9,
+      "context": "Recurring FREQ=DAILY;COUNT=5 event"
+    }
+  }
+}

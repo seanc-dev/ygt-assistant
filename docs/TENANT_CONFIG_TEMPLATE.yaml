@@ -1,0 +1,49 @@
+features:
+  sessions_value: true        # allow Sessions.Value to be written
+  programs: false             # reserved for future
+  sales: false                # reserved for future
+
+currency:
+  code: "NZD"                 # used for display/logging only
+
+notion:
+  tasks:
+    db_id: "<TASKS_DB_ID>"
+    props:
+      title: "Name"                 # Title
+      status: "Status"              # Select: Inbox, Next, In-Progress, Waiting, Done
+      due: "Due"                    # Date
+      assignee: "Assignee"          # People
+      priority: "Priority"          # Select: Low, Med, High
+      client_rel: "Client"          # Relation -> Clients.Name (optional)
+      source: "Source"              # Select: Email, Calendar, Manual
+      source_id: "Source ID"        # Text
+      email_url: "Email URL"        # URL
+      notes: "Notes"                # Rich text
+  clients:
+    db_id: "<CLIENTS_DB_ID>"
+    props:
+      title: "Name"                 # Title
+      email: "Email"                # Email
+      company: "Company"            # Text (optional)
+      owner: "Owner"                # People (optional)
+      stage: "Stage"                # Select: Lead, Active, Dormant
+      last_contacted: "Last Contacted" # Date
+      sessions_rel: "Sessions"      # Relation -> Sessions.Title
+      total_value_rollup: "Total Value (optional)"  # Rollup (read-only)
+      notes: "Notes"                # Rich text
+  sessions:
+    db_id: "<SESSIONS_DB_ID>"
+    props:
+      title: "Title"                # Title
+      client_rel: "Client"          # Relation -> Clients.Name
+      date: "Date"                  # Date
+      summary: "Summary"            # Rich text
+      transcript_url: "Transcript URL"  # URL
+      duration_min: "Duration (min)"    # Number
+      value: "Value (optional)"         # Number (currency) — written only if features.sessions_value=true
+      tags: "Tags"                  # Multi-select
+
+defaults:
+  task_status_new: "Inbox"
+  session_value_round: 0            # 0 or 2 typical

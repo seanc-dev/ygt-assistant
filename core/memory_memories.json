@@ -1,0 +1,39 @@
+{
+  "memories": [
+    {
+      "id": "past_event_1753593824.163001",
+      "type": "past_event",
+      "content": "Team Meeting |  | Location: ",
+      "created_date": "2025-07-27T17:23:44.163003",
+      "metadata": {},
+      "title": "Team Meeting",
+      "description": "",
+      "date": "2024-01-15",
+      "duration": 60,
+      "attendees": [],
+      "location": "",
+      "is_recurring": false,
+      "recurrence_pattern": "",
+      "embedding": null,
+      "tags": []
+    },
+    {
+      "id": "past_event_1753593824.164379",
+      "type": "past_event",
+      "content": "Team Meeting | Weekly team sync | Location: Conference Room A",
+      "created_date": "2025-07-27T17:23:44.164381",
+      "metadata": {},
+      "title": "Team Meeting",
+      "description": "Weekly team sync",
+      "date": "2024-01-16",
+      "duration": 60,
+      "attendees": [],
+      "location": "Conference Room A",
+      "is_recurring": false,
+      "recurrence_pattern": "",
+      "embedding": null,
+      "tags": []
+    }
+  ],
+  "last_updated": "2025-07-27T17:23:44.165830"
+}

@@ -1,0 +1,29 @@
+{
+  "nudges": [
+    {
+      "id": "test_nudge",
+      "type": "time_pattern",
+      "title": "Test Nudge",
+      "description": "Test description",
+      "priority": 0.8,
+      "confidence": 0.8,
+      "context": {},
+      "created_at": "2025-09-15T00:14:42.589803",
+      "expires_at": null,
+      "dismissed": true
+    },
+    {
+      "id": "active",
+      "type": "time_pattern",
+      "title": "Active Nudge",
+      "description": "This nudge is still active",
+      "priority": 0.8,
+      "confidence": 0.8,
+      "context": {},
+      "created_at": "2025-09-15T00:14:42.591990",
+      "expires_at": "2025-09-15T01:14:42.591991",
+      "dismissed": false
+    }
+  ],
+  "last_updated": "2025-09-17T17:32:29.837988"
+}

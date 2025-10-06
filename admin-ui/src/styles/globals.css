@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+}
+
+a {
+  @apply text-primary-600 underline-offset-4 transition-colors hover:text-primary-500 dark:text-primary-300 dark:hover:text-primary-200;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  @apply outline-none ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-slate-900;
+}
+
+.focus-outline {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900;
+}
+
+@layer utilities {
+  .dark .bg-white {
+    @apply bg-slate-900;
+  }
+  .dark .bg-slate-50 {
+    @apply bg-slate-950;
+  }
+  .dark .bg-slate-100 {
+    @apply bg-slate-800;
+  }
+  .dark .border-slate-200 {
+    @apply border-slate-700;
+  }
+  .dark .border-slate-300 {
+    @apply border-slate-600;
+  }
+  .dark .text-slate-900 {
+    @apply text-slate-100;
+  }
+  .dark .text-slate-700 {
+    @apply text-slate-300;
+  }
+  .dark .text-slate-600 {
+    @apply text-slate-300;
+  }
+  .dark .text-slate-500 {
+    @apply text-slate-400;
+  }
+}

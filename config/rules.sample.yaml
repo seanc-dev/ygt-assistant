@@ -1,0 +1,49 @@
+timezone: "Pacific/Auckland"
+email_triage:
+  - match:
+      from: ["*@client.com"]
+      subject_has: ["update", "invoice"]
+    action: create_task
+    fields:
+      title: "Send monthly invoice update"
+      status: "Next"
+      db: "Tasks"
+  - match:
+      subject_has: ["discovery call", "intake form", "new inquiry"]
+    action: create_task
+    fields:
+      title: "Review new client inquiry"
+      status: "Inbox"
+      due:
+        date: "2024-01-05"
+  - match:
+      body_has: ["reschedule", "can't make it", "need to move"]
+    action: create_task
+    fields:
+      title: "Offer reschedule options"
+      status: "Next"
+      due:
+        date: "2024-01-03"
+  - match:
+      from: ["billing@stripe.com", "*@payments.example"]
+      subject_has: ["invoice", "payment received"]
+    action: create_task
+    fields:
+      title: "Log payment in tracker"
+      status: "Admin"
+      db: "Finance Tasks"
+  - match:
+      from: ["*@referralpartner.com"]
+      subject_has: ["introduction", "referred"]
+    action: upsert_contact
+    fields:
+      name: "Referred client"
+      email: "prospect@example.com"
+      company: "Referral Partner"
+calendar_prefs:
+  no_meetings_before: "11:00"
+  default_duration_min: 45
+  preferred_days: ["Tuesday", "Wednesday", "Thursday"]
+  buffer_minutes_between_sessions: 15
+  auto_add_video_conference: true
+

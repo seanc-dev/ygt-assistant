@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic>=2
+pyyaml
+httpx
+cryptography
+python-dotenv
+bcrypt
+
+numpy
