@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ygt-assistant/contracts/automation.schema.json",
+  "title": "Automation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "trigger", "action", "enabled"],
+  "properties": {
+    "id": { "type": "string" },
+    "trigger": { "type": "object" },
+    "conditions": { "type": "array", "items": { "type": "object" } },
+    "action": { "type": "object" },
+    "preview": { "type": "string" },
+    "enabled": { "type": "boolean" }
+  }
+}

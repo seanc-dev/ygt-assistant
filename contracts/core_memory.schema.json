@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ygt-assistant/contracts/core_memory.schema.json",
+  "title": "CoreMemoryItem",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "level", "key", "value"],
+  "properties": {
+    "id": { "type": "string" },
+    "level": { "enum": ["episodic", "semantic", "procedural", "narrative"] },
+    "key": { "type": "string" },
+    "value": { "type": "object" },
+    "vector": { "type": ["array", "null"], "items": { "type": "number" } },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "source": { "type": "string" },
+        "confidence": { "type": "number" },
+        "last_used_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ygt-assistant/contracts/approval.schema.json",
+  "title": "Approval",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "kind", "title", "summary", "actions", "status", "created_at"],
+  "properties": {
+    "id": { "type": "string" },
+    "kind": { "type": "string" },
+    "title": { "type": "string" },
+    "summary": { "type": "string" },
+    "actions": { "type": "array", "items": { "enum": ["approve", "edit", "skip"] } },
+    "source": { "type": "string" },
+    "payload": { "type": "object" },
+    "risk": { "type": "string" },
+    "status": { "type": "string" },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "created_at": { "type": "string", "format": "date-time" }
+  }
+}
