@@ -8,6 +8,20 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: ankane/pgvector:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" 
+          --health-interval 10s 
+          --health-timeout 5s 
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -38,3 +52,16 @@ print('Schemas valid')
 PY
       - name: Run tests
         run: pytest -q
+      - name: Dry-run apply schema and migrations
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: app
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/schema.sql
+          for f in supabase/migrations/*.sql; do
+            echo "Applying $f";
+            psql -v ON_ERROR_STOP=1 -f "$f";
+          done
