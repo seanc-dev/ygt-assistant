@@ -65,6 +65,7 @@ import yaml
 import uuid
 from datetime import datetime, timezone, timedelta
 import re
+from services.whatsapp import parse_webhook as _wa_parse
 
 
 app = FastAPI(title="YGT Integration API", version="0.1.0")
@@ -199,6 +200,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"] + ["Authorization", "Content-Type"],
 )
+
+# Request-ID middleware for structured tracing
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    rid = request.headers.get("x-request-id") or os.getenv("REQUEST_ID_PREFIX", "req_") + secrets.token_hex(8)
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        # Ensure request id is present even on errors
+        response = Response(status_code=500, content="internal_error")
+    response.headers["x-request-id"] = rid
+    return response
 
 
 # Dev-only helpers (do not enable in production)
@@ -340,6 +353,26 @@ async def nylas_webhook(req: Request) -> Dict[str, Any]:
         triaged = triage_email(env)
         return {"ok": True, "triage": triaged.dict()}
     return {"ok": True, "ignored": True}
+
+
+# WhatsApp webhook verification and handler
+@app.get("/whatsapp/webhook")
+async def whatsapp_verify(mode: str = Query(""), token: str = Query(""), challenge: str = Query("")):
+    verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
+    if mode == "subscribe" and token and verify_token and token == verify_token:
+        return Response(content=challenge, media_type="text/plain")
+    raise HTTPException(status_code=403, detail="forbidden")
+
+
+@app.post("/whatsapp/webhook")
+async def whatsapp_webhook(req: Request) -> Dict[str, Any]:
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
+    parsed = _wa_parse(body)
+    # For POC: echo back
+    return {"ok": True, "parsed": parsed}
 
 
 class ProposedActionIn(BaseModel):
