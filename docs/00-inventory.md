@@ -73,4 +73,3 @@ This document is an authoritative inventory of the current repository as of this
 
 - API runs via uvicorn per `Dockerfile` and exposes port 8000.
 - Fly.io config present (`fly.toml`); GitHub Actions not yet present — will be added for lint/tests/evals.
-
