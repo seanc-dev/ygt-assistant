@@ -14,6 +14,7 @@ def _is_testing() -> bool:
 def _is_dev() -> bool:
     return _is_truthy(os.getenv("DEV_MODE"))
 
+
 # Feature flags and defaults
 USE_PORTS = os.getenv("USE_PORTS", "false").lower() == "true"
 VERIFY_NYLAS = os.getenv("VERIFY_NYLAS", "false").lower() == "true"
@@ -26,7 +27,10 @@ NOTION_CRM_DB_ID = os.getenv("NOTION_CRM_DB_ID", "")
 TENANT_DEFAULT = os.getenv("TENANT_DEFAULT", "tenant-default")
 USE_DB = os.getenv("USE_DB", "false").lower() == "true"
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+# Prefer project convention SUPABASE_API_SECRET, fallback to SUPABASE_SERVICE_KEY for legacy
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_API_SECRET") or os.getenv(
+    "SUPABASE_SERVICE_KEY", ""
+)
 NOTION_CLIENT_ID = os.getenv("NOTION_CLIENT_ID", "")
 NOTION_CLIENT_SECRET = os.getenv("NOTION_CLIENT_SECRET", "")
 NOTION_REDIRECT_URI = os.getenv(
