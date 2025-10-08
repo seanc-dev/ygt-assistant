@@ -65,11 +65,13 @@ from services.gmail import GmailService
 from services.calendar import CalendarService
 from services import llm as llm_service
 from infra.repos.factory import audit_repo
+from core.store import get_store
 import yaml
 import uuid
 from datetime import datetime, timezone, timedelta
 import re
 from services.whatsapp import parse_webhook as _wa_parse
+from services.whatsapp import send_buttons as _wa_send_buttons
 
 
 app = FastAPI(title="YGT Integration API", version="0.1.0")
@@ -80,6 +82,8 @@ _user_prefs_store: Dict[str, Dict[str, Any]] = {}
 _user_rules_store: Dict[str, List[Dict[str, Any]]] = {}
 # Dev-only in-memory actions store keyed by user_id
 _user_actions_store: Dict[str, List[Dict[str, Any]]] = {}
+_approvals_store: Dict[str, Dict[str, Any]] = {}
+_history_log: List[Dict[str, Any]] = []
 
 
 class DevEmailIn(BaseModel):
@@ -380,7 +384,29 @@ async def whatsapp_webhook(req: Request) -> Dict[str, Any]:
     except Exception:
         body = {}
     parsed = _wa_parse(body)
-    # For POC: echo back
+    # Basic command routing for POC
+    try:
+        if parsed.get("type") == "button":
+            bid = parsed.get("button_id") or ""
+            if bid.startswith("approve:"):
+                aid = bid.split(":", 1)[1]
+                return await actions_approve(aid)
+            if bid.startswith("edit:"):
+                aid = bid.split(":", 1)[1]
+                return await actions_edit(aid, EditIn(instructions="tweak"))
+            if bid.startswith("skip:"):
+                aid = bid.split(":", 1)[1]
+                return await actions_skip(aid)
+        if parsed.get("type") == "text":
+            text = (parsed.get("text") or "").strip().lower()
+            if text.startswith("approve "):
+                aid = text.split(" ", 1)[1]
+                return await actions_approve(aid)
+            if text.startswith("skip "):
+                aid = text.split(" ", 1)[1]
+                return await actions_skip(aid)
+    except Exception:
+        pass
     return {"ok": True, "parsed": parsed}
 
 
@@ -411,10 +437,19 @@ class ScanIn(BaseModel):
 
 @app.post("/actions/scan")
 async def actions_scan(body: ScanIn) -> List[Dict[str, Any]]:
+    store = get_store()
+    core_ctx = {
+        "episodic": [m.__dict__ for m in store.list_by_level("episodic")][:5],
+        "semantic": [m.__dict__ for m in store.list_by_level("semantic")][:5],
+        "procedural": [m.__dict__ for m in store.list_by_level("procedural")][:5],
+        "narrative": [m.__dict__ for m in store.list_by_level("narrative")][:5],
+    }
     context = {"domains": body.domains}
-    # TODO: enrich context with unread emails and calendar state
-    core_ctx = {}
     approvals = llm_service.summarise_and_propose(context, core_ctx)
+    # Cache approvals in memory for POC flows
+    for a in approvals:
+        a.setdefault("status", "proposed")
+        _approvals_store[a["id"]] = a
     # Audit proposal
     try:
         rid = secrets.token_hex(8)
@@ -432,10 +467,35 @@ async def actions_scan(body: ScanIn) -> List[Dict[str, Any]]:
     return approvals
 
 
+@app.get("/approvals")
+async def approvals_list(
+    filter: Optional[str] = Query(default="all"),
+) -> List[Dict[str, Any]]:
+    items = list(_approvals_store.values())
+    if filter in {"email", "calendar"}:
+        items = [a for a in items if a.get("kind") == filter]
+    # newest first if created_at present
+    try:
+        items.sort(key=lambda x: x.get("created_at") or "", reverse=True)
+    except Exception:
+        pass
+    return items
+
+
 @app.post("/actions/approve/{approval_id}")
 async def actions_approve(approval_id: str) -> Dict[str, Any]:
-    # POC: echo approval and mark status approved
-    return {"id": approval_id, "status": "approved"}
+    a = _approvals_store.get(approval_id)
+    if not a:
+        raise HTTPException(status_code=404, detail="not_found")
+    a["status"] = "approved"
+    # Write in-memory history for POC
+    _history_log.append({
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "verb": "approve",
+        "object": "approval",
+        "id": approval_id,
+    })
+    return a
 
 
 class EditIn(BaseModel):
@@ -444,12 +504,76 @@ class EditIn(BaseModel):
 
 @app.post("/actions/edit/{approval_id}")
 async def actions_edit(approval_id: str, body: EditIn) -> Dict[str, Any]:
-    return {"id": approval_id, "status": "edited", "instructions": body.instructions}
+    a = _approvals_store.get(approval_id)
+    if not a:
+        raise HTTPException(status_code=404, detail="not_found")
+    a["status"] = "edited"
+    a["edit_instructions"] = body.instructions
+    _history_log.append({
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "verb": "edit",
+        "object": "approval",
+        "id": approval_id,
+        "instructions": body.instructions,
+    })
+    return a
 
 
 @app.post("/actions/skip/{approval_id}")
 async def actions_skip(approval_id: str) -> Dict[str, Any]:
-    return {"id": approval_id, "status": "skipped"}
+    a = _approvals_store.get(approval_id)
+    if not a:
+        raise HTTPException(status_code=404, detail="not_found")
+    a["status"] = "skipped"
+    _history_log.append({
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "verb": "skip",
+        "object": "approval",
+        "id": approval_id,
+    })
+    return a
+
+
+@app.post("/actions/undo/{approval_id}")
+async def actions_undo(approval_id: str) -> Dict[str, Any]:
+    a = _approvals_store.get(approval_id)
+    if not a:
+        raise HTTPException(status_code=404, detail="not_found")
+    a["status"] = "proposed"
+    _history_log.append({
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "verb": "undo",
+        "object": "approval",
+        "id": approval_id,
+    })
+    return a
+
+
+class WhatsAppSendApprovalIn(BaseModel):
+    to: str
+
+
+@app.post("/whatsapp/send/approval/{approval_id}")
+async def whatsapp_send_approval(approval_id: str, body: WhatsAppSendApprovalIn) -> Dict[str, Any]:
+    a = _approvals_store.get(approval_id)
+    if not a:
+        raise HTTPException(status_code=404, detail="not_found")
+    text = a.get("summary") or a.get("title") or f"Approve {approval_id}?"
+    buttons = [
+        {"id": f"approve:{approval_id}", "label": "Approve"},
+        {"id": f"edit:{approval_id}", "label": "Edit"},
+        {"id": f"skip:{approval_id}", "label": "Skip"},
+    ]
+    try:
+        res = _wa_send_buttons(body.to, text, buttons)
+        return {"ok": True, "result": res}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@app.get("/history")
+async def history(limit: int = 100) -> List[Dict[str, Any]]:
+    return list(reversed(_history_log))[: max(0, min(limit, 1000))]
 
 
 # Email endpoints
@@ -478,13 +602,58 @@ async def email_send(draft_id: str) -> Dict[str, Any]:
 @app.post("/calendar/plan-today")
 async def calendar_plan_today() -> Dict[str, Any]:
     c = CalendarService()
-    return {"plan": c.list_today()}
+    plan = c.list_today()
+    # Emit a WhatsApp-friendly card text (POC) in response
+    card_text = "Plan for Today\n" + "\n".join(
+        [f"• {i.get('time','10:00')} {i.get('title','Focus block')}" for i in plan]
+    )
+    return {"plan": plan, "card": card_text}
 
 
 @app.post("/calendar/reschedule")
 async def calendar_reschedule(body: Dict[str, Any]) -> Dict[str, Any]:
     c = CalendarService()
     return c.create_or_update(body)
+
+
+# Core endpoints
+@app.get("/core/context")
+async def core_context(
+    for_: Optional[str] = Query(default=None, alias="for")
+) -> Dict[str, Any]:
+    store = get_store()
+    ctx = {
+        "episodic": [m.__dict__ for m in store.list_by_level("episodic")][:5],
+        "semantic": [m.__dict__ for m in store.list_by_level("semantic")][:5],
+        "procedural": [m.__dict__ for m in store.list_by_level("procedural")][:5],
+        "narrative": [m.__dict__ for m in store.list_by_level("narrative")][:5],
+    }
+    return ctx
+
+
+class NoteIn(BaseModel):
+    fact: str
+    tags: Optional[List[str]] = None
+    source: Optional[str] = None
+
+
+@app.post("/core/notes")
+async def core_notes(body: NoteIn) -> Dict[str, Any]:
+    from core.writer import write_semantic
+
+    item = write_semantic(body.fact, source=body.source)
+    return {"ok": True, "id": item.id}
+
+
+@app.get("/core/preview")
+async def core_preview(intent: Optional[str] = None) -> Dict[str, Any]:
+    store = get_store()
+    # Preview the latest items used for context
+    preview = {
+        "semantic": [m.__dict__ for m in store.list_by_level("semantic")][:5],
+        "narrative": [m.__dict__ for m in store.list_by_level("narrative")][:5],
+    }
+    return preview
 
 
 class AdminIssueCredentialsIn(BaseModel):
