@@ -65,6 +65,7 @@ from services.gmail import GmailService
 from services.calendar import CalendarService
 from services import llm as llm_service
 from infra.repos.factory import audit_repo
+from core.store import get_store
 import yaml
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -80,6 +81,7 @@ _user_prefs_store: Dict[str, Dict[str, Any]] = {}
 _user_rules_store: Dict[str, List[Dict[str, Any]]] = {}
 # Dev-only in-memory actions store keyed by user_id
 _user_actions_store: Dict[str, List[Dict[str, Any]]] = {}
+_approvals_store: Dict[str, Dict[str, Any]] = {}
 
 
 class DevEmailIn(BaseModel):
@@ -411,10 +413,19 @@ class ScanIn(BaseModel):
 
 @app.post("/actions/scan")
 async def actions_scan(body: ScanIn) -> List[Dict[str, Any]]:
+    store = get_store()
+    core_ctx = {
+        "episodic": [m.__dict__ for m in store.list_by_level("episodic")][:5],
+        "semantic": [m.__dict__ for m in store.list_by_level("semantic")][:5],
+        "procedural": [m.__dict__ for m in store.list_by_level("procedural")][:5],
+        "narrative": [m.__dict__ for m in store.list_by_level("narrative")][:5],
+    }
     context = {"domains": body.domains}
-    # TODO: enrich context with unread emails and calendar state
-    core_ctx = {}
     approvals = llm_service.summarise_and_propose(context, core_ctx)
+    # Cache approvals in memory for POC flows
+    for a in approvals:
+        a.setdefault("status", "proposed")
+        _approvals_store[a["id"]] = a
     # Audit proposal
     try:
         rid = secrets.token_hex(8)
@@ -432,10 +443,27 @@ async def actions_scan(body: ScanIn) -> List[Dict[str, Any]]:
     return approvals
 
 
+@app.get("/approvals")
+async def approvals_list(filter: Optional[str] = Query(default="all")) -> List[Dict[str, Any]]:
+    items = list(_approvals_store.values())
+    if filter in {"email", "calendar"}:
+        items = [a for a in items if a.get("kind") == filter]
+    # newest first if created_at present
+    try:
+        items.sort(key=lambda x: x.get("created_at") or "", reverse=True)
+    except Exception:
+        pass
+    return items
+
+
 @app.post("/actions/approve/{approval_id}")
 async def actions_approve(approval_id: str) -> Dict[str, Any]:
-    # POC: echo approval and mark status approved
-    return {"id": approval_id, "status": "approved"}
+    a = _approvals_store.get(approval_id)
+    if not a:
+        raise HTTPException(status_code=404, detail="not_found")
+    a["status"] = "approved"
+    # TODO: execute side effect and write to audit
+    return a
 
 
 class EditIn(BaseModel):
@@ -444,12 +472,30 @@ class EditIn(BaseModel):
 
 @app.post("/actions/edit/{approval_id}")
 async def actions_edit(approval_id: str, body: EditIn) -> Dict[str, Any]:
-    return {"id": approval_id, "status": "edited", "instructions": body.instructions}
+    a = _approvals_store.get(approval_id)
+    if not a:
+        raise HTTPException(status_code=404, detail="not_found")
+    a["status"] = "edited"
+    a["edit_instructions"] = body.instructions
+    return a
 
 
 @app.post("/actions/skip/{approval_id}")
 async def actions_skip(approval_id: str) -> Dict[str, Any]:
-    return {"id": approval_id, "status": "skipped"}
+    a = _approvals_store.get(approval_id)
+    if not a:
+        raise HTTPException(status_code=404, detail="not_found")
+    a["status"] = "skipped"
+    return a
+
+
+@app.post("/actions/undo/{approval_id}")
+async def actions_undo(approval_id: str) -> Dict[str, Any]:
+    a = _approvals_store.get(approval_id)
+    if not a:
+        raise HTTPException(status_code=404, detail="not_found")
+    a["status"] = "proposed"
+    return a
 
 
 # Email endpoints
@@ -478,13 +524,58 @@ async def email_send(draft_id: str) -> Dict[str, Any]:
 @app.post("/calendar/plan-today")
 async def calendar_plan_today() -> Dict[str, Any]:
     c = CalendarService()
-    return {"plan": c.list_today()}
+    plan = c.list_today()
+    # Emit a WhatsApp-friendly card text (POC) in response
+    card_text = "Plan for Today\n" + "\n".join(
+        [f"• {i.get('time','10:00')} {i.get('title','Focus block')}" for i in plan]
+    )
+    return {"plan": plan, "card": card_text}
 
 
 @app.post("/calendar/reschedule")
 async def calendar_reschedule(body: Dict[str, Any]) -> Dict[str, Any]:
     c = CalendarService()
     return c.create_or_update(body)
+
+
+# Core endpoints
+@app.get("/core/context")
+async def core_context(
+    for_: Optional[str] = Query(default=None, alias="for")
+) -> Dict[str, Any]:
+    store = get_store()
+    ctx = {
+        "episodic": [m.__dict__ for m in store.list_by_level("episodic")][:5],
+        "semantic": [m.__dict__ for m in store.list_by_level("semantic")][:5],
+        "procedural": [m.__dict__ for m in store.list_by_level("procedural")][:5],
+        "narrative": [m.__dict__ for m in store.list_by_level("narrative")][:5],
+    }
+    return ctx
+
+
+class NoteIn(BaseModel):
+    fact: str
+    tags: Optional[List[str]] = None
+    source: Optional[str] = None
+
+
+@app.post("/core/notes")
+async def core_notes(body: NoteIn) -> Dict[str, Any]:
+    from core.writer import write_semantic
+
+    item = write_semantic(body.fact, source=body.source)
+    return {"ok": True, "id": item.id}
+
+
+@app.get("/core/preview")
+async def core_preview(intent: Optional[str] = None) -> Dict[str, Any]:
+    store = get_store()
+    # Preview the latest items used for context
+    preview = {
+        "semantic": [m.__dict__ for m in store.list_by_level("semantic")][:5],
+        "narrative": [m.__dict__ for m in store.list_by_level("narrative")][:5],
+    }
+    return preview
 
 
 class AdminIssueCredentialsIn(BaseModel):
