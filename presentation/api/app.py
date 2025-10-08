@@ -71,6 +71,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 import re
 from services.whatsapp import parse_webhook as _wa_parse
+from services.whatsapp import send_buttons as _wa_send_buttons
 
 
 app = FastAPI(title="YGT Integration API", version="0.1.0")
@@ -82,6 +83,7 @@ _user_rules_store: Dict[str, List[Dict[str, Any]]] = {}
 # Dev-only in-memory actions store keyed by user_id
 _user_actions_store: Dict[str, List[Dict[str, Any]]] = {}
 _approvals_store: Dict[str, Dict[str, Any]] = {}
+_history_log: List[Dict[str, Any]] = []
 
 
 class DevEmailIn(BaseModel):
@@ -382,7 +384,29 @@ async def whatsapp_webhook(req: Request) -> Dict[str, Any]:
     except Exception:
         body = {}
     parsed = _wa_parse(body)
-    # For POC: echo back
+    # Basic command routing for POC
+    try:
+        if parsed.get("type") == "button":
+            bid = parsed.get("button_id") or ""
+            if bid.startswith("approve:"):
+                aid = bid.split(":", 1)[1]
+                return await actions_approve(aid)
+            if bid.startswith("edit:"):
+                aid = bid.split(":", 1)[1]
+                return await actions_edit(aid, EditIn(instructions="tweak"))
+            if bid.startswith("skip:"):
+                aid = bid.split(":", 1)[1]
+                return await actions_skip(aid)
+        if parsed.get("type") == "text":
+            text = (parsed.get("text") or "").strip().lower()
+            if text.startswith("approve "):
+                aid = text.split(" ", 1)[1]
+                return await actions_approve(aid)
+            if text.startswith("skip "):
+                aid = text.split(" ", 1)[1]
+                return await actions_skip(aid)
+    except Exception:
+        pass
     return {"ok": True, "parsed": parsed}
 
 
@@ -444,7 +468,9 @@ async def actions_scan(body: ScanIn) -> List[Dict[str, Any]]:
 
 
 @app.get("/approvals")
-async def approvals_list(filter: Optional[str] = Query(default="all")) -> List[Dict[str, Any]]:
+async def approvals_list(
+    filter: Optional[str] = Query(default="all"),
+) -> List[Dict[str, Any]]:
     items = list(_approvals_store.values())
     if filter in {"email", "calendar"}:
         items = [a for a in items if a.get("kind") == filter]
@@ -462,7 +488,13 @@ async def actions_approve(approval_id: str) -> Dict[str, Any]:
     if not a:
         raise HTTPException(status_code=404, detail="not_found")
     a["status"] = "approved"
-    # TODO: execute side effect and write to audit
+    # Write in-memory history for POC
+    _history_log.append({
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "verb": "approve",
+        "object": "approval",
+        "id": approval_id,
+    })
     return a
 
 
@@ -477,6 +509,13 @@ async def actions_edit(approval_id: str, body: EditIn) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail="not_found")
     a["status"] = "edited"
     a["edit_instructions"] = body.instructions
+    _history_log.append({
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "verb": "edit",
+        "object": "approval",
+        "id": approval_id,
+        "instructions": body.instructions,
+    })
     return a
 
 
@@ -486,6 +525,12 @@ async def actions_skip(approval_id: str) -> Dict[str, Any]:
     if not a:
         raise HTTPException(status_code=404, detail="not_found")
     a["status"] = "skipped"
+    _history_log.append({
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "verb": "skip",
+        "object": "approval",
+        "id": approval_id,
+    })
     return a
 
 
@@ -495,7 +540,40 @@ async def actions_undo(approval_id: str) -> Dict[str, Any]:
     if not a:
         raise HTTPException(status_code=404, detail="not_found")
     a["status"] = "proposed"
+    _history_log.append({
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "verb": "undo",
+        "object": "approval",
+        "id": approval_id,
+    })
     return a
+
+
+class WhatsAppSendApprovalIn(BaseModel):
+    to: str
+
+
+@app.post("/whatsapp/send/approval/{approval_id}")
+async def whatsapp_send_approval(approval_id: str, body: WhatsAppSendApprovalIn) -> Dict[str, Any]:
+    a = _approvals_store.get(approval_id)
+    if not a:
+        raise HTTPException(status_code=404, detail="not_found")
+    text = a.get("summary") or a.get("title") or f"Approve {approval_id}?"
+    buttons = [
+        {"id": f"approve:{approval_id}", "label": "Approve"},
+        {"id": f"edit:{approval_id}", "label": "Edit"},
+        {"id": f"skip:{approval_id}", "label": "Skip"},
+    ]
+    try:
+        res = _wa_send_buttons(body.to, text, buttons)
+        return {"ok": True, "result": res}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@app.get("/history")
+async def history(limit: int = 100) -> List[Dict[str, Any]]:
+    return list(reversed(_history_log))[: max(0, min(limit, 1000))]
 
 
 # Email endpoints
