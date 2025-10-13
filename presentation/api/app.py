@@ -72,6 +72,7 @@ from datetime import datetime, timezone, timedelta
 import re
 from services.whatsapp import parse_webhook as _wa_parse
 from services.whatsapp import send_buttons as _wa_send_buttons
+from services.whatsapp import send_text as _wa_send_text
 
 
 app = FastAPI(title="YGT Integration API", version="0.1.0")
@@ -84,6 +85,7 @@ _user_rules_store: Dict[str, List[Dict[str, Any]]] = {}
 _user_actions_store: Dict[str, List[Dict[str, Any]]] = {}
 _approvals_store: Dict[str, Dict[str, Any]] = {}
 _history_log: List[Dict[str, Any]] = []
+_drafts_store: Dict[str, Dict[str, Any]] = {}
 
 
 class DevEmailIn(BaseModel):
@@ -397,6 +399,12 @@ async def whatsapp_webhook(req: Request) -> Dict[str, Any]:
             if bid.startswith("skip:"):
                 aid = bid.split(":", 1)[1]
                 return await actions_skip(aid)
+            if bid.startswith("send:"):
+                did = bid.split(":", 1)[1]
+                return await email_send(did)
+            if bid.startswith("schedule:"):
+                # Not implemented in POC; acknowledge
+                return {"ok": True, "scheduled": False}
         if parsed.get("type") == "text":
             text = (parsed.get("text") or "").strip().lower()
             if text.startswith("approve "):
@@ -405,6 +413,9 @@ async def whatsapp_webhook(req: Request) -> Dict[str, Any]:
             if text.startswith("skip "):
                 aid = text.split(" ", 1)[1]
                 return await actions_skip(aid)
+            if text.startswith("send "):
+                did = text.split(" ", 1)[1]
+                return await email_send(did)
     except Exception:
         pass
     return {"ok": True, "parsed": parsed}
@@ -576,6 +587,47 @@ async def history(limit: int = 100) -> List[Dict[str, Any]]:
     return list(reversed(_history_log))[: max(0, min(limit, 1000))]
 
 
+class WhatsAppSendDraftIn(BaseModel):
+    to: str
+    draft_id: str
+
+
+@app.post("/whatsapp/send/draft")
+async def whatsapp_send_draft(body: WhatsAppSendDraftIn) -> Dict[str, Any]:
+    d = _drafts_store.get(body.draft_id)
+    if not d:
+        raise HTTPException(status_code=404, detail="not_found")
+    preview = f"Draft to {', '.join(d.get('to') or [])}\nSubject: {d.get('subject','')}\n{d.get('body','')[:200]}"
+    buttons = [
+        {"id": f"send:{body.draft_id}", "label": "Send"},
+        {"id": f"edit:{body.draft_id}", "label": "Edit"},
+        {"id": f"schedule:{body.draft_id}", "label": "Schedule"},
+    ]
+    try:
+        res = _wa_send_buttons(body.to, preview, buttons)
+        return {"ok": True, "result": res}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+class WhatsAppSendPlanIn(BaseModel):
+    to: str
+
+
+@app.post("/whatsapp/send/plan-today")
+async def whatsapp_send_plan_today(body: WhatsAppSendPlanIn) -> Dict[str, Any]:
+    c = CalendarService()
+    plan = c.list_today()
+    text = "Plan for Today\n" + "\n".join(
+        [f"• {i.get('time','10:00')} {i.get('title','Focus block')}" for i in plan]
+    )
+    try:
+        res = _wa_send_text(body.to, text)
+        return {"ok": True, "result": res}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
 # Email endpoints
 class DraftIn(BaseModel):
     to: List[str] = Field(default_factory=list)
@@ -588,6 +640,7 @@ class DraftIn(BaseModel):
 async def email_create_draft(body: DraftIn) -> Dict[str, Any]:
     g = GmailService()
     d = g.create_draft(body.to, body.subject, body.body)
+    _drafts_store[d["id"]] = d
     return d
 
 
@@ -595,7 +648,20 @@ async def email_create_draft(body: DraftIn) -> Dict[str, Any]:
 async def email_send(draft_id: str) -> Dict[str, Any]:
     g = GmailService()
     out = g.send(draft_id)
+    if draft_id in _drafts_store:
+        _drafts_store[draft_id]["status"] = "sent"
+    _history_log.append({
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "verb": "send",
+        "object": "draft",
+        "id": draft_id,
+    })
     return out
+
+
+@app.get("/drafts")
+async def list_drafts() -> List[Dict[str, Any]]:
+    return list(_drafts_store.values())
 
 
 # Calendar endpoints
