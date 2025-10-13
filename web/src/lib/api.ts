@@ -56,4 +56,6 @@ export const api = {
       body: JSON.stringify({ instructions }),
     }),
   skip: (id: string) => req(`/actions/skip/${encodeURIComponent(id)}`, { method: "POST" }),
+  undo: (id: string) => req(`/actions/undo/${encodeURIComponent(id)}`, { method: "POST" }),
+  history: (limit = 100) => req(`/history?limit=${limit}`),
 };
