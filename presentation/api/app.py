@@ -399,6 +399,12 @@ async def whatsapp_webhook(req: Request) -> Dict[str, Any]:
             if bid.startswith("skip:"):
                 aid = bid.split(":", 1)[1]
                 return await actions_skip(aid)
+            if bid.startswith("send:"):
+                did = bid.split(":", 1)[1]
+                return await email_send(did)
+            if bid.startswith("schedule:"):
+                # Not implemented in POC; acknowledge
+                return {"ok": True, "scheduled": False}
         if parsed.get("type") == "text":
             text = (parsed.get("text") or "").strip().lower()
             if text.startswith("approve "):
@@ -407,6 +413,9 @@ async def whatsapp_webhook(req: Request) -> Dict[str, Any]:
             if text.startswith("skip "):
                 aid = text.split(" ", 1)[1]
                 return await actions_skip(aid)
+            if text.startswith("send "):
+                did = text.split(" ", 1)[1]
+                return await email_send(did)
     except Exception:
         pass
     return {"ok": True, "parsed": parsed}
