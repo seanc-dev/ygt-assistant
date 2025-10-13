@@ -40,6 +40,10 @@ export default function ReviewPage() {
     await api.skip(id);
     await load(filter);
   };
+  const onUndo = async (id: string) => {
+    await api.undo(id);
+    await load(filter);
+  };
 
   return (
     <div className="p-6">
@@ -89,6 +93,7 @@ export default function ReviewPage() {
                   <button onClick={() => onApprove(a.id)} className="rounded bg-green-600 px-2 py-1 text-white text-sm">Approve</button>
                   <button onClick={() => onEdit(a.id)} className="rounded bg-amber-600 px-2 py-1 text-white text-sm">Edit</button>
                   <button onClick={() => onSkip(a.id)} className="rounded bg-gray-300 px-2 py-1 text-sm">Skip</button>
+                  <button onClick={() => onUndo(a.id)} className="rounded bg-slate-200 px-2 py-1 text-sm">Undo</button>
                 </div>
               </div>
             </div>
