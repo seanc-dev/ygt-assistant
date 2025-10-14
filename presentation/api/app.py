@@ -31,6 +31,7 @@ from settings import (
     COOKIE_NAME,
     ADMIN_UI_ORIGIN,
     CLIENT_UI_ORIGIN,
+    ENABLE_ADMIN,
 )
 from core.services.action_executor import execute_actions
 from utils.crypto import fernet_from, encrypt
@@ -225,6 +226,15 @@ async def add_request_id(request: Request, call_next):
         response = Response(status_code=500, content="internal_error")
     response.headers["x-request-id"] = rid
     return response
+
+# Block legacy admin endpoints when disabled
+@app.middleware("http")
+async def guard_admin_paths(request: Request, call_next):
+    if not ENABLE_ADMIN:
+        p = request.url.path or ""
+        if p.startswith("/admin") or p.startswith("/oauth") or p.startswith("/config"):
+            return Response(status_code=404, content="not_found")
+    return await call_next(request)
 
 
 # Dev-only helpers (do not enable in production)
