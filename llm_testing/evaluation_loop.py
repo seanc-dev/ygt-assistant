@@ -150,22 +150,33 @@ class EvaluationLoop:
         )
 
     def _call_assistant(self, prompt: str, scenario: Scenario) -> str:
-        """Call the actual assistant with the given prompt."""
+        """Call the assistant through the current FastAPI API via backend adapter.
+
+        The adapter must be provided as `assistant_client` and expose methods for
+        WhatsApp flows or direct actions. For free-text prompts, we simulate a
+        WhatsApp text message payload.
+        """
         try:
-            # Import the assistant function from openai_client
-            from openai_client import interpret_command
-
-            # Call the assistant with the prompt
-            response = interpret_command(prompt)
-
-            # Extract the response text from the function call result
-            if isinstance(response, dict) and "response" in response:
-                return response["response"]
-            elif isinstance(response, str):
-                return response
-            else:
-                return str(response)
-
+            backend = self.assistant
+            # Simulate a WhatsApp text inbound payload
+            payload = {
+                "entry": [
+                    {
+                        "changes": [
+                            {
+                                "value": {
+                                    "messages": [
+                                        {"type": "text", "text": {"body": prompt}}
+                                    ],
+                                    "contacts": [{"wa_id": "tester"}],
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+            res = backend.whatsapp_post(payload)
+            return str(res)
         except Exception as e:
             print(f"Assistant call failed: {e}")
             return f"Error calling assistant: {e}"
