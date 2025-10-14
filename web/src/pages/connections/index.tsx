@@ -3,9 +3,24 @@ import { Card } from "../../components/Card";
 
 export default function ConnectionsPage() {
   const tiles = [
-    { key: "gmail", title: "Gmail", desc: "Draft and send emails.", cta: "Test" },
-    { key: "calendar", title: "Calendar", desc: "Plan today and reschedule.", cta: "Test" },
-    { key: "whatsapp", title: "WhatsApp", desc: "Send cards and replies.", cta: "Test" },
+    {
+      key: "gmail",
+      title: "Gmail",
+      desc: "Draft and send emails.",
+      cta: "Test",
+    },
+    {
+      key: "calendar",
+      title: "Calendar",
+      desc: "Plan today and reschedule.",
+      cta: "Test",
+    },
+    {
+      key: "whatsapp",
+      title: "WhatsApp",
+      desc: "Send cards and replies.",
+      cta: "Test",
+    },
   ];
   return (
     <Layout>

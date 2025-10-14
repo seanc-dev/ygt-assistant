@@ -30,8 +30,13 @@ export default function HistoryPage() {
             <p className="text-sm text-gray-500">No recent actions.</p>
           ) : (
             events.map((e, idx) => (
-              <div key={idx} className="rounded border border-slate-200 p-3 text-sm dark:border-slate-800">
-                <div className="text-slate-500">{new Date(e.ts).toLocaleString()}</div>
+              <div
+                key={idx}
+                className="rounded border border-slate-200 p-3 text-sm dark:border-slate-800"
+              >
+                <div className="text-slate-500">
+                  {new Date(e.ts).toLocaleString()}
+                </div>
                 <div className="text-slate-900 dark:text-slate-100">
                   {e.verb} {e.object} {e.id}
                 </div>

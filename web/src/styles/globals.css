@@ -11,7 +11,10 @@ html {
   font-size: 17px; /* slightly larger for readability */
 }
 
-button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible {
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
   outline: 2px solid theme(colors.slate.400);
   outline-offset: 2px;
 }
