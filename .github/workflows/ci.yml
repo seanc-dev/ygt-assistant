@@ -67,6 +67,27 @@ PY
         env:
           RUN_E2E: true
         run: pytest -q -m e2e
+  llm-loop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run llm_testing minimal loop (in-process)
+        run: |
+          python - << 'PY'
+from llm_testing.backends.inprocess import InProcessBackend
+from llm_testing.evaluation_loop import MinimalEvaluationLoop
+backend = InProcessBackend()
+loop = MinimalEvaluationLoop(backend)
+out = loop.run_smoke()
+print({k: type(v).__name__ for k,v in out.items()})
+PY
       - name: Dry-run apply schema and migrations
         env:
           PGHOST: localhost
