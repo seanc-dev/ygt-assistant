@@ -227,6 +227,7 @@ async def add_request_id(request: Request, call_next):
     response.headers["x-request-id"] = rid
     return response
 
+
 # Block legacy admin endpoints when disabled
 @app.middleware("http")
 async def guard_admin_paths(request: Request, call_next):
@@ -510,12 +511,14 @@ async def actions_approve(approval_id: str) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail="not_found")
     a["status"] = "approved"
     # Write in-memory history for POC
-    _history_log.append({
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "verb": "approve",
-        "object": "approval",
-        "id": approval_id,
-    })
+    _history_log.append(
+        {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "verb": "approve",
+            "object": "approval",
+            "id": approval_id,
+        }
+    )
     return a
 
 
@@ -530,13 +533,15 @@ async def actions_edit(approval_id: str, body: EditIn) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail="not_found")
     a["status"] = "edited"
     a["edit_instructions"] = body.instructions
-    _history_log.append({
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "verb": "edit",
-        "object": "approval",
-        "id": approval_id,
-        "instructions": body.instructions,
-    })
+    _history_log.append(
+        {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "verb": "edit",
+            "object": "approval",
+            "id": approval_id,
+            "instructions": body.instructions,
+        }
+    )
     return a
 
 
@@ -546,12 +551,14 @@ async def actions_skip(approval_id: str) -> Dict[str, Any]:
     if not a:
         raise HTTPException(status_code=404, detail="not_found")
     a["status"] = "skipped"
-    _history_log.append({
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "verb": "skip",
-        "object": "approval",
-        "id": approval_id,
-    })
+    _history_log.append(
+        {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "verb": "skip",
+            "object": "approval",
+            "id": approval_id,
+        }
+    )
     return a
 
 
@@ -561,12 +568,14 @@ async def actions_undo(approval_id: str) -> Dict[str, Any]:
     if not a:
         raise HTTPException(status_code=404, detail="not_found")
     a["status"] = "proposed"
-    _history_log.append({
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "verb": "undo",
-        "object": "approval",
-        "id": approval_id,
-    })
+    _history_log.append(
+        {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "verb": "undo",
+            "object": "approval",
+            "id": approval_id,
+        }
+    )
     return a
 
 
@@ -575,7 +584,9 @@ class WhatsAppSendApprovalIn(BaseModel):
 
 
 @app.post("/whatsapp/send/approval/{approval_id}")
-async def whatsapp_send_approval(approval_id: str, body: WhatsAppSendApprovalIn) -> Dict[str, Any]:
+async def whatsapp_send_approval(
+    approval_id: str, body: WhatsAppSendApprovalIn
+) -> Dict[str, Any]:
     a = _approvals_store.get(approval_id)
     if not a:
         raise HTTPException(status_code=404, detail="not_found")
@@ -660,12 +671,14 @@ async def email_send(draft_id: str) -> Dict[str, Any]:
     out = g.send(draft_id)
     if draft_id in _drafts_store:
         _drafts_store[draft_id]["status"] = "sent"
-    _history_log.append({
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "verb": "send",
-        "object": "draft",
-        "id": draft_id,
-    })
+    _history_log.append(
+        {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "verb": "send",
+            "object": "draft",
+            "id": draft_id,
+        }
+    )
     return out
 
 

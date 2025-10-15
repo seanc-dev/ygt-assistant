@@ -18,14 +18,34 @@ class MinimalEvaluationLoop:
         if approvals:
             approved = self.backend.actions_approve(approvals[0].get("id", ""))
         # 3) Create and send a draft
-        draft = self.backend.email_create_draft(["test@example.com"], "Hello", "Hi there")
+        draft = self.backend.email_create_draft(
+            ["test@example.com"], "Hello", "Hi there"
+        )
         sent = self.backend.email_send(draft.get("id", ""))
         # 4) Plan today
         plan = self.backend.calendar_plan_today()
         # 5) Post a WhatsApp text
-        wa = self.backend.whatsapp_post({
-            "entry": [{"changes": [{"value": {"messages": [{"type": "text", "text": {"body": "approve 123"}}], "contacts": [{"wa_id": "tester"}]}}]}]
-        })
+        wa = self.backend.whatsapp_post(
+            {
+                "entry": [
+                    {
+                        "changes": [
+                            {
+                                "value": {
+                                    "messages": [
+                                        {
+                                            "type": "text",
+                                            "text": {"body": "approve 123"},
+                                        }
+                                    ],
+                                    "contacts": [{"wa_id": "tester"}],
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        )
         return {
             "approvals": approvals,
             "approved": approved,
@@ -34,5 +54,3 @@ class MinimalEvaluationLoop:
             "plan": plan,
             "wa": wa,
         }
-
-

@@ -16,7 +16,12 @@ def _is_dev() -> bool:
 
 
 # Feature flags and defaults
-ENABLE_ADMIN = (os.getenv("ENABLE_ADMIN", "false").strip().lower() in {"1", "true", "yes", "on"})
+ENABLE_ADMIN = os.getenv("ENABLE_ADMIN", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 USE_PORTS = os.getenv("USE_PORTS", "false").lower() == "true"
 VERIFY_NYLAS = os.getenv("VERIFY_NYLAS", "false").lower() == "true"
 NYLAS_SIGNING_SECRET = os.getenv("NYLAS_SIGNING_SECRET", "")
