@@ -46,16 +46,20 @@ export const api = {
       method: "POST",
     }),
   // Approvals & Actions (POC)
-  approvals: (filter: string = "all") => req(`/approvals?filter=${encodeURIComponent(filter)}`),
+  approvals: (filter: string = "all") =>
+    req(`/approvals?filter=${encodeURIComponent(filter)}`),
   scan: (domains: string[]) =>
     req(`/actions/scan`, { method: "POST", body: JSON.stringify({ domains }) }),
-  approve: (id: string) => req(`/actions/approve/${encodeURIComponent(id)}`, { method: "POST" }),
+  approve: (id: string) =>
+    req(`/actions/approve/${encodeURIComponent(id)}`, { method: "POST" }),
   edit: (id: string, instructions: string) =>
     req(`/actions/edit/${encodeURIComponent(id)}`, {
       method: "POST",
       body: JSON.stringify({ instructions }),
     }),
-  skip: (id: string) => req(`/actions/skip/${encodeURIComponent(id)}`, { method: "POST" }),
-  undo: (id: string) => req(`/actions/undo/${encodeURIComponent(id)}`, { method: "POST" }),
+  skip: (id: string) =>
+    req(`/actions/skip/${encodeURIComponent(id)}`, { method: "POST" }),
+  undo: (id: string) =>
+    req(`/actions/undo/${encodeURIComponent(id)}`, { method: "POST" }),
   history: (limit = 100) => req(`/history?limit=${limit}`),
 };

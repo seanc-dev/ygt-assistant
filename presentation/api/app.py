@@ -31,13 +31,9 @@ from settings import (
     COOKIE_NAME,
     ADMIN_UI_ORIGIN,
     CLIENT_UI_ORIGIN,
+    ENABLE_ADMIN,
 )
 from core.services.action_executor import execute_actions
-from utils.crypto import fernet_from, encrypt
-from infra.repos import connections_factory
-from infra.repos.nylas_grants_factory import repo as nylas_grants_repo
-from infra.memory import state_store
-from core.domain.nylas_grant import NylasGrant
 import hmac
 import hashlib
 import inspect
@@ -181,6 +177,7 @@ allowed_origins = {
     # Explicit admin and client UI origins
     (ADMIN_UI_ORIGIN or "").strip(),
     (CLIENT_UI_ORIGIN or "").strip(),
+    os.getenv("WEB_ORIGIN", "").strip(),
     # Explicit prod admin domain kept for safety
     "https://admin.coachflow.nz",
     # Local dev hosts (admin-ui, client-ui, site)
@@ -226,6 +223,31 @@ async def add_request_id(request: Request, call_next):
     response.headers["x-request-id"] = rid
     return response
 
+
+# Block legacy admin endpoints when disabled
+@app.middleware("http")
+async def guard_admin_paths(request: Request, call_next):
+    if not ENABLE_ADMIN:
+        p = request.url.path or ""
+        if p.startswith("/admin") or p.startswith("/oauth") or p.startswith("/config"):
+            return Response(status_code=404, content="not_found")
+    return await call_next(request)
+
+
+"""Register routes from split modules."""
+try:
+    from presentation.api.routes.whatsapp import router as whatsapp_router
+    from presentation.api.routes.actions import router as actions_router
+    from presentation.api.routes.email import router as email_router
+    from presentation.api.routes.calendar import router as calendar_router
+    from presentation.api.routes.core import router as core_router
+    app.include_router(whatsapp_router)
+    app.include_router(actions_router)
+    app.include_router(email_router)
+    app.include_router(calendar_router)
+    app.include_router(core_router)
+except Exception:
+    pass
 
 # Dev-only helpers (do not enable in production)
 if (os.getenv("DEV_MODE", "").strip().lower() in {"1", "true", "yes", "on"}) or (
@@ -500,12 +522,14 @@ async def actions_approve(approval_id: str) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail="not_found")
     a["status"] = "approved"
     # Write in-memory history for POC
-    _history_log.append({
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "verb": "approve",
-        "object": "approval",
-        "id": approval_id,
-    })
+    _history_log.append(
+        {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "verb": "approve",
+            "object": "approval",
+            "id": approval_id,
+        }
+    )
     return a
 
 
@@ -520,13 +544,15 @@ async def actions_edit(approval_id: str, body: EditIn) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail="not_found")
     a["status"] = "edited"
     a["edit_instructions"] = body.instructions
-    _history_log.append({
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "verb": "edit",
-        "object": "approval",
-        "id": approval_id,
-        "instructions": body.instructions,
-    })
+    _history_log.append(
+        {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "verb": "edit",
+            "object": "approval",
+            "id": approval_id,
+            "instructions": body.instructions,
+        }
+    )
     return a
 
 
@@ -536,12 +562,14 @@ async def actions_skip(approval_id: str) -> Dict[str, Any]:
     if not a:
         raise HTTPException(status_code=404, detail="not_found")
     a["status"] = "skipped"
-    _history_log.append({
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "verb": "skip",
-        "object": "approval",
-        "id": approval_id,
-    })
+    _history_log.append(
+        {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "verb": "skip",
+            "object": "approval",
+            "id": approval_id,
+        }
+    )
     return a
 
 
@@ -551,12 +579,14 @@ async def actions_undo(approval_id: str) -> Dict[str, Any]:
     if not a:
         raise HTTPException(status_code=404, detail="not_found")
     a["status"] = "proposed"
-    _history_log.append({
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "verb": "undo",
-        "object": "approval",
-        "id": approval_id,
-    })
+    _history_log.append(
+        {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "verb": "undo",
+            "object": "approval",
+            "id": approval_id,
+        }
+    )
     return a
 
 
@@ -565,7 +595,9 @@ class WhatsAppSendApprovalIn(BaseModel):
 
 
 @app.post("/whatsapp/send/approval/{approval_id}")
-async def whatsapp_send_approval(approval_id: str, body: WhatsAppSendApprovalIn) -> Dict[str, Any]:
+async def whatsapp_send_approval(
+    approval_id: str, body: WhatsAppSendApprovalIn
+) -> Dict[str, Any]:
     a = _approvals_store.get(approval_id)
     if not a:
         raise HTTPException(status_code=404, detail="not_found")
@@ -650,12 +682,14 @@ async def email_send(draft_id: str) -> Dict[str, Any]:
     out = g.send(draft_id)
     if draft_id in _drafts_store:
         _drafts_store[draft_id]["status"] = "sent"
-    _history_log.append({
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "verb": "send",
-        "object": "draft",
-        "id": draft_id,
-    })
+    _history_log.append(
+        {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "verb": "send",
+            "object": "draft",
+            "id": draft_id,
+        }
+    )
     return out
 
 

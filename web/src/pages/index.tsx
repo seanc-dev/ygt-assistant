@@ -43,9 +43,20 @@ export default function Home() {
       .approvals("all")
       .then((res) => setApprovals((res || []).slice(0, 3)))
       .catch(() => setApprovals([]));
-    fetch(`${process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.coachflow.nz"}/calendar/plan-today`, { credentials: "include" })
+    fetch(
+      `${
+        process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.coachflow.nz"
+      }/calendar/plan-today`,
+      { credentials: "include" }
+    )
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => setPlan((d.plan || []).map((i: any) => `${i.time || "10:00"} ${i.title || "Focus"}`)))
+      .then((d) =>
+        setPlan(
+          (d.plan || []).map(
+            (i: any) => `${i.time || "10:00"} ${i.title || "Focus"}`
+          )
+        )
+      )
       .catch(() => setPlan([]));
   }, []);
 
@@ -77,7 +88,11 @@ export default function Home() {
         </Card>
         <Card title="Suggested focus" subtitle="90 minutes">
           <ul className="list-disc pl-5 text-sm text-slate-700 dark:text-slate-300">
-            {plan.length === 0 ? <li>No plan yet</li> : plan.map((p, i) => <li key={i}>{p}</li>)}
+            {plan.length === 0 ? (
+              <li>No plan yet</li>
+            ) : (
+              plan.map((p, i) => <li key={i}>{p}</li>)
+            )}
           </ul>
         </Card>
       </div>

@@ -8,15 +8,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY core/ ./core/
-COPY infra/ ./infra/
+COPY services/ ./services/
 COPY utils/ ./utils/
-COPY adapters/ ./adapters/
 COPY config/ ./config/
 COPY settings.py .
-COPY calendar_agent_eventkit.py .
-COPY openai_client.py .
-COPY main.py .
 COPY presentation/api/ ./presentation/api/
+COPY web/ ./web/
 
 # Expose port
 EXPOSE 8000

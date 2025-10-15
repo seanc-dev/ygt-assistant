@@ -33,7 +33,9 @@ export default function AutomationsPage() {
                 <input
                   type="checkbox"
                   checked={!!enabled[it.key]}
-                  onChange={(e) => setEnabled((s) => ({ ...s, [it.key]: e.target.checked }))}
+                  onChange={(e) =>
+                    setEnabled((s) => ({ ...s, [it.key]: e.target.checked }))
+                  }
                 />
                 <span>{enabled[it.key] ? "On" : "Off"}</span>
               </label>
