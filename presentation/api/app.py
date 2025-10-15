@@ -177,6 +177,7 @@ allowed_origins = {
     # Explicit admin and client UI origins
     (ADMIN_UI_ORIGIN or "").strip(),
     (CLIENT_UI_ORIGIN or "").strip(),
+    os.getenv("WEB_ORIGIN", "").strip(),
     # Explicit prod admin domain kept for safety
     "https://admin.coachflow.nz",
     # Local dev hosts (admin-ui, client-ui, site)
