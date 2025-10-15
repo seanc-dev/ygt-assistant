@@ -34,11 +34,6 @@ from settings import (
     ENABLE_ADMIN,
 )
 from core.services.action_executor import execute_actions
-from utils.crypto import fernet_from, encrypt
-from infra.repos import connections_factory
-from infra.repos.nylas_grants_factory import repo as nylas_grants_repo
-from infra.memory import state_store
-from core.domain.nylas_grant import NylasGrant
 import hmac
 import hashlib
 import inspect
@@ -237,6 +232,21 @@ async def guard_admin_paths(request: Request, call_next):
             return Response(status_code=404, content="not_found")
     return await call_next(request)
 
+
+"""Register routes from split modules."""
+try:
+    from presentation.api.routes.whatsapp import router as whatsapp_router
+    from presentation.api.routes.actions import router as actions_router
+    from presentation.api.routes.email import router as email_router
+    from presentation.api.routes.calendar import router as calendar_router
+    from presentation.api.routes.core import router as core_router
+    app.include_router(whatsapp_router)
+    app.include_router(actions_router)
+    app.include_router(email_router)
+    app.include_router(calendar_router)
+    app.include_router(core_router)
+except Exception:
+    pass
 
 # Dev-only helpers (do not enable in production)
 if (os.getenv("DEV_MODE", "").strip().lower() in {"1", "true", "yes", "on"}) or (

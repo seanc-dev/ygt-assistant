@@ -1,0 +1,27 @@
+from __future__ import annotations
+from typing import Any, Dict, List
+from fastapi import APIRouter
+from services.gmail import GmailService
+from presentation.api.state import drafts_store, history_log
+
+router = APIRouter()
+
+@router.post("/email/drafts")
+async def email_create_draft(body: Dict[str, Any]) -> Dict[str, Any]:
+    g = GmailService()
+    d = g.create_draft(body.get("to") or [], body.get("subject") or "", body.get("body") or "")
+    drafts_store[d["id"]] = d
+    return d
+
+@router.post("/email/send/{draft_id}")
+async def email_send(draft_id: str) -> Dict[str, Any]:
+    g = GmailService()
+    out = g.send(draft_id)
+    if draft_id in drafts_store:
+        drafts_store[draft_id]["status"] = "sent"
+    history_log.append({"ts": "now", "verb": "send", "object": "draft", "id": draft_id})
+    return out
+
+@router.get("/drafts")
+async def list_drafts() -> List[Dict[str, Any]]:
+    return list(drafts_store.values())
