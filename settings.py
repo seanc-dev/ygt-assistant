@@ -70,6 +70,10 @@ def _enforce_secret_hardening() -> bool:
 
 def _validate_admin_secret(secret: str) -> str:
     if not _enforce_secret_hardening():
+        # In dev/test, auto-generate a strong secret when unset or using the insecure default
+        if not secret or secret == _ADMIN_SECRET_DEFAULT:
+            import secrets as _secrets
+            return _secrets.token_urlsafe(32)
         return secret
     if not secret:
         raise RuntimeError("ADMIN_SECRET must be configured")
@@ -84,6 +88,9 @@ def _validate_admin_secret(secret: str) -> str:
 
 def _validate_encryption_key(key: str) -> str:
     if not _enforce_secret_hardening():
+        # In dev/test, auto-generate a Fernet key when unset
+        if not key:
+            return Fernet.generate_key().decode()
         return key
     if not key:
         raise RuntimeError("ENCRYPTION_KEY must be configured with a Fernet key.")
