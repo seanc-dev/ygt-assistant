@@ -18,7 +18,7 @@ create index if not exists idx_approvals_status_expires on approvals (status, ex
 
 create table if not exists drafts (
   id uuid primary key default gen_random_uuid(),
-  to jsonb,
+  recipients jsonb,
   subject text,
   body text,
   tone text,
