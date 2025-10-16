@@ -55,7 +55,7 @@ create table if not exists core_memory (
   level text,
   key text,
   value jsonb,
-  vector vector(1536),
+  vector extensions.vector(1536),
   meta jsonb,
   created_at timestamptz default now(),
   last_used_at timestamptz
