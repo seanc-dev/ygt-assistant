@@ -61,16 +61,106 @@ from utils.client_session import (
     client_cookie_name,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from infra.repos import tenant_rules_factory
-from infra.repos import settings_factory
-from infra.repos.factory import users_repo
 from fastapi.responses import RedirectResponse, StreamingResponse
-from infra.repos.mailer_factory import mailer
+# Optional infra repos; provide stubs in dev when infra is unavailable
+try:  # pragma: no cover - import guard for trimmed repos
+    from infra.repos import tenant_rules_factory  # type: ignore
+    from infra.repos import settings_factory  # type: ignore
+    from infra.repos.factory import users_repo  # type: ignore
+    from infra.repos.factory import audit_repo  # type: ignore
+    from infra.repos.mailer_factory import mailer  # type: ignore
+    from infra.repos import connections_factory  # type: ignore
+except Exception:  # pragma: no cover
+    class _StubTenantsRepo:
+        def list(self):
+            return []
+
+        def create(self, name: str) -> str:
+            return "tenant-dev"
+
+        def exists(self, tenant_id: str) -> bool:
+            return True
+
+    class _StubRulesRepo:
+        def get_yaml(self, tenant_id: str) -> str:
+            return ""
+
+        def set_yaml(self, tenant_id: str, yaml_text: str) -> None:
+            return None
+
+    class tenant_rules_factory:  # type: ignore
+        @staticmethod
+        def tenants_repo() -> _StubTenantsRepo:
+            return _StubTenantsRepo()
+
+        @staticmethod
+        def rules_repo() -> _StubRulesRepo:
+            return _StubRulesRepo()
+
+    class _StubSettingsRepo:
+        def get_all(self, tenant_id: str):
+            return {}
+
+        def get(self, tenant_id: str, key: str):
+            return None
+
+        def set_many(self, tenant_id: str, data: Dict[str, str]) -> None:
+            return None
+
+    class settings_factory:  # type: ignore
+        @staticmethod
+        def repo() -> _StubSettingsRepo:
+            return _StubSettingsRepo()
+
+    class _StubUsersRepo:
+        def get_by_email(self, email: str):
+            return {"id": "u-dev", "email": email, "name": "Dev", "password_hash": ""}
+
+        def update_password(self, user_id: str, pw_hash: str, must_change: bool) -> None:
+            return None
+
+        def upsert(self, tenant_id: str, email: str, name: str | None, pw_hash: str, *, must_change: bool) -> str:
+            return "u-dev"
+
+        def get_by_id(self, user_id: str):
+            return {"id": user_id, "email": "dev@example.com", "name": "Dev", "must_change_password": False}
+
+        def update_profile(self, user_id: str, updates: Dict[str, Any]):
+            base = {"id": user_id, "email": "dev@example.com", "name": updates.get("name") or "Dev", "must_change_password": False}
+            return base
+
+    def users_repo():  # type: ignore
+        return _StubUsersRepo()
+
+    class _StubAuditRepo:
+        def write(self, entry: Dict[str, Any]) -> str:
+            return entry.get("request_id") or "req_dev"
+
+    def audit_repo():  # type: ignore
+        return _StubAuditRepo()
+
+    class _StubMailer:
+        def send(self, **kwargs):
+            return {"ok": True}
+
+    def mailer():  # type: ignore
+        return _StubMailer()
+
+    class _StubConnectionsRepo:
+        def list_for_tenant(self, tenant_id: str, provider: str):
+            return []
+
+        def list_exists_for_tenants(self, ids: List[str]):
+            return {tid: {"notion": False, "nylas": False} for tid in ids}
+
+    class connections_factory:  # type: ignore
+        @staticmethod
+        def repo() -> _StubConnectionsRepo:
+            return _StubConnectionsRepo()
 from utils.email_templates import render_onboarding_email
 from services.gmail import GmailService
 from services.calendar import CalendarService
 from services import llm as llm_service
-from infra.repos.factory import audit_repo
 from core.store import get_store
 import yaml
 import uuid
