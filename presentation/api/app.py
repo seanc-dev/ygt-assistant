@@ -241,11 +241,16 @@ try:
     from presentation.api.routes.email import router as email_router
     from presentation.api.routes.calendar import router as calendar_router
     from presentation.api.routes.core import router as core_router
+    from presentation.api.routes.connections_google import (
+        router as connections_google_router,
+    )
+
     app.include_router(whatsapp_router)
     app.include_router(actions_router)
     app.include_router(email_router)
     app.include_router(calendar_router)
     app.include_router(core_router)
+    app.include_router(connections_google_router)
 except Exception:
     pass
 
