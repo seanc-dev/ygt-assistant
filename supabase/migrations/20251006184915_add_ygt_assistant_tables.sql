@@ -40,6 +40,16 @@ create table if not exists automations (
 
 create index if not exists idx_automations_enabled on automations (enabled);
 
+-- Ensure vector extension is available (schema may vary). Attempt create in current search_path.
+do $$ begin
+  begin
+    execute 'create extension if not exists vector';
+  exception when others then
+    -- ignore
+    null;
+  end;
+end $$;
+
 create table if not exists core_memory (
   id uuid primary key default gen_random_uuid(),
   level text,
