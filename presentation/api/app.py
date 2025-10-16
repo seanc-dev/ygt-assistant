@@ -1,4 +1,14 @@
 from typing import Any, Dict, List, Optional
+# Load env before any imports that may pull in settings
+try:
+    from dotenv import load_dotenv as _ld
+    try:
+        _ld(".env.local", override=True)
+    except Exception:
+        pass
+    _ld()
+except Exception:
+    pass
 
 from fastapi import FastAPI, HTTPException, Request, Query, Depends, Response
 from pydantic import BaseModel, Field
