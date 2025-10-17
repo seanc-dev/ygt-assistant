@@ -344,7 +344,11 @@ async def add_request_id(request: Request, call_next):
     try:
         response = await call_next(request)
     except Exception as exc:
-        # Ensure request id is present even on errors
+        # Ensure request id is present even on errors; log the exception for diagnosis
+        try:
+            logging.getLogger(__name__).exception("request %s error: %s", rid, exc)
+        except Exception:
+            pass
         response = Response(status_code=500, content="internal_error")
     response.headers["x-request-id"] = rid
     return response
