@@ -73,6 +73,7 @@ def _validate_admin_secret(secret: str) -> str:
         # In dev/test, auto-generate a strong secret when unset or using the insecure default
         if not secret or secret == _ADMIN_SECRET_DEFAULT:
             import secrets as _secrets
+
             return _secrets.token_urlsafe(32)
         return secret
     if not secret:

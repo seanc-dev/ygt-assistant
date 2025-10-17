@@ -7,12 +7,16 @@ from pathlib import Path
 def main() -> int:
     db_url = os.getenv("SUPABASE_DB_URL") or os.getenv("DATABASE_URL")
     if not db_url:
-        print("SUPABASE_DB_URL not set; cannot apply migrations. Set it to a Postgres connection string.")
+        print(
+            "SUPABASE_DB_URL not set; cannot apply migrations. Set it to a Postgres connection string."
+        )
         return 2
     try:
         import psycopg
     except Exception:
-        print("psycopg not installed. Add 'psycopg[binary]' to requirements and reinstall.")
+        print(
+            "psycopg not installed. Add 'psycopg[binary]' to requirements and reinstall."
+        )
         return 3
 
     migrations_dir = Path(__file__).parent.parent / "supabase" / "migrations"
@@ -39,5 +43,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-

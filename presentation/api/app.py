@@ -1,7 +1,9 @@
 from typing import Any, Dict, List, Optional
+
 # Load env before any imports that may pull in settings
 try:
     from dotenv import load_dotenv as _ld
+
     try:
         _ld(".env.local", override=True)
     except Exception:
@@ -62,6 +64,7 @@ from utils.client_session import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, StreamingResponse
+
 # Optional infra repos; provide stubs in dev when infra is unavailable
 try:  # pragma: no cover - import guard for trimmed repos
     from infra.repos import tenant_rules_factory  # type: ignore
@@ -71,6 +74,7 @@ try:  # pragma: no cover - import guard for trimmed repos
     from infra.repos.mailer_factory import mailer  # type: ignore
     from infra.repos import connections_factory  # type: ignore
 except Exception:  # pragma: no cover
+
     class _StubTenantsRepo:
         def list(self):
             return []
@@ -116,17 +120,37 @@ except Exception:  # pragma: no cover
         def get_by_email(self, email: str):
             return {"id": "u-dev", "email": email, "name": "Dev", "password_hash": ""}
 
-        def update_password(self, user_id: str, pw_hash: str, must_change: bool) -> None:
+        def update_password(
+            self, user_id: str, pw_hash: str, must_change: bool
+        ) -> None:
             return None
 
-        def upsert(self, tenant_id: str, email: str, name: str | None, pw_hash: str, *, must_change: bool) -> str:
+        def upsert(
+            self,
+            tenant_id: str,
+            email: str,
+            name: str | None,
+            pw_hash: str,
+            *,
+            must_change: bool,
+        ) -> str:
             return "u-dev"
 
         def get_by_id(self, user_id: str):
-            return {"id": user_id, "email": "dev@example.com", "name": "Dev", "must_change_password": False}
+            return {
+                "id": user_id,
+                "email": "dev@example.com",
+                "name": "Dev",
+                "must_change_password": False,
+            }
 
         def update_profile(self, user_id: str, updates: Dict[str, Any]):
-            base = {"id": user_id, "email": "dev@example.com", "name": updates.get("name") or "Dev", "must_change_password": False}
+            base = {
+                "id": user_id,
+                "email": "dev@example.com",
+                "name": updates.get("name") or "Dev",
+                "must_change_password": False,
+            }
             return base
 
     def users_repo():  # type: ignore
@@ -157,6 +181,8 @@ except Exception:  # pragma: no cover
         @staticmethod
         def repo() -> _StubConnectionsRepo:
             return _StubConnectionsRepo()
+
+
 from utils.email_templates import render_onboarding_email
 from services.gmail import GmailService
 from services.calendar import CalendarService

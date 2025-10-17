@@ -4,12 +4,16 @@ import { Card } from "../components/Card";
 
 export default function ChatPage() {
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+  const [messages, setMessages] = useState<{ role: string; content: string }[]>(
+    []
+  );
   const [approvals, setApprovals] = useState<any[]>([]);
 
   async function send() {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000"}/chat`,
+      `${
+        process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000"
+      }/chat`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -17,7 +21,11 @@ export default function ChatPage() {
       }
     );
     const data = await res.json();
-    setMessages((prev) => [...prev, { role: "user", content: input }, ...(data.messages || [])]);
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", content: input },
+      ...(data.messages || []),
+    ]);
     setApprovals(data.approvals || []);
     setInput("");
   }
@@ -62,7 +70,9 @@ export default function ChatPage() {
             {approvals.map((a) => (
               <div key={a.id} className="rounded border p-2 text-sm">
                 <div className="font-medium">{a.title || a.summary}</div>
-                <div className="text-xs text-slate-500">{a.id} · {a.kind} · {a.status}</div>
+                <div className="text-xs text-slate-500">
+                  {a.id} · {a.kind} · {a.status}
+                </div>
               </div>
             ))}
           </div>
@@ -71,5 +81,3 @@ export default function ChatPage() {
     </Layout>
   );
 }
-
-

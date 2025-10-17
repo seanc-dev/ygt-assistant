@@ -6,6 +6,7 @@ from typing import Optional
 try:  # pragma: no cover - allow running without infra repos
     from infra.repos.factory import client_sessions_repo  # type: ignore
 except Exception:  # pragma: no cover
+
     class _MemoryClientSessions:
         _rows = {}
 
