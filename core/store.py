@@ -39,7 +39,18 @@ class InMemoryCoreStore:
         results.sort(key=lambda x: x.created_at, reverse=True)
         return results
 
+    def list_by_level(self, level: str) -> List[CoreMemoryItem]:
+        items = [it for it in self._items.values() if it.level == level]
+        items.sort(key=lambda x: x.created_at, reverse=True)
+        return items
+
+
+_STORE_SINGLETON: InMemoryCoreStore | None = None
+
 
 def get_store() -> InMemoryCoreStore:
-    # For POC, return in-memory store. Later, wire Supabase-backed store via env USE_DB.
-    return InMemoryCoreStore()
+    # For POC, return a process-wide in-memory singleton store.
+    global _STORE_SINGLETON
+    if _STORE_SINGLETON is None:
+        _STORE_SINGLETON = InMemoryCoreStore()
+    return _STORE_SINGLETON
