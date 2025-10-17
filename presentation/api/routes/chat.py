@@ -61,9 +61,7 @@ async def chat(body: Dict[str, Any]) -> Dict[str, Any]:
             _, _, aid = lowered.partition(" ")
             res = await _actions_approve(aid)
             if res.get("error"):
-                return {
-                    "messages": [{"role": "assistant", "content": "Not found."}]
-                }
+                return {"messages": [{"role": "assistant", "content": "Not found."}]}
             return {
                 "messages": [
                     {
@@ -77,9 +75,7 @@ async def chat(body: Dict[str, Any]) -> Dict[str, Any]:
             _, _, aid = lowered.partition(" ")
             res = await _actions_skip(aid)
             if res.get("error"):
-                return {
-                    "messages": [{"role": "assistant", "content": "Not found."}]
-                }
+                return {"messages": [{"role": "assistant", "content": "Not found."}]}
             return {"messages": [{"role": "assistant", "content": f"Skipped {aid}."}]}
 
         return {

@@ -4,7 +4,13 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 import os
 
-CORE_ENABLE_VECTORS = (os.getenv("CORE_ENABLE_VECTORS", "false").lower() in {"1","true","yes","on"})
+CORE_ENABLE_VECTORS = os.getenv("CORE_ENABLE_VECTORS", "false").lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+
 
 @dataclass
 class CoreMemoryItem:

@@ -41,29 +41,33 @@ async def approvals_list(
 
 @router.post("/actions/scan")
 async def actions_scan(body: Dict[str, Any]) -> List[Dict[str, Any]]:
-    store = get_store()
-    core_ctx = {
-        "episodic": [m.__dict__ for m in store.list_by_level("episodic")][:5],
-        "semantic": [m.__dict__ for m in store.list_by_level("semantic")][:5],
-        "procedural": [m.__dict__ for m in store.list_by_level("procedural")][:5],
-        "narrative": [m.__dict__ for m in store.list_by_level("narrative")][:5],
-    }
-    context = {"domains": body.get("domains") or []}
-    approvals = llm_service.summarise_and_propose(context, core_ctx)
-    for a in approvals:
-        a.setdefault("status", "proposed")
-        approvals_store[a["id"]] = a
-    rid = "scan"
-    _audit_repo().write(
-        {
-            "request_id": rid,
-            "tenant_id": TENANT_DEFAULT,
-            "dry_run": True,
-            "actions": approvals,
-            "results": {"source": "actions_scan"},
+    try:
+        store = get_store()
+        core_ctx = {
+            "episodic": [m.__dict__ for m in store.list_by_level("episodic")][:5],
+            "semantic": [m.__dict__ for m in store.list_by_level("semantic")][:5],
+            "procedural": [m.__dict__ for m in store.list_by_level("procedural")][:5],
+            "narrative": [m.__dict__ for m in store.list_by_level("narrative")][:5],
         }
-    )
-    return approvals
+        context = {"domains": body.get("domains") or []}
+        approvals = llm_service.summarise_and_propose(context, core_ctx)
+        for a in approvals:
+            a.setdefault("status", "proposed")
+            approvals_store[a["id"]] = a
+        rid = "scan"
+        _audit_repo().write(
+            {
+                "request_id": rid,
+                "tenant_id": TENANT_DEFAULT,
+                "dry_run": True,
+                "actions": approvals,
+                "results": {"source": "actions_scan"},
+            }
+        )
+        return approvals
+    except Exception as e:
+        # Return an empty list in dev to avoid UI hangs; attach error via header is not possible here
+        return [{"id": "err", "kind": "error", "title": type(e).__name__, "summary": str(e), "status": "error"}]
 
 
 @router.post("/actions/approve/{approval_id}")
