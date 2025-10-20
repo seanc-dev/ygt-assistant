@@ -27,7 +27,9 @@ async def status(user_id: str = Query(...)) -> Dict[str, Any]:
 
 
 @router.get("/oauth/start")
-async def oauth_start(user_id: str = Query(...), tenant: str = Query("common")) -> RedirectResponse:
+async def oauth_start(
+    user_id: str = Query(...), tenant: str = Query("common")
+) -> RedirectResponse:
     cfg = _client()
     # PKCE for later; MVP uses basic code flow
     params = {
@@ -38,12 +40,18 @@ async def oauth_start(user_id: str = Query(...), tenant: str = Query("common")) 
         "scope": "User.Read offline_access Mail.ReadWrite Mail.Send Calendars.ReadWrite",
         "state": user_id,
     }
-    url = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize".format(tenant=tenant)
-    return RedirectResponse(url=f"{url}?" + httpx.QueryParams(params).render(), status_code=302)
+    url = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize".format(
+        tenant=tenant
+    )
+    return RedirectResponse(
+        url=f"{url}?" + httpx.QueryParams(params).render(), status_code=302
+    )
 
 
 @router.get("/oauth/callback")
-async def oauth_callback(code: str = Query(...), state: str = Query(...), tenant: str = Query("common")) -> Dict[str, Any]:
+async def oauth_callback(
+    code: str = Query(...), state: str = Query(...), tenant: str = Query("common")
+) -> Dict[str, Any]:
     cfg = _client()
     data = {
         "client_id": cfg["client_id"],
@@ -57,7 +65,12 @@ async def oauth_callback(code: str = Query(...), state: str = Query(...), tenant
         r = await c.post(token_url, data=data)
         r.raise_for_status()
         tok = r.json()
-    return {"ok": True, "user_id": state, "scopes": (tok.get("scope") or "").split(), "expires_in": tok.get("expires_in")}
+    return {
+        "ok": True,
+        "user_id": state,
+        "scopes": (tok.get("scope") or "").split(),
+        "expires_in": tok.get("expires_in"),
+    }
 
 
 @router.post("/test")
@@ -69,5 +82,3 @@ async def test_conn(user_id: str = Query(...)) -> Dict[str, Any]:
 @router.post("/disconnect")
 async def disconnect(user_id: str = Query(...)) -> Dict[str, Any]:
     return {"ok": True, "disconnected": True}
-
-

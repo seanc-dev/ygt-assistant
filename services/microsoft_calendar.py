@@ -18,7 +18,12 @@ class MicrosoftCalendarProvider(CalendarProvider):
     async def _auth(self) -> str:
         tok = os.getenv("MS_TEST_ACCESS_TOKEN", "")
         if not tok:
-            raise ProviderError("microsoft", "auth", "missing access token", hint="Set MS_TEST_ACCESS_TOKEN for local dev")
+            raise ProviderError(
+                "microsoft",
+                "auth",
+                "missing access token",
+                hint="Set MS_TEST_ACCESS_TOKEN for local dev",
+            )
         return tok
 
     def list_events(self, time_min: str, time_max: str) -> List[Dict[str, Any]]:
@@ -33,7 +38,11 @@ class MicrosoftCalendarProvider(CalendarProvider):
                 "$orderby": "start/dateTime",
             }
             async with httpx.AsyncClient(timeout=10) as c:
-                r = await c.get(f"{self._base()}/me/calendarView", params=params, headers={"Authorization": f"Bearer {token}"})
+                r = await c.get(
+                    f"{self._base()}/me/calendarView",
+                    params=params,
+                    headers={"Authorization": f"Bearer {token}"},
+                )
                 r.raise_for_status()
                 items = r.json().get("value", [])
                 return [
@@ -66,7 +75,11 @@ class MicrosoftCalendarProvider(CalendarProvider):
                 "location": {"displayName": (event.get("location") or "")},
             }
             async with httpx.AsyncClient(timeout=10) as c:
-                r = await c.post(f"{self._base()}/me/events", json=payload, headers={"Authorization": f"Bearer {token}"})
+                r = await c.post(
+                    f"{self._base()}/me/events",
+                    json=payload,
+                    headers={"Authorization": f"Bearer {token}"},
+                )
                 r.raise_for_status()
                 return r.json()
 
@@ -78,7 +91,11 @@ class MicrosoftCalendarProvider(CalendarProvider):
         async def _run() -> Dict[str, Any]:
             token = await self._auth()
             async with httpx.AsyncClient(timeout=10) as c:
-                r = await c.patch(f"{self._base()}/me/events/{event_id}", json=patch, headers={"Authorization": f"Bearer {token}"})
+                r = await c.patch(
+                    f"{self._base()}/me/events/{event_id}",
+                    json=patch,
+                    headers={"Authorization": f"Bearer {token}"},
+                )
                 r.raise_for_status()
                 return r.json() if r.content else {"id": event_id}
 
@@ -90,10 +107,11 @@ class MicrosoftCalendarProvider(CalendarProvider):
         async def _run() -> Dict[str, Any]:
             token = await self._auth()
             async with httpx.AsyncClient(timeout=10) as c:
-                r = await c.delete(f"{self._base()}/me/events/{event_id}", headers={"Authorization": f"Bearer {token}"})
+                r = await c.delete(
+                    f"{self._base()}/me/events/{event_id}",
+                    headers={"Authorization": f"Bearer {token}"},
+                )
                 r.raise_for_status()
                 return {"id": event_id, "deleted": True}
 
         return anyio.run(_run)
-
-
