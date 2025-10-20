@@ -46,7 +46,7 @@ class _StubCalendar(CalendarProvider):
 
 
 def get_email_provider(user_id: str) -> EmailProvider:
-    name = _provider_from_env("PROVIDER_EMAIL", "stub")
+    name = _provider_from_env("PROVIDER_EMAIL", "microsoft")
     if name == "google":
         try:
             module = importlib.import_module("services.google_email")
@@ -56,15 +56,33 @@ def get_email_provider(user_id: str) -> EmailProvider:
             return provider_cls(user_id)
         except (ModuleNotFoundError, ImportError):
             return _StubEmail()
+    if name == "microsoft":
+        try:
+            module = importlib.import_module("services.microsoft_email")
+            provider_cls = getattr(module, "MicrosoftEmailProvider", None)
+            if provider_cls is None:
+                return _StubEmail()
+            return provider_cls(user_id)
+        except (ModuleNotFoundError, ImportError):
+            return _StubEmail()
     return _StubEmail()
 
 
 def get_calendar_provider(user_id: str) -> CalendarProvider:
-    name = _provider_from_env("PROVIDER_CAL", "stub")
+    name = _provider_from_env("PROVIDER_CAL", "microsoft")
     if name == "google":
         try:
             module = importlib.import_module("services.google_calendar")
             provider_cls = getattr(module, "GoogleCalendarProvider", None)
+            if provider_cls is None:
+                return _StubCalendar()
+            return provider_cls(user_id)
+        except (ModuleNotFoundError, ImportError):
+            return _StubCalendar()
+    if name == "microsoft":
+        try:
+            module = importlib.import_module("services.microsoft_calendar")
+            provider_cls = getattr(module, "MicrosoftCalendarProvider", None)
             if provider_cls is None:
                 return _StubCalendar()
             return provider_cls(user_id)
