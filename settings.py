@@ -46,7 +46,7 @@ NYLAS_CLIENT_ID = os.getenv("NYLAS_CLIENT_ID", "")
 NYLAS_CLIENT_SECRET = os.getenv("NYLAS_CLIENT_SECRET", "")
 NYLAS_API_URL = os.getenv("NYLAS_API_URL", "https://api.us.nylas.com")
 NYLAS_REDIRECT_URI = os.getenv(
-    "NYLAS_REDIRECT_URI", "https://api.coachflow.nz/oauth/nylas/callback"
+    "NYLAS_REDIRECT_URI", "https://api.ygt-assistant.com/oauth/nylas/callback"
 )
 MOCK_OAUTH = os.getenv("MOCK_OAUTH", "true").lower() == "true"
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")

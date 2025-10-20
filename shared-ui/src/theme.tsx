@@ -11,7 +11,7 @@ import React, {
 } from "react";
 import { cx } from "./cx";
 
-const STORAGE_KEY = "coachflow-theme";
+const STORAGE_KEY = "ygt-assistant-theme";
 
 export type ThemePreference = "light" | "dark" | "system";
 export type Theme = "light" | "dark";

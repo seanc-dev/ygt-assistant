@@ -5,7 +5,7 @@ import { api } from "../lib/api";
 import { Label } from "../components/Form/Label";
 import { Field } from "../components/Form/Field";
 import { Button } from "../components/Button";
-import { ThemeToggle } from "@coachflow/ui";
+import { ThemeToggle } from "@ygt-assistant/ui";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -87,7 +87,7 @@ export default function Login() {
           </form>
 
           <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
-            Need help? Contact the CoachFlow engineering team.
+            Need help? Contact the YGT Assistant team.
           </p>
         </div>
       </main>

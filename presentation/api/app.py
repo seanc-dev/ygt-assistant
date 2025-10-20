@@ -305,7 +305,7 @@ allowed_origins = {
     (CLIENT_UI_ORIGIN or "").strip(),
     os.getenv("WEB_ORIGIN", "").strip(),
     # Explicit prod admin domain kept for safety
-    "https://admin.coachflow.nz",
+    "https://admin.ygt-assistant.com",
     # Local dev hosts (admin-ui, client-ui, site)
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -914,17 +914,17 @@ async def admin_issue_credentials(
 
     # Email the credentials
     html = f"""
-    <p>You've been invited to CoachFlow.</p>
-    <p>Login URL: <a href=\"{os.getenv('CLIENT_UI_ORIGIN', 'https://app.coachflow.nz')}/login\">{os.getenv('CLIENT_UI_ORIGIN', 'https://app.coachflow.nz')}/login</a></p>
+    <p>You've been invited to YGT Assistant.</p>
+    <p>Login URL: <a href=\"{os.getenv('CLIENT_UI_ORIGIN', 'https://app.ygt-assistant.com')}/login\">{os.getenv('CLIENT_UI_ORIGIN', 'https://app.ygt-assistant.com')}/login</a></p>
     <p>Email: {body.email}<br/>Temporary password: <code>{pw_plain}</code></p>
     <p>You'll be asked to set a new password on first login.</p>
     """
     try:
         mailer().send(
             to=body.email,
-            subject="Your CoachFlow login",
+            subject="Your YGT Assistant login",
             html=html,
-            text=f"Login: {os.getenv('CLIENT_UI_ORIGIN', 'https://app.coachflow.nz')}/login\nEmail: {body.email}\nPassword: {pw_plain}",
+            text=f"Login: {os.getenv('CLIENT_UI_ORIGIN', 'https://app.ygt-assistant.com')}/login\nEmail: {body.email}\nPassword: {pw_plain}",
         )
     except Exception:
         pass
