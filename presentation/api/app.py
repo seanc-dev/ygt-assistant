@@ -374,6 +374,9 @@ try:
     from presentation.api.routes.connections_google import (
         router as connections_google_router,
     )
+    from presentation.api.routes.connections_msft import (
+        router as connections_ms_router,
+    )
     from presentation.api.routes.chat import router as chat_router
 
     app.include_router(whatsapp_router)
@@ -382,6 +385,7 @@ try:
     app.include_router(calendar_router)
     app.include_router(core_router)
     app.include_router(connections_google_router)
+    app.include_router(connections_ms_router)
     app.include_router(chat_router)
 except Exception:
     pass
