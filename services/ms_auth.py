@@ -24,7 +24,11 @@ class MsTokenStore:
 
     def get(self, user_id: str) -> Optional[Dict[str, Any]]:
         with httpx.Client(timeout=8) as c:
-            r = c.get(f"{self._base}/oauth_tokens", params={"user_id": f"eq.{user_id}", "select": "*"}, headers=self._headers)
+            r = c.get(
+                f"{self._base}/oauth_tokens",
+                params={"user_id": f"eq.{user_id}", "select": "*"},
+                headers=self._headers,
+            )
             r.raise_for_status()
             items = r.json()
             return items[0] if items else None
@@ -32,9 +36,16 @@ class MsTokenStore:
     def upsert(self, user_id: str, data: Dict[str, Any]) -> None:
         with httpx.Client(timeout=8) as c:
             payload = {"user_id": user_id, **data}
-            r = c.post(f"{self._base}/oauth_tokens", json=payload, headers=self._headers)
+            r = c.post(
+                f"{self._base}/oauth_tokens", json=payload, headers=self._headers
+            )
             if r.status_code == 409:
-                c.patch(f"{self._base}/oauth_tokens", params={"user_id": f"eq.{user_id}"}, json=data, headers=self._headers)
+                c.patch(
+                    f"{self._base}/oauth_tokens",
+                    params={"user_id": f"eq.{user_id}"},
+                    json=data,
+                    headers=self._headers,
+                )
 
 
 def needs_refresh(expiry_iso: str, skew_seconds: int = 120) -> bool:
@@ -45,11 +56,17 @@ def needs_refresh(expiry_iso: str, skew_seconds: int = 120) -> bool:
     return exp < (datetime.now(timezone.utc) + timedelta(seconds=skew_seconds))
 
 
-async def ensure_access_token(user_id: str, token_row: Dict[str, Any], tenant_id: str) -> str:
+async def ensure_access_token(
+    user_id: str, token_row: Dict[str, Any], tenant_id: str
+) -> str:
     """Return a valid bearer token, refreshing if needed."""
     f, _ = fernet_from(ENCRYPTION_KEY)
-    access_token = decrypt(f, token_row["access_token"]) if token_row.get("access_token") else ""
-    refresh_token = decrypt(f, token_row["refresh_token"]) if token_row.get("refresh_token") else ""
+    access_token = (
+        decrypt(f, token_row["access_token"]) if token_row.get("access_token") else ""
+    )
+    refresh_token = (
+        decrypt(f, token_row["refresh_token"]) if token_row.get("refresh_token") else ""
+    )
     expiry = token_row.get("expiry") or ""
     if access_token and expiry and not needs_refresh(expiry):
         return access_token
@@ -67,11 +84,11 @@ async def ensure_access_token(user_id: str, token_row: Dict[str, Any], tenant_id
         "refresh_token": refresh_token,
         "scope": "User.Read offline_access Mail.ReadWrite Mail.Send Calendars.ReadWrite",
     }
-    token_url = f"https://login.microsoftonline.com/{tenant_id or 'common'}/oauth2/v2.0/token"
+    token_url = (
+        f"https://login.microsoftonline.com/{tenant_id or 'common'}/oauth2/v2.0/token"
+    )
     async with httpx.AsyncClient(timeout=10) as c:
         r = await c.post(token_url, data=data)
         r.raise_for_status()
         t = r.json()
         return t.get("access_token") or ""
-
-
