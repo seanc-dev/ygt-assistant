@@ -45,7 +45,7 @@ export default function Home() {
       .catch(() => setApprovals([]));
     fetch(
       `${
-        process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.coachflow.nz"
+        process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.ygt-assistant.com"
       }/calendar/plan-today`,
       { credentials: "include" }
     )

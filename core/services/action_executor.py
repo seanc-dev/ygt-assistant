@@ -1,13 +1,49 @@
 from typing import Dict, Any, List, Optional
 
-from adapters.notion_adapter import NotionTasksAdapter, NotionCRMAdapter
-from infra.repos import factory
+# Optional Notion adapters; provide stubs if not present (post-trim POC)
+try:  # pragma: no cover - import guard
+    from adapters.notion_adapter import NotionTasksAdapter, NotionCRMAdapter  # type: ignore
+except Exception:  # pragma: no cover
+    class NotionTasksAdapter:  # type: ignore
+        def create_task(self, payload: Dict[str, Any], *, dry_run: bool = True) -> Dict[str, Any]:
+            return {"ok": True, "dry_run": dry_run, "task": {"title": payload.get("title")}}
+
+    class NotionCRMAdapter:  # type: ignore
+        def upsert_contact(self, payload: Dict[str, Any], *, dry_run: bool = True) -> Dict[str, Any]:
+            return {"ok": True, "dry_run": dry_run, "contact": {"email": payload.get("email")}}
+
+# Optional repos; provide in-memory stubs when infra is absent
+try:  # pragma: no cover - import guard
+    from infra.repos import factory as _factory  # type: ignore
+except Exception:  # pragma: no cover
+    class _IdemRepo:
+        _seen: Dict[str, Dict[str, Dict[str, bool]]] = {}
+
+        def seen(self, tenant_id: str, kind: str, ext: str) -> bool:
+            return bool(self._seen.get(tenant_id, {}).get(kind, {}).get(ext))
+
+        def record(self, tenant_id: str, kind: str, ext: str) -> None:
+            self._seen.setdefault(tenant_id, {}).setdefault(kind, {})[ext] = True
+
+    class _AuditRepo:
+        def write(self, entry: Dict[str, Any]) -> str:
+            return entry.get("request_id") or "req_local"
+
+    class _factory:  # type: ignore
+        @staticmethod
+        def idempotency_repo() -> _IdemRepo:
+            return _IdemRepo()
+
+        @staticmethod
+        def audit_repo() -> _AuditRepo:
+            return _AuditRepo()
+
 from settings import DRY_RUN_DEFAULT, TENANT_DEFAULT
 
 _tasks = NotionTasksAdapter()
 _crm = NotionCRMAdapter()
-_idem = factory.idempotency_repo()
-_audit = factory.audit_repo()
+_idem = _factory.idempotency_repo()
+_audit = _factory.audit_repo()
 
 
 def _external_id(payload: Dict[str, Any]) -> str:

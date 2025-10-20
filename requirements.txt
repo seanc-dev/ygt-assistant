@@ -6,6 +6,7 @@ httpx
 cryptography
 python-dotenv
 bcrypt
+psycopg[binary]
 
 numpy
 jsonschema

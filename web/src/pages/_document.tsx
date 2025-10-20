@@ -1,5 +1,5 @@
 import Document, { Head, Html, Main, NextScript } from "next/document";
-import { ThemeScript } from "@coachflow/ui";
+import { ThemeScript } from "@ygt-assistant/ui";
 
 export default class MyDocument extends Document {
   render() {

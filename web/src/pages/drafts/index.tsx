@@ -30,7 +30,7 @@ export default function DraftsPage() {
   const apiGetDrafts = async () => {
     const res = await fetch(
       `${
-        process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.coachflow.nz"
+        process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.ygt-assistant.com"
       }/drafts`,
       { credentials: "include" }
     );
@@ -41,7 +41,7 @@ export default function DraftsPage() {
   const createDraft = async () => {
     await fetch(
       `${
-        process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.coachflow.nz"
+        process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.ygt-assistant.com"
       }/email/drafts`,
       {
         method: "POST",
@@ -66,7 +66,7 @@ export default function DraftsPage() {
   const sendDraft = async (id: string) => {
     await fetch(
       `${
-        process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.coachflow.nz"
+        process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.ygt-assistant.com"
       }/email/send/${encodeURIComponent(id)}`,
       {
         method: "POST",
@@ -139,7 +139,7 @@ export default function DraftsPage() {
                       await fetch(
                         `${
                           process.env.NEXT_PUBLIC_ADMIN_API_BASE ||
-                          "https://api.coachflow.nz"
+                          "https://api.ygt-assistant.com"
                         }/whatsapp/send/draft`,
                         {
                           method: "POST",

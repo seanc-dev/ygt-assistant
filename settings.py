@@ -46,7 +46,7 @@ NYLAS_CLIENT_ID = os.getenv("NYLAS_CLIENT_ID", "")
 NYLAS_CLIENT_SECRET = os.getenv("NYLAS_CLIENT_SECRET", "")
 NYLAS_API_URL = os.getenv("NYLAS_API_URL", "https://api.us.nylas.com")
 NYLAS_REDIRECT_URI = os.getenv(
-    "NYLAS_REDIRECT_URI", "https://api.coachflow.nz/oauth/nylas/callback"
+    "NYLAS_REDIRECT_URI", "https://api.ygt-assistant.com/oauth/nylas/callback"
 )
 MOCK_OAUTH = os.getenv("MOCK_OAUTH", "true").lower() == "true"
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")
@@ -70,6 +70,11 @@ def _enforce_secret_hardening() -> bool:
 
 def _validate_admin_secret(secret: str) -> str:
     if not _enforce_secret_hardening():
+        # In dev/test, auto-generate a strong secret when unset or using the insecure default
+        if not secret or secret == _ADMIN_SECRET_DEFAULT:
+            import secrets as _secrets
+
+            return _secrets.token_urlsafe(32)
         return secret
     if not secret:
         raise RuntimeError("ADMIN_SECRET must be configured")
@@ -84,6 +89,9 @@ def _validate_admin_secret(secret: str) -> str:
 
 def _validate_encryption_key(key: str) -> str:
     if not _enforce_secret_hardening():
+        # In dev/test, auto-generate a Fernet key when unset
+        if not key:
+            return Fernet.generate_key().decode()
         return key
     if not key:
         raise RuntimeError("ENCRYPTION_KEY must be configured with a Fernet key.")

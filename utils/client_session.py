@@ -3,7 +3,21 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from infra.repos.factory import client_sessions_repo
+try:  # pragma: no cover - allow running without infra repos
+    from infra.repos.factory import client_sessions_repo  # type: ignore
+except Exception:  # pragma: no cover
+
+    class _MemoryClientSessions:
+        _rows = {}
+
+        def create(self, *, user_id: str, token: str, expires_at: str) -> None:
+            self._rows[token] = {"user_id": user_id, "expires_at": expires_at}
+
+        def get(self, token: str):
+            return self._rows.get(token)
+
+    def client_sessions_repo():  # type: ignore
+        return _MemoryClientSessions()
 
 
 def _is_dev_mode() -> bool:
