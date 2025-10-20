@@ -381,7 +381,12 @@ try:
 
     # Feature flag WhatsApp include (default off for Microsoft-first MVP)
     try:
-        _wa_flag = (os.getenv("FEATURE_WHATSAPP", "false").strip().lower() in {"1","true","yes","on"})
+        _wa_flag = os.getenv("FEATURE_WHATSAPP", "false").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
     except Exception:
         _wa_flag = False
     if _wa_flag:

@@ -22,7 +22,10 @@ export default function ConnectionsPage() {
             actions={
               <div className="flex gap-2">
                 <a
-                  href={`${process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000"}/connections/ms/oauth/start?user_id=local-user`}
+                  href={`${
+                    process.env.NEXT_PUBLIC_ADMIN_API_BASE ||
+                    "http://localhost:8000"
+                  }/connections/ms/oauth/start?user_id=local-user`}
                   className="rounded bg-slate-900 px-3 py-1 text-sm text-white dark:bg-slate-100 dark:text-slate-900"
                 >
                   {t.cta}
@@ -30,7 +33,10 @@ export default function ConnectionsPage() {
                 <button
                   onClick={async () => {
                     const res = await fetch(
-                      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000"}/connections/ms/test?user_id=local-user`,
+                      `${
+                        process.env.NEXT_PUBLIC_ADMIN_API_BASE ||
+                        "http://localhost:8000"
+                      }/connections/ms/test?user_id=local-user`,
                       { method: "POST" }
                     );
                     const data = await res.json();
