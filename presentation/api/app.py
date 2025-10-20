@@ -379,7 +379,13 @@ try:
     )
     from presentation.api.routes.chat import router as chat_router
 
-    app.include_router(whatsapp_router)
+    # Feature flag WhatsApp include (default off for Microsoft-first MVP)
+    try:
+        _wa_flag = (os.getenv("FEATURE_WHATSAPP", "false").strip().lower() in {"1","true","yes","on"})
+    except Exception:
+        _wa_flag = False
+    if _wa_flag:
+        app.include_router(whatsapp_router)
     app.include_router(actions_router)
     app.include_router(email_router)
     app.include_router(calendar_router)

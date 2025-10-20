@@ -4,22 +4,10 @@ import { Card } from "../../components/Card";
 export default function ConnectionsPage() {
   const tiles = [
     {
-      key: "gmail",
-      title: "Gmail",
-      desc: "Draft and send emails.",
-      cta: "Test",
-    },
-    {
-      key: "calendar",
-      title: "Calendar",
-      desc: "Plan today and reschedule.",
-      cta: "Test",
-    },
-    {
-      key: "whatsapp",
-      title: "WhatsApp",
-      desc: "Send cards and replies.",
-      cta: "Test",
+      key: "msft",
+      title: "Microsoft",
+      desc: "Mail and Calendar via Microsoft Graph.",
+      cta: "Connect",
     },
   ];
   return (
@@ -32,9 +20,27 @@ export default function ConnectionsPage() {
             title={t.title}
             subtitle={t.desc}
             actions={
-              <button className="rounded bg-slate-900 px-3 py-1 text-sm text-white dark:bg-slate-100 dark:text-slate-900">
-                {t.cta}
-              </button>
+              <div className="flex gap-2">
+                <a
+                  href={`${process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000"}/connections/ms/oauth/start?user_id=local-user`}
+                  className="rounded bg-slate-900 px-3 py-1 text-sm text-white dark:bg-slate-100 dark:text-slate-900"
+                >
+                  {t.cta}
+                </a>
+                <button
+                  onClick={async () => {
+                    const res = await fetch(
+                      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000"}/connections/ms/test?user_id=local-user`,
+                      { method: "POST" }
+                    );
+                    const data = await res.json();
+                    alert(data.ok ? "OK" : "Failed");
+                  }}
+                  className="rounded border px-3 py-1 text-sm"
+                >
+                  Test
+                </button>
+              </div>
             }
           />
         ))}
