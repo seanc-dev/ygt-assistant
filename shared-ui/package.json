@@ -6,8 +6,8 @@
   "types": "./src/index.ts",
   "sideEffects": false,
   "peerDependencies": {
-    "react": ">=18 <20",
-    "react-dom": ">=18 <20"
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "typescript": "^5.6.3"
