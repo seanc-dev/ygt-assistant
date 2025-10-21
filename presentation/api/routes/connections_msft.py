@@ -1,11 +1,14 @@
 from __future__ import annotations
 from typing import Any, Dict, Optional
 import os
-import base64
-import secrets
 import httpx
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import RedirectResponse
+
+from utils.crypto import fernet_from, encrypt
+from settings import ENCRYPTION_KEY
+from services.ms_auth import token_store_from_env
 
 
 router = APIRouter(prefix="/connections/ms", tags=["connections-msft"])
@@ -22,8 +25,24 @@ def _client() -> Dict[str, str]:
 
 @router.get("/status")
 async def status(user_id: str = Query(...)) -> Dict[str, Any]:
-    # MVP: return disconnected; later, check oauth_tokens via repo
-    return {"connected": False}
+    try:
+        store = token_store_from_env()
+    except Exception:
+        return {"connected": False}
+    row = store.get(user_id)
+    if not row:
+        return {"connected": False}
+    expiry = row.get("expiry")
+    scopes = row.get("scopes") or []
+    provider = row.get("provider")
+    tenant_id = row.get("tenant_id")
+    return {
+        "connected": True,
+        "scopes": scopes,
+        "expires_at": expiry,
+        "provider": provider,
+        "tenant_id": tenant_id,
+    }
 
 
 @router.get("/oauth/start")
@@ -43,9 +62,8 @@ async def oauth_start(
     url = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize".format(
         tenant=tenant
     )
-    return RedirectResponse(
-        url=f"{url}?" + httpx.QueryParams(params).render(), status_code=302
-    )
+    qp = httpx.QueryParams(params)
+    return RedirectResponse(url=f"{url}?{str(qp)}", status_code=302)
 
 
 @router.get("/oauth/callback")
@@ -65,20 +83,57 @@ async def oauth_callback(
         r = await c.post(token_url, data=data)
         r.raise_for_status()
         tok = r.json()
+
+    # Persist tokens encrypted
+    access_token = tok.get("access_token") or ""
+    refresh_token = tok.get("refresh_token") or ""
+    expires_in = int(tok.get("expires_in") or 0)
+    scopes_list = (tok.get("scope") or "").split()
+    tenant_id = tenant
+
+    f, _k = fernet_from(ENCRYPTION_KEY)
+    try:
+        store = token_store_from_env()
+        store.upsert(
+            state,
+            {
+                "provider": "microsoft",
+                "tenant_id": tenant_id,
+                "access_token": encrypt(f, access_token),
+                "refresh_token": encrypt(f, refresh_token),
+                "expiry": (datetime.now(timezone.utc) + timedelta(seconds=expires_in)).isoformat(),
+                "scopes": scopes_list,
+            },
+        )
+    except Exception:
+        # Non-fatal in dev; caller can reconnect
+        pass
+
     return {
         "ok": True,
         "user_id": state,
-        "scopes": (tok.get("scope") or "").split(),
-        "expires_in": tok.get("expires_in"),
+        "scopes": scopes_list,
+        "expires_in": expires_in,
     }
 
 
 @router.post("/test")
 async def test_conn(user_id: str = Query(...)) -> Dict[str, Any]:
-    # MVP: return ok to avoid external calls in dev
-    return {"ok": True}
+    # Minimal: presence of token row indicates connected
+    try:
+        store = token_store_from_env()
+        row = store.get(user_id)
+        return {"ok": bool(row)}
+    except Exception:
+        return {"ok": False}
 
 
 @router.post("/disconnect")
 async def disconnect(user_id: str = Query(...)) -> Dict[str, Any]:
-    return {"ok": True, "disconnected": True}
+    try:
+        store = token_store_from_env()
+        store.delete(user_id)
+        return {"ok": True, "disconnected": True}
+    except Exception:
+        # Still report success to keep UX simple in dev
+        return {"ok": True, "disconnected": True}

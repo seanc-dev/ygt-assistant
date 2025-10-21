@@ -15,4 +15,3 @@ def increment(name: str, **tags: Any) -> None:
         except Exception:
             pass
 
-
