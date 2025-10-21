@@ -101,7 +101,9 @@ async def oauth_callback(
                 "tenant_id": tenant_id,
                 "access_token": encrypt(f, access_token),
                 "refresh_token": encrypt(f, refresh_token),
-                "expiry": (datetime.now(timezone.utc) + timedelta(seconds=expires_in)).isoformat(),
+                "expiry": (
+                    datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+                ).isoformat(),
                 "scopes": scopes_list,
             },
         )
