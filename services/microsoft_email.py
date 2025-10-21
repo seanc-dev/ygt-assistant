@@ -5,7 +5,7 @@ import httpx
 
 from services.providers.email_provider import EmailProvider
 from services.providers.errors import ProviderError
-from services.ms_auth import ensure_access_token
+from services.ms_auth import ensure_access_token, token_store_from_env
 
 
 class MicrosoftEmailProvider(EmailProvider):
@@ -17,17 +17,24 @@ class MicrosoftEmailProvider(EmailProvider):
         return "https://graph.microsoft.com/v1.0"
 
     async def _auth(self) -> str:
-        # For MVP, fetch from oauth_tokens via Supabase REST is external; assume middleware passes token elsewhere later
-        # Here we require an access token via env for local smoke
+        # Prefer stored tokens; fallback to env token only if present
+        row = None
+        try:
+            store = token_store_from_env()
+            row = store.get(self.user_id)
+        except Exception:
+            row = None
+        if row:
+            return await ensure_access_token(self.user_id, row, self.tenant_id)
         tok = os.getenv("MS_TEST_ACCESS_TOKEN", "")
-        if not tok:
-            raise ProviderError(
-                "microsoft",
-                "auth",
-                "missing access token",
-                hint="Set MS_TEST_ACCESS_TOKEN for local dev",
-            )
-        return tok
+        if tok:
+            return tok
+        raise ProviderError(
+            "microsoft",
+            "auth",
+            "missing access token",
+            hint="Connect Microsoft account",
+        )
 
     def list_threads(self, q: str, max_n: int) -> List[Dict[str, Any]]:
         # Synchronous wrapper calls async quickly for MVP simplicity

@@ -365,33 +365,66 @@ async def guard_admin_paths(request: Request, call_next):
 
 
 """Register routes from split modules."""
+# Feature flag WhatsApp include (default off for Microsoft-first MVP)
+try:
+    _wa_flag = os.getenv("FEATURE_WHATSAPP", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+except Exception:
+    _wa_flag = False
+
 try:
     from presentation.api.routes.whatsapp import router as whatsapp_router
+    if _wa_flag:
+        app.include_router(whatsapp_router)
+except Exception:
+    pass
+
+try:
     from presentation.api.routes.actions import router as actions_router
+    app.include_router(actions_router)
+except Exception:
+    pass
+
+try:
     from presentation.api.routes.email import router as email_router
+    app.include_router(email_router)
+except Exception:
+    pass
+
+try:
     from presentation.api.routes.calendar import router as calendar_router
+    app.include_router(calendar_router)
+except Exception:
+    pass
+
+try:
     from presentation.api.routes.core import router as core_router
+    app.include_router(core_router)
+except Exception:
+    pass
+
+try:
     from presentation.api.routes.connections_google import (
         router as connections_google_router,
     )
+    app.include_router(connections_google_router)
+except Exception:
+    pass
+
+try:
     from presentation.api.routes.connections_msft import (
         router as connections_ms_router,
     )
-    from presentation.api.routes.chat import router as chat_router
-
-    # Feature flag WhatsApp include (default off for Microsoft-first MVP)
-    try:
-        _wa_flag = (os.getenv("FEATURE_WHATSAPP", "false").strip().lower() in {"1","true","yes","on"})
-    except Exception:
-        _wa_flag = False
-    if _wa_flag:
-        app.include_router(whatsapp_router)
-    app.include_router(actions_router)
-    app.include_router(email_router)
-    app.include_router(calendar_router)
-    app.include_router(core_router)
-    app.include_router(connections_google_router)
     app.include_router(connections_ms_router)
+except Exception:
+    pass
+
+try:
+    from presentation.api.routes.chat import router as chat_router
     app.include_router(chat_router)
 except Exception:
     pass

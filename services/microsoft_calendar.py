@@ -5,6 +5,7 @@ import httpx
 
 from services.providers.calendar_provider import CalendarProvider
 from services.providers.errors import ProviderError
+from services.ms_auth import ensure_access_token, token_store_from_env
 
 
 class MicrosoftCalendarProvider(CalendarProvider):
@@ -16,15 +17,23 @@ class MicrosoftCalendarProvider(CalendarProvider):
         return "https://graph.microsoft.com/v1.0"
 
     async def _auth(self) -> str:
+        row = None
+        try:
+            store = token_store_from_env()
+            row = store.get(self.user_id)
+        except Exception:
+            row = None
+        if row:
+            return await ensure_access_token(self.user_id, row, self.tenant_id)
         tok = os.getenv("MS_TEST_ACCESS_TOKEN", "")
-        if not tok:
-            raise ProviderError(
-                "microsoft",
-                "auth",
-                "missing access token",
-                hint="Set MS_TEST_ACCESS_TOKEN for local dev",
-            )
-        return tok
+        if tok:
+            return tok
+        raise ProviderError(
+            "microsoft",
+            "auth",
+            "missing access token",
+            hint="Connect Microsoft account",
+        )
 
     def list_events(self, time_min: str, time_max: str) -> List[Dict[str, Any]]:
         import anyio

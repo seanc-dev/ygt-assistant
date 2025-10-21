@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any, Dict, Optional
 from datetime import datetime, timezone, timedelta
+import os
 import httpx
 
 from utils.crypto import fernet_from, decrypt
@@ -47,6 +48,25 @@ class MsTokenStore:
                     headers=self._headers,
                 )
 
+    def delete(self, user_id: str) -> None:
+        with httpx.Client(timeout=8) as c:
+            r = c.delete(
+                f"{self._base}/oauth_tokens",
+                params={"user_id": f"eq.{user_id}"},
+                headers=self._headers,
+            )
+            # treat 204/200 as success; 404 means already gone
+            if r.status_code not in (200, 204):
+                r.raise_for_status()
+
+
+def token_store_from_env() -> MsTokenStore:
+    base_url = os.getenv("SUPABASE_URL", "").rstrip("/")
+    api_key = os.getenv("SUPABASE_API_SECRET", "")
+    if not base_url or not api_key:
+        raise RuntimeError("supabase_not_configured for token store")
+    return MsTokenStore(base_url, api_key)
+
 
 def needs_refresh(expiry_iso: str, skew_seconds: int = 120) -> bool:
     try:
@@ -73,8 +93,6 @@ async def ensure_access_token(
 
     # Refresh
     # Note: client_id/secret provided via env; for MVP assume confidential client
-    import os
-
     client_id = os.getenv("MS_CLIENT_ID", "")
     client_secret = os.getenv("MS_CLIENT_SECRET", "")
     data = {
