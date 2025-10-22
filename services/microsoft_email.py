@@ -39,7 +39,17 @@ class MicrosoftEmailProvider(EmailProvider):
             hint="Connect Microsoft account",
         )
 
-    async def _request_with_retry(self, method: str, url: str, *, headers: Dict[str, str], params: Dict[str, Any] | None = None, json: Any | None = None, expected_status: List[int] | None = None, timeout: float = 10.0) -> httpx.Response:
+    async def _request_with_retry(
+        self,
+        method: str,
+        url: str,
+        *,
+        headers: Dict[str, str],
+        params: Dict[str, Any] | None = None,
+        json: Any | None = None,
+        expected_status: List[int] | None = None,
+        timeout: float = 10.0,
+    ) -> httpx.Response:
         expected = set(expected_status or [200])
         backoff = 0.5
         last_exc: Exception | None = None
@@ -48,11 +58,18 @@ class MicrosoftEmailProvider(EmailProvider):
         for attempt in range(3):
             try:
                 async with httpx.AsyncClient(timeout=timeout) as c:
-                    r = await c.request(method, url, params=params, json=json, headers=h)
+                    r = await c.request(
+                        method, url, params=params, json=json, headers=h
+                    )
                 if r.status_code in expected:
                     return r
+                # Allow callers to translate 401 into ProviderError with reconnect hint
+                if r.status_code == 401:
+                    return r
                 if r.status_code in (429,) or 500 <= r.status_code < 600:
-                    increment("ms.email.http.retry", status=r.status_code, attempt=attempt + 1)
+                    increment(
+                        "ms.email.http.retry", status=r.status_code, attempt=attempt + 1
+                    )
                     await asyncio.sleep(backoff)
                     backoff *= 2
                     continue
@@ -142,12 +159,12 @@ class MicrosoftEmailProvider(EmailProvider):
             data = r.json()
             increment("ms.email.create_draft.ok")
             return {
-                    "id": data.get("id"),
-                    "to": to,
-                    "subject": subject,
-                    "body": body,
-                    "status": "draft",
-                }
+                "id": data.get("id"),
+                "to": to,
+                "subject": subject,
+                "body": body,
+                "status": "draft",
+            }
 
         return anyio.run(_run)
 
@@ -163,7 +180,9 @@ class MicrosoftEmailProvider(EmailProvider):
                 expected_status=[202, 200, 204],
             )
             if r.status_code not in (202, 200, 204):
-                raise ProviderError("microsoft", "send_draft", f"status={r.status_code}")
+                raise ProviderError(
+                    "microsoft", "send_draft", f"status={r.status_code}"
+                )
             increment("ms.email.send_draft.ok")
             return {"id": draft_id, "status": "sent"}
 
@@ -189,7 +208,9 @@ class MicrosoftEmailProvider(EmailProvider):
                 expected_status=[202, 200, 204],
             )
             if r.status_code not in (202, 200, 204):
-                raise ProviderError("microsoft", "send_message", f"status={r.status_code}")
+                raise ProviderError(
+                    "microsoft", "send_message", f"status={r.status_code}"
+                )
             increment("ms.email.send_message.ok")
             return {"id": "send_mail", "status": "sent"}
 
@@ -203,7 +224,9 @@ class MicrosoftEmailProvider(EmailProvider):
             r = await self._request_with_retry(
                 "GET",
                 f"{self._base()}/me/messages/{message_id}",
-                params={"$select": "subject,from,toRecipients,receivedDateTime,bodyPreview,webLink"},
+                params={
+                    "$select": "subject,from,toRecipients,receivedDateTime,bodyPreview,webLink"
+                },
                 headers={"Authorization": f"Bearer {token}"},
                 expected_status=[200],
             )

@@ -38,7 +38,17 @@ class MicrosoftCalendarProvider(CalendarProvider):
             hint="Connect Microsoft account",
         )
 
-    async def _request_with_retry(self, method: str, url: str, *, headers: Dict[str, str], params: Dict[str, Any] | None = None, json: Any | None = None, expected_status: List[int] | None = None, timeout: float = 10.0) -> httpx.Response:
+    async def _request_with_retry(
+        self,
+        method: str,
+        url: str,
+        *,
+        headers: Dict[str, str],
+        params: Dict[str, Any] | None = None,
+        json: Any | None = None,
+        expected_status: List[int] | None = None,
+        timeout: float = 10.0,
+    ) -> httpx.Response:
         expected = set(expected_status or [200])
         backoff = 0.5
         last_exc: Exception | None = None
@@ -47,11 +57,18 @@ class MicrosoftCalendarProvider(CalendarProvider):
         for attempt in range(3):
             try:
                 async with httpx.AsyncClient(timeout=timeout) as c:
-                    r = await c.request(method, url, params=params, json=json, headers=h)
+                    r = await c.request(
+                        method, url, params=params, json=json, headers=h
+                    )
                 if r.status_code in expected:
                     return r
+                # Allow callers to translate 401 into ProviderError with reconnect hint
+                if r.status_code == 401:
+                    return r
                 if r.status_code in (429,) or 500 <= r.status_code < 600:
-                    increment("ms.cal.http.retry", status=r.status_code, attempt=attempt + 1)
+                    increment(
+                        "ms.cal.http.retry", status=r.status_code, attempt=attempt + 1
+                    )
                     await asyncio.sleep(backoff)
                     backoff *= 2
                     continue
@@ -87,15 +104,15 @@ class MicrosoftCalendarProvider(CalendarProvider):
             items = r.json().get("value", [])
             increment("ms.cal.list_events.ok", n=len(items))
             return [
-                    {
-                        "id": it.get("id"),
-                        "title": it.get("subject"),
-                        "start": (it.get("start") or {}).get("dateTime"),
-                        "end": (it.get("end") or {}).get("dateTime"),
-                        "link": it.get("webLink"),
-                    }
-                    for it in items
-                ]
+                {
+                    "id": it.get("id"),
+                    "title": it.get("subject"),
+                    "start": (it.get("start") or {}).get("dateTime"),
+                    "end": (it.get("end") or {}).get("dateTime"),
+                    "link": it.get("webLink"),
+                }
+                for it in items
+            ]
 
         return anyio.run(_run)
 
