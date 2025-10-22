@@ -6,6 +6,7 @@ import httpx
 
 from utils.crypto import fernet_from, decrypt
 from settings import ENCRYPTION_KEY
+from utils.metrics import increment
 
 
 class MsTokenStore:
@@ -32,6 +33,7 @@ class MsTokenStore:
             )
             r.raise_for_status()
             items = r.json()
+            increment("ms.tokens.get", found=bool(items))
             return items[0] if items else None
 
     def upsert(self, user_id: str, data: Dict[str, Any]) -> None:
@@ -47,6 +49,7 @@ class MsTokenStore:
                     json=data,
                     headers=self._headers,
                 )
+            increment("ms.tokens.upsert")
 
     def delete(self, user_id: str) -> None:
         with httpx.Client(timeout=8) as c:
@@ -58,6 +61,7 @@ class MsTokenStore:
             # treat 204/200 as success; 404 means already gone
             if r.status_code not in (200, 204):
                 r.raise_for_status()
+            increment("ms.tokens.delete")
 
 
 def token_store_from_env() -> MsTokenStore:
@@ -105,8 +109,22 @@ async def ensure_access_token(
     token_url = (
         f"https://login.microsoftonline.com/{tenant_id or 'common'}/oauth2/v2.0/token"
     )
+    # tag metrics with anonymized user hash to avoid PII
+    try:
+        import hashlib as _hl
+
+        _uid_hash = _hl.sha256((user_id or "").encode()).hexdigest()[:8]
+    except Exception:
+        _uid_hash = "anon"
     async with httpx.AsyncClient(timeout=10) as c:
         r = await c.post(token_url, data=data)
+        if r.status_code in (429,) or 500 <= r.status_code < 600:
+            increment("ms.tokens.refresh.retryable", status=r.status_code, user=_uid_hash)
         r.raise_for_status()
         t = r.json()
-        return t.get("access_token") or ""
+        tok = t.get("access_token") or ""
+        if tok:
+            increment("ms.tokens.refresh.ok", user=_uid_hash)
+        else:
+            increment("ms.tokens.refresh.empty", user=_uid_hash)
+        return tok

@@ -2,10 +2,10 @@ YGT Assistant
 
 Intent
 
-- WhatsApp-first personal assistant with a calm web “control tower”.
+- Microsoft-first, web-only MVP. Calm web “control tower”.
 - LLM-first flows: propose actions (approve/edit/skip) with undo and history.
 - Multi-level memory core (episodic, semantic, procedural, narrative).
-- Direct Google integrations (Gmail/Calendar) behind provider abstractions.
+- Provider abstractions with Microsoft Graph implementations for mail and calendar.
 
 High-level architecture
 
@@ -21,7 +21,7 @@ Key features
 - Drafts: create/send drafts; WhatsApp cards supported when Meta is enabled.
 - Calendar: plan-today and reschedule flows (provider-backed).
 - Core memory: deterministic recall; vectors off by default.
-- Connections: Google OAuth (store encrypted tokens in Supabase).
+- Connections: Microsoft OAuth (store encrypted tokens in Supabase).
 
 Repo layout
 
@@ -39,7 +39,7 @@ Prerequisites
 - A Supabase project (optional during POC with in‑memory stores).
 
 Environment
-Create `.env.local` at repo root:
+Create `.env.local` at repo root (Microsoft-first):
 
 ```
 # Core
@@ -47,8 +47,8 @@ DEV_MODE=true
 CORE_ENABLE_VECTORS=false
 
 # Providers
-PROVIDER_EMAIL=google
-PROVIDER_CAL=google
+PROVIDER_EMAIL=microsoft
+PROVIDER_CAL=microsoft
 
 # API origins
 WEB_ORIGIN=http://localhost:3001
@@ -60,10 +60,11 @@ USE_DB=false
 SUPABASE_URL=
 SUPABASE_API_SECRET=
 
-# Google OAuth
-GMAIL_CLIENT_ID=
-GMAIL_CLIENT_SECRET=
-GMAIL_REDIRECT_URI=http://localhost:8000/connections/google/oauth/callback
+# Microsoft OAuth
+MS_CLIENT_ID=
+MS_CLIENT_SECRET=
+MS_REDIRECT_URI=http://localhost:8000/connections/ms/oauth/callback
+MS_TENANT_ID=common
 
 # WhatsApp (Meta) — optional
 WHATSAPP_VERIFY_TOKEN=
@@ -114,11 +115,11 @@ supabase link --project-ref <your-ref>
 supabase db push --yes
 ```
 
-Google connections
+Microsoft connections
 
 ```
-open "http://localhost:8000/connections/google/oauth/start?user_id=local-user"
-curl "http://localhost:8000/connections/google/status?user_id=local-user"
+open "http://localhost:8000/connections/ms/oauth/start?user_id=local-user"
+curl "http://localhost:8000/connections/ms/status?user_id=local-user"
 ```
 
 Make targets
@@ -126,9 +127,9 @@ Make targets
 ```
 make status             # provider + DB flags
 make db-migrate         # applies SQL with SUPABASE_DB_URL
-make connect-google USER_ID=local-user
-make test-gmail USER_ID=local-user
-make test-calendar USER_ID=local-user
+make ms-connect USER_ID=local-user
+make ms-test-mail USER_ID=local-user
+make ms-test-cal USER_ID=local-user
 ```
 
 API surface (selected)
@@ -139,7 +140,7 @@ API surface (selected)
 - Calendar: `/calendar/plan-today`, `/calendar/reschedule`
 - Core memory: `/core/context`, `/core/notes`, `/core/preview`
 - Chat stand‑in: `/chat` (scan/approve/skip text interface)
-- Connections (Google): `/connections/google/oauth/start|callback|status|disconnect`
+- Connections (Microsoft): `/connections/ms/oauth/start|callback|status|disconnect`
 
 Design principles
 
@@ -155,7 +156,7 @@ Troubleshooting
 
 Roadmap
 
-- Implement Google providers via REST (gmail v1, calendar v3) with token refresh.
+- Harden Microsoft Graph providers with retries and metrics.
 - Persist approvals/drafts/history in DB when `USE_DB=true`.
 - WhatsApp cards end‑to‑end and reconnection UX.
 - Vector recall behind `CORE_ENABLE_VECTORS=true`.
