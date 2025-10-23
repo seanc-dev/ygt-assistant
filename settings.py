@@ -58,6 +58,15 @@ COOKIE_NAME = os.getenv("COOKIE_NAME", "admin_session")
 ADMIN_UI_ORIGIN = os.getenv("ADMIN_UI_ORIGIN", "http://localhost:3000")
 CLIENT_UI_ORIGIN = os.getenv("CLIENT_UI_ORIGIN", "http://localhost:3000")
 
+# Feature flags for live Graph slice (default off)
+FEATURE_GRAPH_LIVE = os.getenv("FEATURE_GRAPH_LIVE", "false").strip().lower() in {"1","true","yes","on"}
+FEATURE_LIVE_LIST_INBOX = os.getenv("FEATURE_LIVE_LIST_INBOX", "false").strip().lower() in {"1","true","yes","on"}
+FEATURE_LIVE_SEND_MAIL = os.getenv("FEATURE_LIVE_SEND_MAIL", "false").strip().lower() in {"1","true","yes","on"}
+FEATURE_LIVE_CREATE_EVENTS = os.getenv("FEATURE_LIVE_CREATE_EVENTS", "false").strip().lower() in {"1","true","yes","on"}
+GRAPH_TIMEOUT_MS = int(os.getenv("GRAPH_TIMEOUT_MS", "8000"))
+GRAPH_RETRY_MAX = int(os.getenv("GRAPH_RETRY_MAX", "3"))
+LIVE_MODE_BANNER = os.getenv("LIVE_MODE_BANNER", "true").strip().lower() in {"1","true","yes","on"}
+
 
 def _enforce_secret_hardening() -> bool:
     # Permit defaults in explicit dev/test contexts to avoid breaking local setups.

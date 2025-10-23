@@ -1,5 +1,6 @@
 import { Layout } from "../../components/Layout";
 import { Card } from "../../components/Card";
+import LiveModeBanner from "../../components/LiveModeBanner";
 import { useEffect, useState } from "react";
 
 export default function ConnectionsPage() {
@@ -42,6 +43,7 @@ export default function ConnectionsPage() {
   }, [api]);
   return (
     <Layout>
+      <LiveModeBanner />
       <h1 className="mb-4 text-2xl font-semibold">Connections</h1>
       <div className="grid gap-3 md:grid-cols-3">
         <Card
