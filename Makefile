@@ -1,6 +1,6 @@
 PY=python
 
-.PHONY: status db-migrate connect-google test-gmail test-calendar ms-connect ms-test-mail ms-test-cal llm-run llm-report llm-record
+.PHONY: status db-migrate connect-google test-gmail test-calendar ms-connect ms-test-mail ms-test-cal llm-run llm-report llm-record llm-auto-patch
 
 status:
 	@echo "Providers:" && echo "  EMAIL=$(PROVIDER_EMAIL) CAL=$(PROVIDER_CAL)" && \
@@ -37,5 +37,10 @@ llm-report:
 
 llm-record:
 	@echo "Set RECORD_GRAPH=true and run your flows locally to capture fixtures"
+
+llm-auto-patch:
+	@RUN_ID=$$(ls -1t llm_testing/reports | head -1); \
+	if [ -z "$$RUN_ID" ]; then echo "No run found"; exit 1; fi; \
+	$(PY) llm_testing/auto_patch.py $$RUN_ID --dry-run
 
 
