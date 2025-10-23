@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 import os
 import httpx
 from datetime import datetime, timezone, timedelta
@@ -9,6 +9,7 @@ from fastapi.responses import RedirectResponse
 from utils.crypto import fernet_from, encrypt
 from settings import ENCRYPTION_KEY
 from services.ms_auth import token_store_from_env
+from utils.metrics import increment
 
 
 router = APIRouter(prefix="/connections/ms", tags=["connections-msft"])
@@ -28,14 +29,17 @@ async def status(user_id: str = Query(...)) -> Dict[str, Any]:
     try:
         store = token_store_from_env()
     except Exception:
+        increment("ms.status.disconnected", reason="no_store")
         return {"connected": False}
     row = store.get(user_id)
     if not row:
+        increment("ms.status.disconnected", reason="no_row")
         return {"connected": False}
     expiry = row.get("expiry")
     scopes = row.get("scopes") or []
     provider = row.get("provider")
     tenant_id = row.get("tenant_id")
+    increment("ms.status.connected")
     return {
         "connected": True,
         "scopes": scopes,
@@ -63,6 +67,7 @@ async def oauth_start(
         tenant=tenant
     )
     qp = httpx.QueryParams(params)
+    increment("ms.oauth.start")
     return RedirectResponse(url=f"{url}?{str(qp)}", status_code=302)
 
 
@@ -107,9 +112,10 @@ async def oauth_callback(
                 "scopes": scopes_list,
             },
         )
+        increment("ms.oauth.callback.ok")
     except Exception:
         # Non-fatal in dev; caller can reconnect
-        pass
+        increment("ms.oauth.callback.persist_fail")
 
     return {
         "ok": True,
@@ -125,8 +131,11 @@ async def test_conn(user_id: str = Query(...)) -> Dict[str, Any]:
     try:
         store = token_store_from_env()
         row = store.get(user_id)
-        return {"ok": bool(row)}
+        ok = bool(row)
+        increment("ms.test", ok=ok)
+        return {"ok": ok}
     except Exception:
+        increment("ms.test", ok=False)
         return {"ok": False}
 
 
@@ -135,7 +144,9 @@ async def disconnect(user_id: str = Query(...)) -> Dict[str, Any]:
     try:
         store = token_store_from_env()
         store.delete(user_id)
+        increment("ms.disconnect.ok")
         return {"ok": True, "disconnected": True}
     except Exception:
         # Still report success to keep UX simple in dev
+        increment("ms.disconnect.fail")
         return {"ok": True, "disconnected": True}
