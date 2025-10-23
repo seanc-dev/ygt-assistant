@@ -22,8 +22,8 @@ def draft_email(intent: Dict[str, Any], tone: str | None, core_ctx: Dict[str, An
     return {
         "id": "draft-1",
         "to": intent.get("to") or [],
-        "subject": intent.get("subject") or "Quick update",
-        "body": f"Hey, just following up. Tone: {tone or 'neutral'}",
+        "subject": intent.get("subject") or "Quick, calm update",
+        "body": f"Hey, just following up. Tone: {tone or 'calm'}",
         "tone": tone or "neutral",
         "status": "proposed",
         "risk": "low",
