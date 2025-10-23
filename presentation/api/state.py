@@ -5,4 +5,5 @@ from typing import Any, Dict, List
 approvals_store: Dict[str, Dict[str, Any]] = {}
 drafts_store: Dict[str, Dict[str, Any]] = {}
 history_log: List[Dict[str, Any]] = []
+created_events_store: Dict[str, Dict[str, Any]] = {}
 
