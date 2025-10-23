@@ -8,19 +8,19 @@ Overview
 
 Azure AD app registration
 
-1) Go to Azure Portal → App registrations → New registration.
-2) Name: YGT Assistant (Local)
-3) Supported account types: Accounts in any organizational directory (Any Azure AD directory) and personal Microsoft accounts.
-4) Redirect URI (Web): http://localhost:8000/connections/ms/oauth/callback
-5) After create, note Application (client) ID and Directory (tenant) ID.
-6) Certificates & secrets → New client secret. Copy the value.
-7) API permissions → Add permissions → Microsoft Graph → Delegated → select:
+1. Go to Azure Portal → App registrations → New registration.
+2. Name: YGT Assistant (Local)
+3. Supported account types: Accounts in any organizational directory (Any Azure AD directory) and personal Microsoft accounts.
+4. Redirect URI (Web): http://localhost:8000/connections/ms/oauth/callback
+5. After create, note Application (client) ID and Directory (tenant) ID.
+6. Certificates & secrets → New client secret. Copy the value.
+7. API permissions → Add permissions → Microsoft Graph → Delegated → select:
    - offline_access
    - User.Read
    - Mail.ReadWrite
    - Mail.Send
    - Calendars.ReadWrite
-   Grant admin consent for your tenant (if required).
+     Grant admin consent for your tenant (if required).
 
 Environment variables (.env.local)
 
@@ -96,5 +96,3 @@ Notes
 - Request IDs propagate via middleware; providers attach `x-ms-client-request-id` to Graph requests.
 - Metrics are emitted via `utils/metrics.increment` (no-op logs in dev).
 - No sensitive data (tokens, message bodies) are logged.
-
-

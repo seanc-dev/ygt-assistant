@@ -119,7 +119,9 @@ async def ensure_access_token(
     async with httpx.AsyncClient(timeout=10) as c:
         r = await c.post(token_url, data=data)
         if r.status_code in (429,) or 500 <= r.status_code < 600:
-            increment("ms.tokens.refresh.retryable", status=r.status_code, user=_uid_hash)
+            increment(
+                "ms.tokens.refresh.retryable", status=r.status_code, user=_uid_hash
+            )
         r.raise_for_status()
         t = r.json()
         tok = t.get("access_token") or ""
@@ -127,4 +129,43 @@ async def ensure_access_token(
             increment("ms.tokens.refresh.ok", user=_uid_hash)
         else:
             increment("ms.tokens.refresh.empty", user=_uid_hash)
+        return tok
+
+
+def ensure_access_token_sync(user_id: str, token_row: Dict[str, Any], tenant_id: str) -> str:
+    """Synchronous variant for provider flows invoked inside FastAPI event loop."""
+    f, _ = fernet_from(ENCRYPTION_KEY)
+    access_token = (
+        decrypt(f, token_row["access_token"]) if token_row.get("access_token") else ""
+    )
+    refresh_token = (
+        decrypt(f, token_row["refresh_token"]) if token_row.get("refresh_token") else ""
+    )
+    expiry = token_row.get("expiry") or ""
+    if access_token and expiry and not needs_refresh(expiry):
+        return access_token
+
+    client_id = os.getenv("MS_CLIENT_ID", "")
+    client_secret = os.getenv("MS_CLIENT_SECRET", "")
+    data = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+        "scope": "User.Read offline_access Mail.ReadWrite Mail.Send Calendars.ReadWrite",
+    }
+    token_url = (
+        f"https://login.microsoftonline.com/{tenant_id or 'common'}/oauth2/v2.0/token"
+    )
+    with httpx.Client(timeout=10) as c:
+        r = c.post(token_url, data=data)
+        if r.status_code in (429,) or 500 <= r.status_code < 600:
+            increment("ms.tokens.refresh.retryable", status=r.status_code)
+        r.raise_for_status()
+        t = r.json()
+        tok = t.get("access_token") or ""
+        if tok:
+            increment("ms.tokens.refresh.ok")
+        else:
+            increment("ms.tokens.refresh.empty")
         return tok

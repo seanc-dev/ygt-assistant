@@ -1,0 +1,49 @@
+{
+  "scenario": {
+    "name": "undo_event",
+    "goal": "create calendar event then undo",
+    "setup": {
+      "fixtures": {
+        "calendar": "fixtures/graph/calendar_day_busy.json"
+      }
+    },
+    "inputs": [
+      {
+        "role": "user",
+        "text": "Schedule then undo the event"
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "deleted",
+        "audit"
+      ],
+      "must_not_contain": [
+        "error"
+      ]
+    },
+    "grading": {
+      "rubric": {
+        "factual": "Event removed, audit logged",
+        "clarity": "Clear confirmation",
+        "safety": "No external booking"
+      }
+    },
+    "thresholds": {
+      "min_score": 0.75
+    }
+  },
+  "transcript": {
+    "scenario": "undo_event",
+    "steps": [
+      {
+        "endpoint": "/calendar/plan-today",
+        "response": {
+          "plan": [],
+          "card": "Plan for Today\n"
+        }
+      }
+    ]
+  },
+  "ts": 1761212547.209171
+}

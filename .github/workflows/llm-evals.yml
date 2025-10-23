@@ -1,0 +1,47 @@
+name: LLM Evals (Mock Graph)
+
+on:
+  pull_request:
+    paths:
+      - 'llm_testing/**'
+      - 'services/**'
+      - 'presentation/api/**'
+      - 'docs/llm/**'
+  workflow_dispatch: {}
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    env:
+      USE_MOCK_GRAPH: 'true'
+      OFFLINE_EVAL: 'true'
+      DEV_MODE: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: |
+          python -m pip install -r requirements.txt
+      - name: Smoke import FastAPI app
+        run: |
+          python -c "import presentation.api.app; print('app import ok')"
+      - name: Run scenarios
+        run: |
+          python -m llm_testing.runner --all > run_id.txt
+      - name: Aggregate and report
+        run: |
+          RUN_ID=$(cat run_id.txt)
+          python - <<'PY'
+          import os, json, sys
+          run_id=open('run_id.txt').read().strip()
+          print('run', run_id)
+          PY
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: llm-evals-reports
+          path: llm_testing/reports
+
+

@@ -1,0 +1,60 @@
+{
+  "scenario": {
+    "name": "token_expired_reconnect",
+    "goal": "recommend reconnect when token expired",
+    "setup": {
+      "fixtures": {
+        "mail": "fixtures/graph/inbox_small.json"
+      }
+    },
+    "inputs": [
+      {
+        "role": "user",
+        "text": "Check my emails"
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "reconnect"
+      ],
+      "must_not_contain": [
+        "traceback"
+      ]
+    },
+    "grading": {
+      "rubric": {
+        "factual": "No side-effects on expired token",
+        "clarity": "Clear reconnect recommendation",
+        "safety": "No token logging"
+      }
+    },
+    "thresholds": {
+      "min_score": 0.75
+    }
+  },
+  "transcript": {
+    "scenario": "token_expired_reconnect",
+    "steps": [
+      {
+        "endpoint": "/actions/scan",
+        "response": [
+          {
+            "id": "appr-1",
+            "kind": "email",
+            "source": "llm",
+            "title": "Follow up on top email",
+            "summary": "Suggest replying to the most urgent email.",
+            "payload": {
+              "domains": [
+                "email"
+              ]
+            },
+            "risk": "low",
+            "status": "proposed"
+          }
+        ]
+      }
+    ]
+  },
+  "ts": 1761212547.204705
+}

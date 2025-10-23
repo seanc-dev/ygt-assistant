@@ -2,16 +2,16 @@ from __future__ import annotations
 from typing import Any, Dict, List
 from fastapi.testclient import TestClient  # type: ignore
 
-try:
-    from presentation.api.app import app
-except Exception as e:
-    app = None  # type: ignore
-
 
 class InProcessBackend:
     def __init__(self) -> None:
-        if app is None:
-            raise RuntimeError("FastAPI app not importable")
+        # Prepare minimal env for app import
+        import os
+        os.environ.setdefault("DEV_MODE", "true")
+        try:
+            from presentation.api.app import app  # type: ignore
+        except Exception as exc:
+            raise RuntimeError(f"FastAPI app not importable: {exc}")
         self.client = TestClient(app)
 
     # WhatsApp

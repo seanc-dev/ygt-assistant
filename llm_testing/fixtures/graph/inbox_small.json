@@ -1,0 +1,28 @@
+{
+  "messages": [
+    {
+      "id": "m1",
+      "subject": "Invoice due",
+      "from": "ap@vendor.com",
+      "to": ["you@example.com"],
+      "preview": "Invoice #123 is due",
+      "received_at": "2025-10-23T08:00:00Z"
+    },
+    {
+      "id": "m2",
+      "subject": "Schedule meeting",
+      "from": "ally@example.com",
+      "to": ["you@example.com"],
+      "preview": "Can we meet tomorrow?",
+      "received_at": "2025-10-23T12:00:00Z"
+    },
+    {
+      "id": "m3",
+      "subject": "Thanks!",
+      "from": "client@example.com",
+      "to": ["you@example.com"],
+      "preview": "Appreciate your help",
+      "received_at": "2025-10-23T13:00:00Z"
+    }
+  ]
+}
