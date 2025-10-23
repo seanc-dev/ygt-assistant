@@ -14,8 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       USE_MOCK_GRAPH: 'true'
-      OFFLINE_EVAL: 'true'
+      OFFLINE_EVAL: ${{ secrets.LLM_EVAL_API_KEY == '' && 'true' || 'false' }}
       DEV_MODE: 'true'
+      LLM_EVAL_API_KEY: ${{ secrets.LLM_EVAL_API_KEY }}
+      LLM_EVAL_MODEL: ${{ vars.LLM_EVAL_MODEL || 'gpt-4o-mini' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
