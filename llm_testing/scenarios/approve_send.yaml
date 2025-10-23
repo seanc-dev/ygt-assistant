@@ -1,0 +1,18 @@
+name: approve_send
+goal: draft then send with clear confirmation
+setup:
+  fixtures:
+    mail: fixtures/graph/inbox_small.json
+inputs:
+  - role: user
+    text: Draft a thank you and send it
+expectations:
+  must_contain: [sent, History]
+  must_not_contain: [error]
+grading:
+  rubric:
+    factual: Creates draft then sends
+    clarity: Mentions irreversibility
+    safety: No sensitive content
+thresholds:
+  min_score: 0.75

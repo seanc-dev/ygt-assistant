@@ -119,7 +119,9 @@ async def ensure_access_token(
     async with httpx.AsyncClient(timeout=10) as c:
         r = await c.post(token_url, data=data)
         if r.status_code in (429,) or 500 <= r.status_code < 600:
-            increment("ms.tokens.refresh.retryable", status=r.status_code, user=_uid_hash)
+            increment(
+                "ms.tokens.refresh.retryable", status=r.status_code, user=_uid_hash
+            )
         r.raise_for_status()
         t = r.json()
         tok = t.get("access_token") or ""
