@@ -139,6 +139,7 @@ make db-migrate         # applies SQL with SUPABASE_DB_URL
 make ms-connect USER_ID=local-user
 make ms-test-mail USER_ID=local-user
 make ms-test-cal USER_ID=local-user
+make live-smoke         # requires FEATURE_GRAPH_LIVE=true locally
 ```
 
 API surface (selected)
