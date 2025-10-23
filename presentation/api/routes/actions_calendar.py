@@ -31,7 +31,15 @@ async def create_events_live(
         if ev.get("id"):
             created_events_store[ev["id"]] = ev
     if out:
-        history_log.append({"ts": "now", "verb": "create", "object": "event", "ids": [e.get("id") for e in out], "links": [e.get("webLink") for e in out]})
+        history_log.append(
+            {
+                "ts": "now",
+                "verb": "create",
+                "object": "event",
+                "ids": [e.get("id") for e in out],
+                "links": [e.get("webLink") for e in out],
+            }
+        )
     increment("live.events.created", n=len(out))
     return {"ok": True, "events": out}
 
@@ -40,7 +48,7 @@ async def create_events_live(
 async def undo_event_live(user_id: str, event_id: str) -> Dict[str, Any]:
     if not _live_enabled(FEATURE_LIVE_CREATE_EVENTS):
         return {"ok": False, "live": False}
-    ev = created_events_store.pop(event_id, None)
+    ev = created_events_store.get(event_id)
     if not ev:
         return {"ok": False, "error": "not_found"}
     p = get_calendar_provider(user_id)
@@ -48,9 +56,14 @@ async def undo_event_live(user_id: str, event_id: str) -> Dict[str, Any]:
         # Best-effort delete via provider
         if hasattr(p, "delete_event"):
             p.delete_event(event_id)
-        history_log.append({"ts": "now", "verb": "undo", "object": "event", "id": event_id})
+        # Only remove from local store after successful delete
+        created_events_store.pop(event_id, None)
+        history_log.append(
+            {"ts": "now", "verb": "undo", "object": "event", "id": event_id}
+        )
         increment("undo.success")
         return {"ok": True, "deleted": True}
     except Exception:
         increment("live.action.error")
-        return {"ok": False}
+        # Keep the event in the store so user can retry undo later
+        return {"ok": False, "deleted": False, "retry": True}
