@@ -5,7 +5,7 @@ import httpx
 
 from services.providers.email_provider import EmailProvider
 from services.providers.errors import ProviderError
-from services.ms_auth import ensure_access_token, token_store_from_env
+from services.ms_auth import ensure_access_token, ensure_access_token_sync, token_store_from_env
 from utils.metrics import increment
 import uuid
 import asyncio
@@ -28,7 +28,8 @@ class MicrosoftEmailProvider(EmailProvider):
         except Exception:
             row = None
         if row:
-            return await ensure_access_token(self.user_id, row, self.tenant_id)
+            # Avoid anyio.run when inside FastAPI event loop by using sync path
+            return ensure_access_token_sync(self.user_id, row, self.tenant_id)
         tok = os.getenv("MS_TEST_ACCESS_TOKEN", "")
         if tok:
             return tok
