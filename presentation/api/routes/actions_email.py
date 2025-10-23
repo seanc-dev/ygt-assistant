@@ -10,6 +10,7 @@ from settings import (
 )
 from services.providers.registry import get_email_provider
 from utils.metrics import increment
+from presentation.api.state import history_log
 
 
 router = APIRouter()
@@ -36,7 +37,9 @@ async def list_inbox_live(user_id: str = "default", limit: int = 5) -> Dict[str,
 
 
 @router.post("/actions/live/send")
-async def send_mail_live(user_id: str = "default", body: Dict[str, Any] | None = None) -> Dict[str, Any]:
+async def send_mail_live(
+    user_id: str = "default", body: Dict[str, Any] | None = None
+) -> Dict[str, Any]:
     if not _live_enabled(FEATURE_LIVE_SEND_MAIL):
         return {"ok": False, "live": False}
     b = body or {}
@@ -44,8 +47,8 @@ async def send_mail_live(user_id: str = "default", body: Dict[str, Any] | None =
     subj = b.get("subject") or "[YGT] Test"
     txt = b.get("body") or "Hello from YGT"
     p = get_email_provider(user_id)
+    # Irreversible: return warning copy for UI confirm
     out = p.send_message(to, subj, txt)
+    history_log.append({"ts": "now", "verb": "send", "object": "email", "subject": subj})
     increment("live.mail.sent")
-    return {"ok": True, **out}
-
-
+    return {"ok": True, "warning": "Sending is irreversible.", **out}
