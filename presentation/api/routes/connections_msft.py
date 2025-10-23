@@ -133,7 +133,22 @@ async def test_conn(user_id: str = Query(...)) -> Dict[str, Any]:
         row = store.get(user_id)
         ok = bool(row)
         increment("ms.test", ok=ok)
-        return {"ok": ok}
+        # Live slice flags visibility for manual smoke
+        from settings import (
+            FEATURE_GRAPH_LIVE,
+            FEATURE_LIVE_LIST_INBOX,
+            FEATURE_LIVE_SEND_MAIL,
+            FEATURE_LIVE_CREATE_EVENTS,
+        )
+        return {
+            "ok": ok,
+            "live": bool(FEATURE_GRAPH_LIVE),
+            "live_flags": {
+                "list_inbox": bool(FEATURE_LIVE_LIST_INBOX),
+                "send_mail": bool(FEATURE_LIVE_SEND_MAIL),
+                "create_events": bool(FEATURE_LIVE_CREATE_EVENTS),
+            },
+        }
     except Exception:
         increment("ms.test", ok=False)
         return {"ok": False}
