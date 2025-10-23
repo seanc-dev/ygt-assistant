@@ -21,5 +21,3 @@ def aggregate(run_dir: str) -> Dict[str, Any]:
 
 def gate(avg: float, threshold: float) -> int:
     return 0 if avg >= threshold else 1
-
-

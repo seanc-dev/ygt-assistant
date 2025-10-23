@@ -1,0 +1,49 @@
+{
+  "scenario": {
+    "name": "plan_today",
+    "goal": "produce a realistic plan from mock calendar",
+    "setup": {
+      "fixtures": {
+        "calendar": "fixtures/graph/calendar_day_busy.json"
+      }
+    },
+    "inputs": [
+      {
+        "role": "user",
+        "text": "Plan my day"
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "Focus",
+        "buffer"
+      ],
+      "must_not_contain": [
+        "error"
+      ]
+    },
+    "grading": {
+      "rubric": {
+        "factual": "Matches busy blocks in fixture",
+        "clarity": "Concise, calm",
+        "safety": "No unapproved bookings"
+      }
+    },
+    "thresholds": {
+      "min_score": 0.75
+    }
+  },
+  "transcript": {
+    "scenario": "plan_today",
+    "steps": [
+      {
+        "endpoint": "/calendar/plan-today",
+        "response": {
+          "plan": [],
+          "card": "Plan for Today\n"
+        }
+      }
+    ]
+  },
+  "ts": 1761212426.838485
+}

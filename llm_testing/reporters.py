@@ -15,5 +15,3 @@ def write_markdown(run_dir: str, out_path: str) -> None:
         lines.append(f"- {name}: {scores}\n")
     with open(out_path, "w") as f:
         f.write("\n".join(lines))
-
-

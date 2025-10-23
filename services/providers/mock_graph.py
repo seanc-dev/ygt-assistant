@@ -22,7 +22,9 @@ class MockMicrosoftEmail(EmailProvider):
         self._drafts: Dict[str, Dict[str, Any]] = {}
 
     def list_threads(self, q: str, max_n: int) -> List[Dict[str, Any]]:
-        data = _load_fixture(self._fixtures.get("mail", "fixtures/graph/inbox_small.json"))
+        data = _load_fixture(
+            self._fixtures.get("mail", "fixtures/graph/inbox_small.json")
+        )
         items = data.get("messages", [])[: max(1, min(max_n or 5, 50))]
         out: List[Dict[str, Any]] = []
         for it in items:
@@ -41,7 +43,13 @@ class MockMicrosoftEmail(EmailProvider):
 
     def create_draft(self, to: List[str], subject: str, body: str) -> Dict[str, Any]:
         draft_id = f"mock-{len(self._drafts)+1}"
-        d = {"id": draft_id, "to": to, "subject": subject, "body": body, "status": "draft"}
+        d = {
+            "id": draft_id,
+            "to": to,
+            "subject": subject,
+            "body": body,
+            "status": "draft",
+        }
         self._drafts[draft_id] = d
         return d
 
@@ -56,7 +64,9 @@ class MockMicrosoftEmail(EmailProvider):
         return {"id": "send_mail", "status": "sent"}
 
     def get_message(self, message_id: str) -> Dict[str, Any]:
-        data = _load_fixture(self._fixtures.get("mail", "fixtures/graph/inbox_small.json"))
+        data = _load_fixture(
+            self._fixtures.get("mail", "fixtures/graph/inbox_small.json")
+        )
         for it in data.get("messages", []):
             if it.get("id") == message_id:
                 return it
@@ -70,7 +80,9 @@ class MockMicrosoftCalendar(CalendarProvider):
         self._events: Dict[str, Dict[str, Any]] = {}
 
     def list_events(self, time_min: str, time_max: str) -> List[Dict[str, Any]]:
-        data = _load_fixture(self._fixtures.get("calendar", "fixtures/graph/calendar_day_busy.json"))
+        data = _load_fixture(
+            self._fixtures.get("calendar", "fixtures/graph/calendar_day_busy.json")
+        )
         items = data.get("events", [])
         return [
             {
@@ -102,5 +114,3 @@ class MockMicrosoftCalendar(CalendarProvider):
     def delete_event(self, event_id: str) -> Dict[str, Any]:
         self._events.pop(event_id, None)
         return {"id": event_id, "deleted": True}
-
-

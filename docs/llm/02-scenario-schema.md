@@ -1,6 +1,7 @@
 # Scenario Schema
 
 Keys:
+
 - name: string
 - goal: string
 - setup.fixtures: map of fixture paths (e.g., calendar, mail)
@@ -11,6 +12,7 @@ Keys:
 - thresholds.min_score: float (0..1)
 
 Example:
+
 ```yaml
 name: plan_today
 goal: produce a realistic plan from mock calendar

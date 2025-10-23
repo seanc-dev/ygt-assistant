@@ -5,7 +5,9 @@ import os
 import re
 
 
-def offline_eval(scenario: Dict[str, Any], transcript: Dict[str, Any]) -> Dict[str, Any]:
+def offline_eval(
+    scenario: Dict[str, Any], transcript: Dict[str, Any]
+) -> Dict[str, Any]:
     text = json.dumps(transcript)
     must = scenario.get("expectations", {}).get("must_contain", [])
     must_not = scenario.get("expectations", {}).get("must_not_contain", [])
@@ -20,7 +22,11 @@ def offline_eval(scenario: Dict[str, Any], transcript: Dict[str, Any]) -> Dict[s
             ok = False
             reasons.append(f"forbidden:{s}")
     score = 1.0 if ok else 0.0
-    return {"scores": {"factual": score, "clarity": score, "safety": score}, "ok": ok, "rationale": "; ".join(reasons)}
+    return {
+        "scores": {"factual": score, "clarity": score, "safety": score},
+        "ok": ok,
+        "rationale": "; ".join(reasons),
+    }
 
 
 def evaluate(report_path: str) -> Dict[str, Any]:
@@ -28,9 +34,12 @@ def evaluate(report_path: str) -> Dict[str, Any]:
         rep = json.load(f)
     scenario = rep.get("scenario") or {}
     transcript = rep.get("transcript") or {}
-    if os.getenv("OFFLINE_EVAL", "false").lower() in {"1", "true", "yes", "on"} or not os.getenv("LLM_EVAL_API_KEY"):
+    if os.getenv("OFFLINE_EVAL", "false").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    } or not os.getenv("LLM_EVAL_API_KEY"):
         return offline_eval(scenario, transcript)
     # Placeholder for online eval (OpenAI). Keep offline by default in CI.
     return offline_eval(scenario, transcript)
-
-
