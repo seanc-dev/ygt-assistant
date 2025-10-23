@@ -128,3 +128,76 @@ async def actions_undo(approval_id: str) -> Dict[str, Any]:
 @router.get("/history")
 async def history(limit: int = 100) -> List[Dict[str, Any]]:
     return list(reversed(history_log))[: max(0, min(limit, 1000))]
+
+
+# Actions v2 (mock-only; deterministic)
+@router.post("/actions/plan-today-v2")
+async def plan_today_v2(body: Dict[str, Any]) -> Dict[str, Any]:
+    # Deterministic plan with buffers and focus blocks
+    plan = [
+        {"time": "09:00", "title": "Standup", "kind": "meeting"},
+        {"time": "09:15", "title": "Buffer", "kind": "buffer"},
+        {"time": "10:00", "title": "Client prep notes", "kind": "prep"},
+        {"time": "11:00", "title": "Focus block (energy: high)", "kind": "focus"},
+        {"time": "12:30", "title": "Buffer", "kind": "buffer"},
+    ]
+    history_log.append(
+        {"ts": "now", "verb": "plan", "object": "day", "rationale": "Added travel buffers and energy-based focus.", "plan": plan}
+    )
+    return {"plan": plan}
+
+
+@router.post("/actions/triage-v2")
+async def triage_v2(body: Dict[str, Any]) -> List[Dict[str, Any]]:
+    items = [
+        {"id": "t1", "title": "Invoice due", "priority": "high", "sla": "<24h", "rationale": "Finance-critical"},
+        {"id": "t2", "title": "Schedule meeting", "priority": "medium", "sla": "<72h", "rationale": "Client scheduling"},
+        {"id": "t3", "title": "Thanks", "priority": "low", "sla": "<72h", "rationale": "No action required"},
+    ]
+    for it in items:
+        approvals_store[it["id"]] = {**it, "status": "proposed", "kind": "email"}
+    history_log.append(
+        {"ts": "now", "verb": "scan", "object": "inbox", "rationale": "Batch approvals with priorities and SLAs."}
+    )
+    return items
+
+
+@router.post("/actions/draft-v2")
+async def draft_v2(body: Dict[str, Any]) -> Dict[str, Any]:
+    tone = (body.get("tone") or "calm").lower()
+    schedule_send = body.get("schedule_send") or "tomorrow 09:00"
+    follow_up_note = body.get("follow_up_note") or "Add to follow-up list"
+    draft = {
+        "id": "draft-v2-1",
+        "to": body.get("to") or ["user@example.com"],
+        "subject": body.get("subject") or "Quick, calm update",
+        "body": f"Hi there, just a {tone} follow-up.",
+        "tone": tone,
+        "schedule_send": schedule_send,
+        "follow_up_note": follow_up_note,
+        "status": "proposed",
+    }
+    history_log.append({"ts": "now", "verb": "draft", "object": "email", "id": draft["id"], "rationale": f"Tone preset {tone}"})
+    return draft
+
+
+@router.post("/actions/reschedule-v2")
+async def reschedule_v2(body: Dict[str, Any]) -> Dict[str, Any]:
+    options = [
+        {"rank": 1, "start": "2025-10-24T10:00:00Z", "end": "2025-10-24T10:30:00Z", "rationale": "No conflicts; within working hours"},
+        {"rank": 2, "start": "2025-10-24T15:00:00Z", "end": "2025-10-24T15:30:00Z", "rationale": "Minor conflict; resolvable"},
+        {"rank": 3, "start": "2025-10-25T09:00:00Z", "end": "2025-10-25T09:30:00Z", "rationale": "Alternative next day"},
+    ]
+    history_log.append({"ts": "now", "verb": "reschedule", "object": "event", "rationale": "Ranked options with rationale"})
+    return {"options": options}
+
+
+@router.post("/actions/reconnect-v2")
+async def reconnect_v2(body: Dict[str, Any]) -> Dict[str, Any]:
+    # Provide retry window suggestions and CTA when tokens are absent/expired (mocked)
+    return {
+        "retry": ["now", "in 15 minutes", "this afternoon"],
+        "cta": "Reconnect Microsoft",
+        "degraded": True,
+        "message": "Connection inactive. Showing mock suggestions until reconnected.",
+    }

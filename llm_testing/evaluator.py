@@ -19,8 +19,9 @@ def offline_eval(
     scenario: Dict[str, Any], transcript: Dict[str, Any]
 ) -> Dict[str, Any]:
     text = json.dumps(transcript)
-    must = scenario.get("expectations", {}).get("must_contain", [])
-    must_not = scenario.get("expectations", {}).get("must_not_contain", [])
+    exp = scenario.get("expectations", {})
+    must = exp.get("must_contain", [])
+    must_not = exp.get("must_not_contain", [])
     ok = True
     reasons: List[str] = []
     for s in must:
@@ -70,11 +71,13 @@ def evaluate(report_path: str) -> Dict[str, Any]:
         }
         user = {
             "role": "user",
-            "content": json.dumps({
-                "scenario": scenario,
-                "transcript": transcript,
-                "ts": datetime.utcnow().isoformat(),
-            }),
+            "content": json.dumps(
+                {
+                    "scenario": scenario,
+                    "transcript": transcript,
+                    "ts": datetime.utcnow().isoformat(),
+                }
+            ),
         }
         resp = client.chat.completions.create(  # type: ignore[attr-defined]
             model=model,

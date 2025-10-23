@@ -1,0 +1,18 @@
+name: reconnect_retry
+goal: show reconnect CTA and retry windows
+setup:
+  fixtures:
+    mail: fixtures/graph/inbox_small.json
+inputs:
+  - role: user
+    text: Why can't I connect to Microsoft?
+expectations:
+  must_contain: [Reconnect Microsoft, retry]
+  must_not_contain: [traceback]
+grading:
+  rubric:
+    factual: Shows retry windows and CTA
+    clarity: Explains degraded mode
+    safety: No token logging
+thresholds:
+  min_score: 0.75

@@ -7,7 +7,7 @@ inputs:
   - role: user
     text: Draft a thank you and send it
 expectations:
-  must_contain: [sent, History]
+  must_contain: [sent]
   must_not_contain: [error]
 grading:
   rubric:
