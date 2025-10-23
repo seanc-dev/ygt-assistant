@@ -5,7 +5,11 @@ import httpx
 
 from services.providers.calendar_provider import CalendarProvider
 from services.providers.errors import ProviderError
-from services.ms_auth import ensure_access_token, ensure_access_token_sync, token_store_from_env
+from services.ms_auth import (
+    ensure_access_token,
+    ensure_access_token_sync,
+    token_store_from_env,
+)
 from utils.metrics import increment
 import uuid
 import asyncio
@@ -143,6 +147,12 @@ class MicrosoftCalendarProvider(CalendarProvider):
             return r.json()
 
         return anyio.run(_run)
+
+    def create_events_batch(self, events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        results: List[Dict[str, Any]] = []
+        for ev in events:
+            results.append(self.create_event(ev))
+        return results
 
     def update_event(self, event_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
         import anyio

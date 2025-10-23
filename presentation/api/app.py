@@ -429,6 +429,18 @@ try:
 except Exception:
     pass
 
+try:
+    from presentation.api.routes.actions_email import router as actions_email_router
+    app.include_router(actions_email_router)
+except Exception:
+    pass
+
+try:
+    from presentation.api.routes.actions_calendar import router as actions_calendar_router
+    app.include_router(actions_calendar_router)
+except Exception:
+    pass
+
 # Dev-only helpers (do not enable in production)
 if (os.getenv("DEV_MODE", "").strip().lower() in {"1", "true", "yes", "on"}) or (
     os.getenv("PYTEST_CURRENT_TEST")

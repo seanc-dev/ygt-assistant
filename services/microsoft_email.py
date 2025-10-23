@@ -5,7 +5,11 @@ import httpx
 
 from services.providers.email_provider import EmailProvider
 from services.providers.errors import ProviderError
-from services.ms_auth import ensure_access_token, ensure_access_token_sync, token_store_from_env
+from services.ms_auth import (
+    ensure_access_token,
+    ensure_access_token_sync,
+    token_store_from_env,
+)
 from utils.metrics import increment
 import uuid
 import asyncio
@@ -130,6 +134,40 @@ class MicrosoftEmailProvider(EmailProvider):
                         x.get("emailAddress", {}).get("address")
                         for x in (it.get("toRecipients") or [])
                     ],
+                    "received_at": it.get("receivedDateTime"),
+                    "preview": it.get("bodyPreview"),
+                    "link": it.get("webLink"),
+                }
+                for it in items
+            ]
+
+        return anyio.run(_run)
+
+    def list_inbox(self, limit: int = 5) -> List[Dict[str, Any]]:
+        import anyio
+
+        async def _run() -> List[Dict[str, Any]]:
+            token = await self._auth()
+            params = {
+                "$top": str(max(1, min(limit or 5, 25))),
+                "$select": "subject,from,toRecipients,receivedDateTime,bodyPreview,webLink",
+                "$orderby": "receivedDateTime desc",
+            }
+            r = await self._request_with_retry(
+                "GET",
+                f"{self._base()}/me/messages",
+                params=params,
+                headers={"Authorization": f"Bearer {token}"},
+                expected_status=[200],
+            )
+            data = r.json()
+            items = data.get("value", [])
+            increment("ms.email.inbox.listed", n=len(items))
+            return [
+                {
+                    "id": it.get("id"),
+                    "subject": it.get("subject"),
+                    "from": (it.get("from") or {}).get("emailAddress", {}).get("address"),
                     "received_at": it.get("receivedDateTime"),
                     "preview": it.get("bodyPreview"),
                     "link": it.get("webLink"),
