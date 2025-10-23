@@ -43,39 +43,73 @@ def apply_minimal_diffs() -> List[str]:
     llm_py = Path("services/llm.py")
     if llm_py.exists():
         src = llm_py.read_text()
-        new = src.replace("Tone: {tone or 'neutral'}", "Tone: {tone or 'calm'}").replace("Quick update", "Quick, calm update")
+        new = src.replace(
+            "Tone: {tone or 'neutral'}", "Tone: {tone or 'calm'}"
+        ).replace("Quick update", "Quick, calm update")
         if new != src:
             llm_py.write_text(new)
             edited.append(str(llm_py))
     return edited
 
 
-def open_branch_and_pr(run_id: str, edited_files: List[str], fixes: List[str]) -> None:
+def _current_branch() -> str:
+    return (
+        subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, check=True
+        )
+        .stdout.decode()
+        .strip()
+    )
+
+
+def apply_changes(run_id: str, edited_files: List[str], fixes: List[str], *, direct: bool) -> None:
+    base_branch = _current_branch()
+    subprocess.run(["git", "add", *edited_files], check=True)
+    msg = f"chore(llm): prompt tweaks from eval run {run_id}\n\n" + "\n".join(
+        f"- {f}" for f in fixes
+    )
+    if direct:
+        # Commit directly on the current branch (feature branches preferred)
+        subprocess.run(["git", "commit", "-m", msg], check=True)
+        subprocess.run(["git", "push"], check=True)
+        return
+
+    # Otherwise create a short-lived branch and open a PR against the current branch
     branch = f"fix/llm-prompt-{run_id}"
     subprocess.run(["git", "checkout", "-b", branch], check=True)
-    subprocess.run(["git", "add", *edited_files], check=True)
-    msg = f"chore(llm): prompt tweaks from eval run {run_id}\n\n" + "\n".join(f"- {f}" for f in fixes)
     subprocess.run(["git", "commit", "-m", msg], check=True)
     subprocess.run(["git", "push", "-u", "origin", branch], check=True)
-    body = "\n".join([
-        f"Auto-patch from eval run {run_id}.",
-        "Fixes:",
-        *[f"- {f}" for f in fixes],
-        "\nRequires two local passes before merge.",
-    ])
-    subprocess.run([
-        "gh", "pr", "create",
-        "--base", "main",
-        "--head", branch,
-        "--title", f"LLM prompt tweaks ({run_id})",
-        "--body", body,
-    ], check=True)
+    body = "\n".join(
+        [
+            f"Auto-patch from eval run {run_id}.",
+            "Fixes:",
+            *[f"- {f}" for f in fixes],
+            "\nRequires two local passes before merge.",
+        ]
+    )
+    subprocess.run(
+        [
+            "gh",
+            "pr",
+            "create",
+            "--base",
+            base_branch,
+            "--head",
+            branch,
+            "--title",
+            f"LLM prompt tweaks ({run_id})",
+            "--body",
+            body,
+        ],
+        check=True,
+    )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("run_id")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--direct", action="store_true", help="Commit directly on current branch (default when not on main)")
     args = parser.parse_args()
     reports = load_reports(args.run_id)
     fixes_all: List[str] = []
@@ -86,12 +120,13 @@ def main() -> None:
         return
     edited = apply_minimal_diffs()
     if edited:
-        open_branch_and_pr(args.run_id, edited, fixes_all)
+        # Default behavior: direct commit when current branch != main, else PR
+        cur = _current_branch()
+        direct = args.direct or (cur != "main")
+        apply_changes(args.run_id, edited, fixes_all, direct=direct)
     else:
         print("No changes applied.")
 
 
 if __name__ == "__main__":
     main()
-
-
