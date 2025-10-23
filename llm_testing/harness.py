@@ -7,8 +7,6 @@ import uuid
 from pathlib import Path
 import yaml  # type: ignore
 
-from llm_testing.backends.inprocess import InProcessBackend
-
 
 def _is_true(v: str | None) -> bool:
     return (v or "").strip().lower() in {"1", "true", "yes", "on"}
@@ -21,7 +19,11 @@ def load_yaml(path: str) -> Dict[str, Any]:
 
 def run_scenario(scn_path: str) -> Dict[str, Any]:
     os.environ["USE_MOCK_GRAPH"] = "true"
+    os.environ.setdefault("DEV_MODE", "true")
     scn = load_yaml(scn_path)
+    # Import after env is prepared so FastAPI app can initialize in dev mode
+    from llm_testing.backends.inprocess import InProcessBackend  # type: ignore
+
     backend = InProcessBackend()
 
     run_id = uuid.uuid4().hex[:8]
