@@ -33,11 +33,12 @@ jobs:
       - name: Aggregate and report
         run: |
           RUN_ID=$(cat run_id.txt)
-          python - <<'PY'
-          import os, json, sys
-          run_id=open('run_id.txt').read().strip()
-          print('run', run_id)
-          PY
+          echo "Run ID: $RUN_ID"
+      - name: Auto-patch (dry run)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          RUN_ID=$(cat run_id.txt)
+          python llm_testing/auto_patch.py $RUN_ID --dry-run || true
       - name: Upload reports
         uses: actions/upload-artifact@v4
         with:
