@@ -38,6 +38,10 @@ llm-report:
 llm-record:
 	@echo "Set RECORD_GRAPH=true and run your flows locally to capture fixtures"
 
+live-smoke:
+	@echo "Running live smoke (requires FEATURE_GRAPH_LIVE=true and per-action flags)" && \
+	$(PY) scripts/live_smoke.py
+
 llm-auto-patch:
 	@RUN_ID=$$(ls -1t llm_testing/reports | head -1); \
 	if [ -z "$$RUN_ID" ]; then echo "No run found"; exit 1; fi; \
