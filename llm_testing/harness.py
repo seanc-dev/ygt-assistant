@@ -34,7 +34,9 @@ def run_scenario(scn_path: str) -> Dict[str, Any]:
     # Execute primary action per scenario by name
     if name == "plan_today":
         resp = backend.calendar_plan_today()
-        transcript["steps"].append({"endpoint": "/calendar/plan-today", "response": resp})
+        transcript["steps"].append(
+            {"endpoint": "/calendar/plan-today", "response": resp}
+        )
     elif name == "approve_send":
         d = backend.email_create_draft(["user@example.com"], "Hello", "Body")
         transcript["steps"].append({"endpoint": "/email/drafts", "response": d})
@@ -49,7 +51,7 @@ def run_scenario(scn_path: str) -> Dict[str, Any]:
         transcript["steps"].append({"endpoint": "/calendar/plan-today", "response": p})
     elif name == "token_expired_reconnect":
         # Simulate via expectations in evaluator fallback; mocks won't 401
-        resp = backend.actions_scan(["email"]) 
+        resp = backend.actions_scan(["email"])
         transcript["steps"].append({"endpoint": "/actions/scan", "response": resp})
     else:
         # default: just run scan
@@ -58,7 +60,7 @@ def run_scenario(scn_path: str) -> Dict[str, Any]:
 
     out_path = reports_dir / f"{name}.json"
     with open(out_path, "w") as f:
-        json.dump({"scenario": scn, "transcript": transcript, "ts": time.time()}, f, indent=2)
+        json.dump(
+            {"scenario": scn, "transcript": transcript, "ts": time.time()}, f, indent=2
+        )
     return {"run_id": run_id, "report": str(out_path)}
-
-
