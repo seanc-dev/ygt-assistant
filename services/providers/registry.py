@@ -4,6 +4,10 @@ import importlib
 
 from services.providers.email_provider import EmailProvider
 from services.providers.calendar_provider import CalendarProvider
+from services.providers.mock_graph import (
+    MockMicrosoftEmail,
+    MockMicrosoftCalendar,
+)
 
 
 def _provider_from_env(var_name: str, default: str = "stub") -> str:
@@ -45,7 +49,14 @@ class _StubCalendar(CalendarProvider):
         return {"id": event_id, "deleted": True}
 
 
+def _is_true(v: str | None) -> bool:
+    return (v or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def get_email_provider(user_id: str) -> EmailProvider:
+    # CI/mock path: force mock providers when USE_MOCK_GRAPH=true
+    if _is_true(os.getenv("USE_MOCK_GRAPH")):
+        return MockMicrosoftEmail(user_id)
     name = _provider_from_env("PROVIDER_EMAIL", "microsoft")
     if name == "google":
         try:
@@ -69,6 +80,8 @@ def get_email_provider(user_id: str) -> EmailProvider:
 
 
 def get_calendar_provider(user_id: str) -> CalendarProvider:
+    if _is_true(os.getenv("USE_MOCK_GRAPH")):
+        return MockMicrosoftCalendar(user_id)
     name = _provider_from_env("PROVIDER_CAL", "microsoft")
     if name == "google":
         try:
