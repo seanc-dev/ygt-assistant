@@ -21,13 +21,15 @@ def run_scenario(scn_path: str) -> Dict[str, Any]:
     os.environ["USE_MOCK_GRAPH"] = "true"
     os.environ.setdefault("DEV_MODE", "true")
     scn = load_yaml(scn_path)
-    # Import after env is prepared so FastAPI app can initialize in dev mode
-    from llm_testing.backends.inprocess import InProcessBackend  # type: ignore
-
-    backend = InProcessBackend()
-
     run_id = uuid.uuid4().hex[:8]
     name = scn.get("name") or Path(scn_path).stem
+    # For live_* scenarios, set flags before creating the backend so routes see them at import time
+    if name in {"live_inbox", "live_send", "live_create_events"}:
+        os.environ["FEATURE_GRAPH_LIVE"] = "true"
+        # Per-action flags toggled below per scenario
+    # Import after env is prepared so FastAPI app can initialize in dev mode
+    from llm_testing.backends.inprocess import InProcessBackend  # type: ignore
+    backend = InProcessBackend()
     reports_dir = Path("llm_testing") / "reports" / run_id
     reports_dir.mkdir(parents=True, exist_ok=True)
     transcript: Dict[str, Any] = {"scenario": name, "steps": []}
@@ -56,36 +58,24 @@ def run_scenario(scn_path: str) -> Dict[str, Any]:
         resp = backend.actions_scan(["email"])
         transcript["steps"].append({"endpoint": "/actions/scan", "response": resp})
     elif name == "live_inbox":
-        # Enable live flags for inbox; with mocks this returns not_supported
-        os.environ["FEATURE_GRAPH_LIVE"] = "true"
         os.environ["FEATURE_LIVE_LIST_INBOX"] = "true"
-        import httpx
-
-        r = httpx.get(
-            f"http://testserver/actions/live/inbox", params={"user_id": "default", "limit": 5}
+        r = backend.client.get(
+            "/actions/live/inbox", params={"user_id": "default", "limit": 5}
         )
         transcript["steps"].append({"endpoint": "/actions/live/inbox", "response": r.json()})
     elif name == "live_send":
-        os.environ["FEATURE_GRAPH_LIVE"] = "true"
         os.environ["FEATURE_LIVE_SEND_MAIL"] = "true"
-        import httpx
-
-        r = httpx.post(
-            f"http://testserver/actions/live/send",
+        r = backend.client.post(
+            "/actions/live/send",
             params={"user_id": "default"},
             json={"to": ["user@example.com"], "subject": "[YGT Test]", "body": "Hi"},
         )
         transcript["steps"].append({"endpoint": "/actions/live/send", "response": r.json()})
     elif name == "live_create_events":
-        os.environ["FEATURE_GRAPH_LIVE"] = "true"
         os.environ["FEATURE_LIVE_CREATE_EVENTS"] = "true"
-        import httpx
-
         ev = {"title": "Block", "start": "2025-10-25T09:00:00Z", "end": "2025-10-25T09:30:00Z"}
-        r = httpx.post(
-            f"http://testserver/actions/live/create-events",
-            params={"user_id": "default"},
-            json={"events": [ev]},
+        r = backend.client.post(
+            "/actions/live/create-events", params={"user_id": "default"}, json={"events": [ev]}
         )
         transcript["steps"].append({"endpoint": "/actions/live/create-events", "response": r.json()})
     else:
