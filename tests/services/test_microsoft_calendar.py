@@ -23,7 +23,9 @@ def test_create_and_delete_event(monkeypatch):
 
     async def _fake_request(method: str, url: str, **kw: Any):  # type: ignore
         if method == "POST":
-            return _Resp(201, {"id": "ev1", "webLink": "https://outlook.office.com/cal/ev1"})
+            return _Resp(
+                201, {"id": "ev1", "webLink": "https://outlook.office.com/cal/ev1"}
+            )
         return _Resp(204, {})
 
     async def _fake_auth():  # type: ignore
@@ -37,3 +39,21 @@ def test_create_and_delete_event(monkeypatch):
     prov.delete_event("ev1")
 
 
+def test_calendar_retry_on_429(monkeypatch):
+    prov = MicrosoftCalendarProvider("user")
+    calls = {"n": 0}
+
+    async def _fake_http(method: str, url: str, **kw: Any):  # type: ignore
+        calls["n"] += 1
+        code = 429 if calls["n"] < 3 else 201
+        return _Resp(code, {"id": "ev2", "webLink": "https://outlook.office.com/cal/ev2"})
+
+    async def _fake_auth():  # type: ignore
+        return "TOKEN"
+
+    monkeypatch.setattr(prov, "_request_with_retry", _fake_http)
+    monkeypatch.setattr(prov, "_auth", _fake_auth)
+
+    ev = prov.create_event({"subject": "S", "start": {}, "end": {}})
+    assert ev["id"] == "ev2"
+    assert calls["n"] >= 3

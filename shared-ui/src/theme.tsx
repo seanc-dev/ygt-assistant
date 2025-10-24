@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
   type ReactNode,
+  type FC,
 } from "react";
 import { cx } from "./cx";
 import { colors } from "./tokens/colors";
@@ -89,7 +90,7 @@ type ThemeProviderProps = {
   defaultTheme?: ThemePreference;
 };
 
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({
+export const ThemeProvider: FC<ThemeProviderProps> = ({
   children,
   defaultTheme = "system",
 }) => {
