@@ -1,0 +1,53 @@
+export const colors = {
+  background: {
+    canvas: "#f8fafc",
+    canvasDark: "#0f172a",
+    surface: "#ffffff",
+    surfaceDark: "#0b1220",
+    elevated: "#f1f5f9",
+    elevatedDark: "#111827",
+    accent: "#eef2ff",
+    accentDark: "#312e81",
+  },
+  text: {
+    primary: "#0f172a",
+    primaryDark: "#f8fafc",
+    secondary: "#475569",
+    secondaryDark: "#cbd5f5",
+    subtle: "#64748b",
+    subtleDark: "#94a3b8",
+    accent: "#4338ca",
+    accentDark: "#c7d2fe",
+  },
+  border: {
+    subtle: "#e2e8f0",
+    subtleDark: "#1f2937",
+    prominent: "#cbd5f5",
+    prominentDark: "#312e81",
+  },
+  status: {
+    info: "#2563eb",
+    infoSurface: "#dbeafe",
+    infoDark: "#60a5fa",
+    infoSurfaceDark: "#1e3a8a",
+    success: "#059669",
+    successSurface: "#dcfce7",
+    successDark: "#34d399",
+    successSurfaceDark: "#14532d",
+    warning: "#d97706",
+    warningSurface: "#fef3c7",
+    warningDark: "#fbbf24",
+    warningSurfaceDark: "#78350f",
+    danger: "#dc2626",
+    dangerSurface: "#fee2e2",
+    dangerDark: "#f87171",
+    dangerSurfaceDark: "#7f1d1d",
+  },
+  brand: {
+    primary: "#4338ca",
+    primaryDark: "#818cf8",
+    contrast: "#ffffff",
+  },
+} as const;
+
+export type ColorToken = typeof colors;

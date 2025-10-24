@@ -1,7 +1,16 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActionBar,
+  Badge,
+  Button,
+  Heading,
+  Panel,
+  Stack,
+  Text,
+} from "@ygt-assistant/ui";
+import { useRouter } from "next/router";
 import { api } from "../../lib/api";
 import { Layout } from "../../components/Layout";
-import { Card } from "../../components/Card";
 import { Toast } from "../../components/Toast";
 
 type Approval = {
@@ -10,83 +19,115 @@ type Approval = {
   title?: string;
   summary?: string;
   status?: string;
+  metadata?: Record<string, string>;
 };
 
+const FILTERS = [
+  { key: "all", label: "All" },
+  { key: "email", label: "Email" },
+  { key: "calendar", label: "Calendar" },
+];
+
 export default function ReviewPage() {
+  const router = useRouter();
   const [filter, setFilter] = useState<string>("all");
   const [items, setItems] = useState<Approval[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [toast, setToast] = useState<string>("");
 
-  const load = async (f: string) => {
-    setLoading(true);
-    try {
-      const res = await api.approvals(f);
-      setItems(res || []);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const current = items[0];
+  const queue = items.slice(1);
+
+  const load = useCallback(
+    async (nextFilter: string) => {
+      setLoading(true);
+      try {
+        const res = await api.approvals(nextFilter);
+        setItems(res || []);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     load(filter);
-  }, [filter]);
+  }, [filter, load]);
 
-  // Optimistic action helpers
-  const optimistic = (id: string, status: string) => {
+  const optimistic = useCallback((id: string, status: string) => {
     setItems((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
-  };
+  }, []);
 
-  const onApprove = async (id: string) => {
-    optimistic(id, "approved");
-    setToast("Approved. Press U to Undo");
-    try {
-      await api.approve(id);
-    } catch {
-      await load(filter);
-    }
-  };
-  const onEdit = async (id: string) => {
-    optimistic(id, "edited");
-    setToast("Edited");
-    try {
-      await api.edit(id, "tweak");
-    } catch {
-      await load(filter);
-    }
-  };
-  const onSkip = async (id: string) => {
-    optimistic(id, "skipped");
-    setToast("Skipped");
-    try {
-      await api.skip(id);
-    } catch {
-      await load(filter);
-    }
-  };
-  const onUndo = async (id: string) => {
-    optimistic(id, "proposed");
-    setToast("Undone");
-    try {
-      await api.undo(id);
-    } catch {
-      await load(filter);
-    }
-  };
+  const withUndoToast = useCallback((message: string) => {
+    setToast(`${message}. Press U to undo`);
+  }, []);
 
-  // Keyboard shortcuts for first item (A/E/S/U)
+  const onApprove = useCallback(
+    async (id: string) => {
+      optimistic(id, "approved");
+      withUndoToast("Approved");
+      try {
+        await api.approve(id);
+      } catch {
+        await load(filter);
+      }
+    },
+    [filter, load, optimistic, withUndoToast]
+  );
+
+  const onEdit = useCallback(
+    async (id: string) => {
+      optimistic(id, "edited");
+      setToast("Opened for edit");
+      try {
+        await api.edit(id, "tweak");
+      } catch {
+        await load(filter);
+      }
+    },
+    [filter, load, optimistic]
+  );
+
+  const onSkip = useCallback(
+    async (id: string) => {
+      optimistic(id, "skipped");
+      setToast("Snoozed");
+      try {
+        await api.skip(id);
+      } catch {
+        await load(filter);
+      }
+    },
+    [filter, load, optimistic]
+  );
+
+  const onUndo = useCallback(
+    async (id: string) => {
+      optimistic(id, "proposed");
+      setToast("Undo queued");
+      try {
+        await api.undo(id);
+      } catch {
+        await load(filter);
+      }
+    },
+    [filter, load, optimistic]
+  );
+
   const keyHandler = useCallback(
-    (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
+    (event: KeyboardEvent) => {
+      const tag = (event.target as HTMLElement)?.tagName;
       if (["INPUT", "TEXTAREA"].includes(tag || "")) return;
       const first = items[0];
       if (!first) return;
-      if (e.key.toLowerCase() === "a") onApprove(first.id);
-      if (e.key.toLowerCase() === "e") onEdit(first.id);
-      if (e.key.toLowerCase() === "s") onSkip(first.id);
-      if (e.key.toLowerCase() === "u") onUndo(first.id);
+      const key = event.key.toLowerCase();
+      if (key === "a") onApprove(first.id);
+      if (key === "e") onEdit(first.id);
+      if (key === "s") onSkip(first.id);
+      if (key === "u") onUndo(first.id);
     },
-    [items]
+    [items, onApprove, onEdit, onSkip, onUndo]
   );
 
   useEffect(() => {
@@ -94,89 +135,158 @@ export default function ReviewPage() {
     return () => window.removeEventListener("keydown", keyHandler);
   }, [keyHandler]);
 
+  const keyboardHints = useMemo(
+    () => ["A approve", "E edit", "S skip", "U undo"],
+    []
+  );
+
   return (
     <Layout>
-      <h1 className="mb-4 text-2xl font-semibold">To review</h1>
-      <Card
-        title="Approvals"
-        subtitle="Review the most important suggestions"
-        actions={
-          <button
-            onClick={async () => {
-              await api.scan(["email", "calendar"]);
-              await load(filter);
-            }}
-            className="rounded bg-slate-900 px-3 py-1 text-sm text-white dark:bg-slate-100 dark:text-slate-900"
-          >
-            Scan
-          </button>
-        }
-      >
-        <div className="mb-4 flex items-center gap-2">
-          {[
-            { k: "all", label: "All" },
-            { k: "email", label: "Email" },
-            { k: "calendar", label: "Calendar" },
-          ].map((t) => (
-            <button
-              key={t.k}
-              onClick={() => setFilter(t.k)}
-              className={`rounded px-3 py-1 text-sm ${
-                filter === t.k
-                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                  : "bg-slate-100 dark:bg-slate-800"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+      <Stack gap="lg">
+        <div className="flex flex-col gap-2">
+          <Heading as="h1" variant="display">
+            Focus review
+          </Heading>
+          <Text variant="muted">
+            Work one decision at a time. Your queue stays nearby, and undo is only a keypress away.
+          </Text>
         </div>
 
-        <div className="space-y-3">
-          {loading ? (
-            <p className="text-sm text-gray-500">Loading…</p>
-          ) : items.length === 0 ? (
-            <p className="text-sm text-gray-500">No approvals.</p>
-          ) : (
-            items.map((a) => (
-              <Card
-                key={a.id}
-                title={a.title || a.summary || a.id}
-                subtitle={a.kind || "proposal"}
-                actions={
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => onApprove(a.id)}
-                      className="rounded bg-green-600 px-2 py-1 text-white text-sm"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => onEdit(a.id)}
-                      className="rounded bg-amber-600 px-2 py-1 text-white text-sm"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => onSkip(a.id)}
-                      className="rounded bg-slate-200 px-2 py-1 text-sm"
-                    >
-                      Skip
-                    </button>
-                    <button
-                      onClick={() => onUndo(a.id)}
-                      className="rounded bg-slate-100 px-2 py-1 text-sm"
-                    >
-                      Undo
-                    </button>
+        <Panel tone="soft" kicker="View">
+          <Stack direction="horizontal" gap="sm" wrap>
+            {FILTERS.map((item) => (
+              <Button
+                key={item.key}
+                variant={filter === item.key ? "secondary" : "ghost"}
+                onClick={() => setFilter(item.key)}
+                disabled={loading && filter === item.key}
+              >
+                {item.label}
+              </Button>
+            ))}
+            <div className="flex-1" />
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                await api.scan(["email", "calendar"]);
+                await load(filter);
+              }}
+            >
+              Rescan inbox
+            </Button>
+          </Stack>
+        </Panel>
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <Panel
+            kicker={current ? current.kind || "Approval" : "Queue empty"}
+            title={current ? current.title || current.summary || current.id : "Nothing to review"}
+              description={
+                current
+                  ? "Respond with confidence. Secondary actions stay tucked away until you need them."
+                  : "You’re clear for now. New proposals will land here first."
+              }
+            actions={
+              current ? (
+                <Badge tone="calm">Top priority</Badge>
+              ) : (
+                <Badge tone="neutral">Idle</Badge>
+              )
+            }
+            footer={
+              current ? (
+                <Stack direction="horizontal" justify="between" align="center">
+                  <Text variant="caption">Status: {current.status || "Proposed"}</Text>
+                  <Button variant="ghost" onClick={() => onUndo(current.id)}>
+                    Undo last change
+                  </Button>
+                </Stack>
+              ) : null
+            }
+          >
+            {loading && !current ? <Text variant="muted">Loading…</Text> : null}
+            {current ? (
+              <Stack gap="md">
+                <div className="space-y-2 rounded-lg border border-[color:var(--ds-border-subtle)] bg-[color:var(--ds-surface)] p-4">
+                  <Text variant="body">
+                    {current.summary || "No summary available. Pull additional context if needed."}
+                  </Text>
+                  {current.metadata ? (
+                    <dl className="grid gap-2 text-sm text-[color:var(--ds-text-secondary)] sm:grid-cols-2">
+                      {Object.entries(current.metadata).map(([key, value]) => (
+                        <div key={key}>
+                          <dt className="font-medium capitalize">{key.replace(/_/g, " ")}</dt>
+                          <dd>{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ) : null}
+                </div>
+                <Stack direction="horizontal" gap="sm" wrap align="center">
+                  <Button variant="secondary" onClick={() => onEdit(current.id)}>
+                    Open for edits
+                  </Button>
+                  <Button variant="ghost" onClick={() => onSkip(current.id)}>
+                    Skip for later
+                  </Button>
+                  <Button variant="ghost" onClick={() => router.push("/history")}>View history</Button>
+                </Stack>
+              </Stack>
+            ) : (
+              <Text variant="muted">
+                Queue is empty. Relax or explore history while Microsoft Graph keeps listening.
+              </Text>
+            )}
+          </Panel>
+
+            <Panel
+              kicker="Queue"
+              title="Up next"
+              description="Stay aware of what’s queued without breaking focus."
+            footer={
+              <Text variant="caption">
+                Items automatically reshuffle as you approve. Undo brings them right back.
+              </Text>
+            }
+          >
+            {loading && items.length === 0 ? <Text variant="muted">Loading queue…</Text> : null}
+            {queue.length === 0 ? (
+              <Text variant="muted">No additional approvals waiting.</Text>
+            ) : (
+              <Stack gap="sm">
+                {queue.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-[color:var(--ds-border-subtle)] bg-[color:var(--ds-surface-muted)] p-3"
+                  >
+                    <Text variant="label" className="text-[color:var(--ds-text-primary)]">
+                      {item.title || item.summary || item.id}
+                    </Text>
+                    <div className="flex items-center justify-between text-xs text-[color:var(--ds-text-subtle)]">
+                      <span>{item.kind || "proposal"}</span>
+                      <span>{item.status || "pending"}</span>
+                    </div>
                   </div>
-                }
-              />
-            ))
-          )}
+                ))}
+              </Stack>
+            )}
+          </Panel>
         </div>
-      </Card>
-      {toast && <Toast message={toast} onClose={() => setToast("")} />}
+
+          <ActionBar
+            helperText={current ? "Approve the highlighted suggestion" : "You’re caught up"}
+          primaryAction={
+            <Button onClick={() => current && onApprove(current.id)} disabled={!current}>
+              Approve and move forward
+            </Button>
+          }
+          secondaryActions={keyboardHints.map((hint) => (
+            <span key={hint}>{hint}</span>
+          ))}
+        />
+      </Stack>
+
+      {toast ? <Toast message={toast} onClose={() => setToast("")} /> : null}
     </Layout>
   );
 }
