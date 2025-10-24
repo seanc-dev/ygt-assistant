@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
+import { Panel, Text } from "@ygt-assistant/ui";
 
-export function Toast({ message, onClose, duration = 3000 }: { message: string; onClose: () => void; duration?: number }) {
+type ToastProps = {
+  message: string;
+  onClose: () => void;
+  duration?: number;
+};
+
+export function Toast({ message, onClose, duration = 3000 }: ToastProps) {
   const [open, setOpen] = useState(true);
   useEffect(() => {
     const t = setTimeout(() => {
@@ -11,8 +18,14 @@ export function Toast({ message, onClose, duration = 3000 }: { message: string; 
   }, [duration, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded bg-slate-900 px-4 py-2 text-sm text-white shadow-lg dark:bg-slate-100 dark:text-slate-900">
-      {message}
+    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4">
+      <div className="pointer-events-auto w-full max-w-sm">
+        <Panel tone="soft">
+          <Text variant="body" className="text-[color:var(--ds-text-primary)]">
+            {message}
+          </Text>
+        </Panel>
+      </div>
     </div>
   );
 }

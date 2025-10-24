@@ -1,139 +1,189 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  ActionBar,
+  Badge,
+  Button,
+  Heading,
+  Panel,
+  Stack,
+  Text,
+} from "@ygt-assistant/ui";
 import { Layout } from "../../components/Layout";
-import { Card } from "../../components/Card";
 import LiveModeBanner from "../../components/LiveModeBanner";
-import { useEffect, useState } from "react";
+import { Toast } from "../../components/Toast";
+
+type ConnectionStatus =
+  | { connected: false; reason?: string }
+  | {
+      connected: true;
+      scopes?: string[];
+      expires_at?: string;
+      tenant_id?: string;
+      sync_history?: { ts: string; status: string }[];
+    };
 
 export default function ConnectionsPage() {
+  const [status, setStatus] = useState<ConnectionStatus>({ connected: false });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<
-    | { connected: false }
-    | {
-        connected: true;
-        scopes?: string[];
-        expires_at?: string;
-        tenant_id?: string;
-      }
-  >({ connected: false });
+  const [toast, setToast] = useState("");
 
-  const api =
-    process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000";
-  const userId = "local-user"; // TODO: wire real session id later
+  const apiBase = process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000";
+  const userId = "local-user";
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `${apiBase}/connections/ms/status?user_id=${encodeURIComponent(userId)}`
+      );
+      const data = await res.json();
+      setStatus(data);
+    } catch (e: any) {
+      setError(e?.message || "Failed to load status");
+    } finally {
+      setLoading(false);
+    }
+  }, [apiBase, userId]);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(
-          `${api}/connections/ms/status?user_id=${encodeURIComponent(userId)}`
-        );
-        const data = await res.json();
-        if (!cancelled) setStatus(data);
-      } catch (e: any) {
-        if (!cancelled) setError(e?.message || "Failed to load status");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [api]);
+    refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      "ygt-connection-status",
+      status.connected ? "connected" : "disconnected"
+    );
+  }, [status]);
+
+  const syncHistory = useMemo(() => {
+    if (!status.connected) return [];
+    return status.sync_history || [];
+  }, [status]);
+
+  const handleConnect = () => {
+    window.location.href = `${apiBase}/connections/ms/oauth/start?user_id=${encodeURIComponent(
+      userId
+    )}`;
+  };
+
+  const handleDisconnect = async () => {
+    await fetch(`${apiBase}/connections/ms/disconnect?user_id=${encodeURIComponent(userId)}`, {
+      method: "POST",
+    });
+    setToast("Disconnected");
+    await refresh();
+  };
+
+  const handleTest = async () => {
+    const res = await fetch(
+      `${apiBase}/connections/ms/test?user_id=${encodeURIComponent(userId)}`,
+      { method: "POST" }
+    );
+    const data = await res.json();
+    setToast(data.ok ? "Graph test succeeded" : "Graph test failed");
+  };
+
   return (
     <Layout>
-      <LiveModeBanner />
-      <h1 className="mb-4 text-2xl font-semibold">Connections</h1>
-      <div className="grid gap-3 md:grid-cols-3">
-        <Card
-          title="Microsoft"
-          subtitle="Mail and Calendar via Microsoft Graph."
+      <Stack gap="lg">
+        <LiveModeBanner />
+        <div className="flex flex-col gap-2">
+          <Heading as="h1" variant="display">
+            Connections
+          </Heading>
+          <Text variant="muted">
+            Keep Microsoft Graph healthy and understand the sync cadence that feeds approvals.
+          </Text>
+        </div>
+
+        <Panel
+          kicker="Microsoft"
+          title="Microsoft Graph"
+          description="Mailbox, calendar, and directory signals"
+          tone={status.connected ? "calm" : "soft"}
           actions={
-            <div className="flex flex-wrap items-center gap-2">
-              {loading ? (
-                <span className="text-sm text-slate-500">Loading…</span>
-              ) : error ? (
-                <span className="text-sm text-red-600">{error}</span>
-              ) : status.connected ? (
-                <>
-                  <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">
-                    Connected
-                  </span>
-                  {"expires_at" in status && status.expires_at ? (
-                    <span className="text-xs text-slate-500">
-                      Expires {new Date(status.expires_at).toLocaleString()}
-                    </span>
-                  ) : null}
-                  <button
-                    onClick={async () => {
-                      const res = await fetch(
-                        `${api}/connections/ms/test?user_id=${encodeURIComponent(
-                          userId
-                        )}`,
-                        { method: "POST" }
-                      );
-                      const data = await res.json();
-                      alert(data.ok ? "Microsoft connection OK" : "Test failed");
-                    }}
-                    className="rounded border px-3 py-1 text-sm"
-                  >
-                    Test
-                  </button>
-                  <button
-                    onClick={async () => {
-                      await fetch(
-                        `${api}/connections/ms/disconnect?user_id=${encodeURIComponent(
-                          userId
-                        )}`,
-                        { method: "POST" }
-                      );
-                      // refresh status
-                      setLoading(true);
-                      const res = await fetch(
-                        `${api}/connections/ms/status?user_id=${encodeURIComponent(
-                          userId
-                        )}`
-                      );
-                      setStatus(await res.json());
-                      setLoading(false);
-                    }}
-                    className="rounded border px-3 py-1 text-sm"
-                  >
-                    Disconnect
-                  </button>
-                </>
-              ) : (
-                <>
-                  <a
-                    href={`${api}/connections/ms/oauth/start?user_id=${encodeURIComponent(
-                      userId
-                    )}`}
-                    className="rounded bg-slate-900 px-3 py-1 text-sm text-white dark:bg-slate-100 dark:text-slate-900"
-                  >
-                    Connect
-                  </a>
-                  <button
-                    onClick={async () => {
-                      const res = await fetch(
-                        `${api}/connections/ms/test?user_id=${encodeURIComponent(
-                          userId
-                        )}`,
-                        { method: "POST" }
-                      );
-                      const data = await res.json();
-                      alert(data.ok ? "Not connected (OK)" : "Test failed");
-                    }}
-                    className="rounded border px-3 py-1 text-sm"
-                  >
-                    Test
-                  </button>
-                </>
-              )}
-            </div>
+            loading ? (
+              <Badge tone="neutral">Checking…</Badge>
+            ) : status.connected ? (
+              <Badge tone="success">Connected</Badge>
+            ) : (
+              <Badge tone="warning">Action needed</Badge>
+            )
           }
-        />
-      </div>
+        >
+          <Stack gap="md">
+            {error ? <Text variant="muted">{error}</Text> : null}
+            {status.connected ? (
+              <Stack gap="sm">
+                <Text variant="body">
+                  Tenant {status.tenant_id || "unknown"} with scopes {(status.scopes || []).join(", ") || "none"}.
+                </Text>
+                <Text variant="caption">
+                  Token refresh {status.expires_at ? new Date(status.expires_at).toLocaleString() : "scheduled"}
+                </Text>
+              </Stack>
+            ) : (
+              <Text variant="muted">
+                {status.reason || "Connect Microsoft 365 to sync approvals and focus plans."}
+              </Text>
+            )}
+
+            <ActionBar
+              helperText={status.connected ? "Stay connected while syncing" : "No data flows until you’re connected"}
+              primaryAction={
+                status.connected ? (
+                  <Button onClick={handleTest}>Run health check</Button>
+                ) : (
+                  <Button onClick={handleConnect}>Connect to Microsoft</Button>
+                )
+              }
+              secondaryActions={[
+                status.connected ? (
+                  <Button key="disconnect" variant="ghost" onClick={handleDisconnect}>
+                    Disconnect
+                  </Button>
+                ) : (
+                  <Link key="learn" href="/history">
+                    Review recent attempts
+                  </Link>
+                ),
+              ]}
+            />
+          </Stack>
+        </Panel>
+
+        <Panel
+          kicker="Sync history"
+          title="Recent Graph syncs"
+          description="See when Copilot last refreshed data"
+        >
+          {syncHistory.length === 0 ? (
+            <Text variant="muted">No sync records yet.</Text>
+          ) : (
+            <Stack gap="sm">
+              {syncHistory.map((item, index) => (
+                <div
+                  key={`${item.ts}-${index}`}
+                  className="flex items-center justify-between rounded-lg border border-[color:var(--ds-border-subtle)] bg-[color:var(--ds-surface)] px-4 py-3"
+                >
+                  <div>
+                    <Text variant="body">{new Date(item.ts).toLocaleString()}</Text>
+                    <Text variant="caption">Status: {item.status}</Text>
+                  </div>
+                  <Badge tone={item.status === "ok" ? "success" : "warning"}>{item.status}</Badge>
+                </div>
+              ))}
+            </Stack>
+          )}
+        </Panel>
+      </Stack>
+
+      {toast ? <Toast message={toast} onClose={() => setToast("")} /> : null}
     </Layout>
   );
 }

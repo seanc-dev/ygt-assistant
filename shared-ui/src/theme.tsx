@@ -10,11 +10,49 @@ import React, {
   type ReactNode,
 } from "react";
 import { cx } from "./cx";
+import { colors } from "./tokens/colors";
 
 const STORAGE_KEY = "ygt-assistant-theme";
 
 export type ThemePreference = "light" | "dark" | "system";
 export type Theme = "light" | "dark";
+
+const themeVariables: Record<Theme, Record<string, string>> = {
+  light: {
+    "--ds-surface": colors.background.surface,
+    "--ds-surface-muted": colors.background.elevated,
+    "--ds-surface-calm": colors.background.accent,
+    "--ds-text-primary": colors.text.primary,
+    "--ds-text-secondary": colors.text.secondary,
+    "--ds-text-subtle": colors.text.subtle,
+    "--ds-text-accent": colors.text.accent,
+    "--ds-border-subtle": colors.border.subtle,
+    "--ds-border-prominent": colors.border.prominent,
+    "--ds-brand": colors.brand.primary,
+    "--ds-brand-contrast": colors.brand.contrast,
+    "--ds-status-info": colors.status.info,
+    "--ds-status-success": colors.status.success,
+    "--ds-status-warning": colors.status.warning,
+    "--ds-status-danger": colors.status.danger,
+  },
+  dark: {
+    "--ds-surface": colors.background.surfaceDark,
+    "--ds-surface-muted": colors.background.elevatedDark,
+    "--ds-surface-calm": colors.background.accentDark,
+    "--ds-text-primary": colors.text.primaryDark,
+    "--ds-text-secondary": colors.text.secondaryDark,
+    "--ds-text-subtle": colors.text.subtleDark,
+    "--ds-text-accent": colors.text.accentDark,
+    "--ds-border-subtle": colors.border.subtleDark,
+    "--ds-border-prominent": colors.border.prominentDark,
+    "--ds-brand": colors.brand.primaryDark,
+    "--ds-brand-contrast": colors.brand.contrast,
+    "--ds-status-info": colors.status.infoDark,
+    "--ds-status-success": colors.status.successDark,
+    "--ds-status-warning": colors.status.warningDark,
+    "--ds-status-danger": colors.status.dangerDark,
+  },
+};
 
 type ThemeContextValue = {
   theme: ThemePreference;
@@ -40,6 +78,10 @@ function applyTheme(theme: Theme) {
   root.classList.toggle("dark", theme === "dark");
   root.dataset.theme = theme;
   root.style.colorScheme = theme;
+  const vars = themeVariables[theme];
+  Object.entries(vars).forEach(([key, value]) => {
+    root.style.setProperty(key, value);
+  });
 }
 
 type ThemeProviderProps = {

@@ -1,4 +1,5 @@
 import React from "react";
+import { Panel, Text } from "@ygt-assistant/ui";
 
 export default function LiveModeBanner() {
   const live =
@@ -6,10 +7,12 @@ export default function LiveModeBanner() {
     "true";
   if (!live) return null;
   return (
-    <div className="mb-3 rounded bg-yellow-50 p-2 text-xs text-yellow-900">
-      Live Mode flags are off by default. Enable per-action live gates in
-      Connections to test against Microsoft Graph. CI runs in mock mode only.
-    </div>
+    <Panel tone="calm" kicker="Live mode">
+      <Text variant="body">
+        Live Mode flags are off by default. Enable per-action live gates in
+        Connections to test against Microsoft Graph. CI runs in mock mode only.
+      </Text>
+    </Panel>
   );
 }
 
