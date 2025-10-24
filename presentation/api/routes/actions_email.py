@@ -8,7 +8,7 @@ from settings import (
     FEATURE_LIVE_LIST_INBOX,
     FEATURE_LIVE_SEND_MAIL,
 )
-from services.providers.registry import get_email_provider
+from presentation.api.deps.providers import get_email_provider_for
 from utils.metrics import increment
 from presentation.api.state import history_log
 
@@ -28,7 +28,7 @@ def _live_enabled(action_flag: bool) -> bool:
 async def list_inbox_live(user_id: str = "default", limit: int = 5) -> Dict[str, Any]:
     if not _live_enabled(FEATURE_LIVE_LIST_INBOX):
         return {"ok": False, "live": False}
-    p = get_email_provider(user_id)
+    p = get_email_provider_for("list_inbox", user_id)
     if not hasattr(p, "list_inbox"):
         return {"ok": False, "error": "not_supported"}
     items = p.list_inbox(limit)
@@ -46,7 +46,7 @@ async def send_mail_live(
     to = b.get("to") or ["user@example.com"]
     subj = b.get("subject") or "[YGT] Test"
     txt = b.get("body") or "Hello from YGT"
-    p = get_email_provider(user_id)
+    p = get_email_provider_for("send_mail", user_id)
     # Irreversible: return warning copy for UI confirm
     out = p.send_message(to, subj, txt)
     history_log.append({"ts": "now", "verb": "send", "object": "email", "subject": subj})
