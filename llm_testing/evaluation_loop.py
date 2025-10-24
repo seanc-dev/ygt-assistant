@@ -24,28 +24,31 @@ class MinimalEvaluationLoop:
         sent = self.backend.email_send(draft.get("id", ""))
         # 4) Plan today
         plan = self.backend.calendar_plan_today()
-        # 5) Post a WhatsApp text
-        wa = self.backend.whatsapp_post(
-            {
-                "entry": [
-                    {
-                        "changes": [
-                            {
-                                "value": {
-                                    "messages": [
-                                        {
-                                            "type": "text",
-                                            "text": {"body": "approve 123"},
-                                        }
-                                    ],
-                                    "contacts": [{"wa_id": "tester"}],
+        # 5) Optional WhatsApp webhook (skip if route disabled)
+        try:
+            wa = self.backend.whatsapp_post(
+                {
+                    "entry": [
+                        {
+                            "changes": [
+                                {
+                                    "value": {
+                                        "messages": [
+                                            {
+                                                "type": "text",
+                                                "text": {"body": "approve 123"},
+                                            }
+                                        ],
+                                        "contacts": [{"wa_id": "tester"}],
+                                    }
                                 }
-                            }
-                        ]
-                    }
-                ]
-            }
-        )
+                            ]
+                        }
+                    ]
+                }
+            )
+        except Exception:
+            wa = None
         return {
             "approvals": approvals,
             "approved": approved,
