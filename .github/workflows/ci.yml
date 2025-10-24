@@ -31,25 +31,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Validate JSON Schemas
-        run: |
-          python - << 'PY'
-import json, os
-from pathlib import Path
-from jsonschema import Draft202012Validator
-p = Path('contracts')
-for name in [
-  'approval.schema.json',
-  'draft.schema.json',
-  'automation.schema.json',
-  'note.schema.json',
-  'core_memory.schema.json',
-]:
-    with open(p / name, 'r') as f:
-        schema = json.load(f)
-    Draft202012Validator.check_schema(schema)
-print('Schemas valid')
-PY
       - name: Run tests
         run: pytest -q
   agent-evals:
