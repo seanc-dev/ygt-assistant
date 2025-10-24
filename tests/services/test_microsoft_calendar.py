@@ -55,7 +55,9 @@ def test_calendar_retry_on_429(monkeypatch):
         async def request(self, method, url, **kw):  # type: ignore
             calls["n"] += 1
             code = 429 if calls["n"] < 3 else 201
-            return _Resp(code, {"id": "ev2", "webLink": "https://outlook.office.com/cal/ev2"})
+            return _Resp(
+                code, {"id": "ev2", "webLink": "https://outlook.office.com/cal/ev2"}
+            )
 
     monkeypatch.setattr(__import__("httpx"), "AsyncClient", _FakeClient)
 
