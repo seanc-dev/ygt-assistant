@@ -70,18 +70,21 @@ def test_request_with_retry_backs_off(monkeypatch):
 
     calls = {"n": 0}
 
-    async def _fake_http(method: str, url: str, **kw: Any):  # type: ignore
-        calls["n"] += 1
-        # First two attempts 429, then 200
-        code = 429 if calls["n"] < 3 else 200
-        return _Resp(code, {"value": []})
-
     async def _fake_auth():  # type: ignore
         return "TOKEN"
 
     monkeypatch.setattr(prov, "_auth", _fake_auth)
-    # Monkeypatch _request_with_retry's inner http call by replacing the method itself for list_inbox
-    monkeypatch.setattr(prov, "_request_with_retry", _fake_http)
+
+    # Patch httpx.AsyncClient.request to simulate 429 -> 429 -> 200
+    original_client = __import__("httpx").AsyncClient
+
+    class _FakeClient(original_client):  # type: ignore
+        async def request(self, method, url, **kw):  # type: ignore
+            calls["n"] += 1
+            code = 429 if calls["n"] < 3 else 200
+            return _Resp(code, {"value": []})
+
+    monkeypatch.setattr(__import__("httpx"), "AsyncClient", _FakeClient)
 
     items = prov.list_inbox(5)
     assert isinstance(items, list)

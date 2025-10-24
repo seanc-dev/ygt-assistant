@@ -43,16 +43,21 @@ def test_calendar_retry_on_429(monkeypatch):
     prov = MicrosoftCalendarProvider("user")
     calls = {"n": 0}
 
-    async def _fake_http(method: str, url: str, **kw: Any):  # type: ignore
-        calls["n"] += 1
-        code = 429 if calls["n"] < 3 else 201
-        return _Resp(code, {"id": "ev2", "webLink": "https://outlook.office.com/cal/ev2"})
-
     async def _fake_auth():  # type: ignore
         return "TOKEN"
 
-    monkeypatch.setattr(prov, "_request_with_retry", _fake_http)
     monkeypatch.setattr(prov, "_auth", _fake_auth)
+
+    # Patch httpx.AsyncClient.request to simulate retries then success
+    original_client = __import__("httpx").AsyncClient
+
+    class _FakeClient(original_client):  # type: ignore
+        async def request(self, method, url, **kw):  # type: ignore
+            calls["n"] += 1
+            code = 429 if calls["n"] < 3 else 201
+            return _Resp(code, {"id": "ev2", "webLink": "https://outlook.office.com/cal/ev2"})
+
+    monkeypatch.setattr(__import__("httpx"), "AsyncClient", _FakeClient)
 
     ev = prov.create_event({"subject": "S", "start": {}, "end": {}})
     assert ev["id"] == "ev2"
