@@ -30,6 +30,9 @@ def get_calendar_provider(user_id: str):
 
 
 def get_email_provider_for(action: str, user_id: str):
+    # Hard override for CI/safe runs
+    if _is_true(os.getenv("USE_MOCK_GRAPH")):
+        return MockMicrosoftEmail(user_id)
     if not FEATURE_GRAPH_LIVE:
         return MockMicrosoftEmail(user_id)
     if action == "list_inbox" and FEATURE_LIVE_LIST_INBOX:
@@ -40,6 +43,9 @@ def get_email_provider_for(action: str, user_id: str):
 
 
 def get_calendar_provider_for(action: str, user_id: str):
+    # Hard override for CI/safe runs
+    if _is_true(os.getenv("USE_MOCK_GRAPH")):
+        return MockMicrosoftCalendar(user_id)
     if not FEATURE_GRAPH_LIVE:
         return MockMicrosoftCalendar(user_id)
     if action == "create_events" and FEATURE_LIVE_CREATE_EVENTS:
