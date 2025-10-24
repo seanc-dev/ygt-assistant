@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter
 
 from settings import FEATURE_GRAPH_LIVE, FEATURE_LIVE_CREATE_EVENTS
-from services.providers.registry import get_calendar_provider
+from presentation.api.deps.providers import get_calendar_provider_for
 from utils.metrics import increment
 from presentation.api.state import created_events_store, history_log
 
@@ -21,7 +21,7 @@ async def create_events_live(
 ) -> Dict[str, Any]:
     if not _live_enabled(FEATURE_LIVE_CREATE_EVENTS):
         return {"ok": False, "live": False}
-    p = get_calendar_provider(user_id)
+    p = get_calendar_provider_for("create_events", user_id)
     events = (body or {}).get("events") or []
     if hasattr(p, "create_events_batch"):
         out = p.create_events_batch(events)
@@ -51,7 +51,7 @@ async def undo_event_live(user_id: str, event_id: str) -> Dict[str, Any]:
     ev = created_events_store.get(event_id)
     if not ev:
         return {"ok": False, "error": "not_found"}
-    p = get_calendar_provider(user_id)
+    p = get_calendar_provider_for("create_events", user_id)
     try:
         # Best-effort delete via provider
         if hasattr(p, "delete_event"):
