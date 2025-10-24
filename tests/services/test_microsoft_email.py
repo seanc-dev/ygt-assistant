@@ -4,6 +4,7 @@ import httpx
 import types
 
 from services.microsoft_email import MicrosoftEmailProvider
+from services.providers.errors import ProviderError
 
 
 class _Resp:
@@ -89,3 +90,29 @@ def test_request_with_retry_backs_off(monkeypatch):
     items = prov.list_inbox(5)
     assert isinstance(items, list)
     assert calls["n"] >= 3
+
+
+def test_list_inbox_401_provider_error(monkeypatch):
+    prov = MicrosoftEmailProvider("user")
+
+    async def _fake_auth():  # type: ignore
+        return "TOKEN"
+
+    class _Resp401(_Resp):
+        pass
+
+    original_client = __import__("httpx").AsyncClient
+
+    class _FakeClient401(original_client):  # type: ignore
+        async def request(self, method, url, **kw):  # type: ignore
+            return _Resp(401, {})
+
+    monkeypatch.setattr(prov, "_auth", _fake_auth)
+    monkeypatch.setattr(__import__("httpx"), "AsyncClient", _FakeClient401)
+
+    try:
+        prov.list_inbox(5)
+        assert False, "expected ProviderError"
+    except ProviderError as e:
+        assert e.status_code == 401
+        assert "Reconnect" in (e.hint or "")

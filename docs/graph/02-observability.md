@@ -8,7 +8,7 @@ Metrics
 - undo.success
 
 Redaction
-- Never log tokens or bodies; only counts, ids, deep links.
+- Never log tokens or message bodies; only counts, ids, deep links.
 
 Backoff
-- Retry 429 and 5xx with exponential backoff (max 3 attempts).
+- Retry 429 and 5xx up to 3 attempts with exponential backoff.

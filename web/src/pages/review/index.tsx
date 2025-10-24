@@ -67,6 +67,8 @@ export default function ReviewPage() {
     async (id: string) => {
       optimistic(id, "approved");
       withUndoToast("Approved");
+      // Show irreversible warning for email sends when live
+      setToast("Sending is irreversible. Hold to approve in live mode.");
       try {
         await api.approve(id);
       } catch {
