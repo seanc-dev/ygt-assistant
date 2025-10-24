@@ -62,13 +62,13 @@ jobs:
       - name: Run llm_testing minimal loop (in-process)
         run: |
           python - << 'PY'
-from llm_testing.backends.inprocess import InProcessBackend
-from llm_testing.evaluation_loop import MinimalEvaluationLoop
-backend = InProcessBackend()
-loop = MinimalEvaluationLoop(backend)
-out = loop.run_smoke()
-print({k: type(v).__name__ for k,v in out.items()})
-PY
+          from llm_testing.backends.inprocess import InProcessBackend
+          from llm_testing.evaluation_loop import MinimalEvaluationLoop
+          backend = InProcessBackend()
+          loop = MinimalEvaluationLoop(backend)
+          out = loop.run_smoke()
+          print({k: type(v).__name__ for k,v in out.items()})
+          PY
       - name: Dry-run apply schema and migrations
         env:
           PGHOST: localhost
