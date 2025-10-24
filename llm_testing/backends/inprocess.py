@@ -8,6 +8,7 @@ class InProcessBackend:
         # Prepare minimal env for app import
         import os
         os.environ.setdefault("DEV_MODE", "true")
+        os.environ.setdefault("USE_MOCK_GRAPH", "true")
         try:
             from presentation.api.app import app  # type: ignore
         except Exception as exc:

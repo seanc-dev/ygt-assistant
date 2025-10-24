@@ -23,18 +23,21 @@ def test_list_inbox_maps_fields(monkeypatch):
     prov = MicrosoftEmailProvider("user")
 
     async def _fake_request(method: str, url: str, **kw: Any):  # type: ignore
-        return _Resp(200, {
-            "value": [
-                {
-                    "id": "1",
-                    "subject": "Hello",
-                    "from": {"emailAddress": {"address": "a@example.com"}},
-                    "receivedDateTime": "2025-01-01T00:00:00Z",
-                    "bodyPreview": "Hi",
-                    "webLink": "https://outlook.office.com/mail/1",
-                }
-            ]
-        })
+        return _Resp(
+            200,
+            {
+                "value": [
+                    {
+                        "id": "1",
+                        "subject": "Hello",
+                        "from": {"emailAddress": {"address": "a@example.com"}},
+                        "receivedDateTime": "2025-01-01T00:00:00Z",
+                        "bodyPreview": "Hi",
+                        "webLink": "https://outlook.office.com/mail/1",
+                    }
+                ]
+            },
+        )
 
     async def _fake_auth():  # type: ignore
         return "TOKEN"
@@ -62,3 +65,27 @@ def test_send_message_ok(monkeypatch):
     assert res["status"] == "sent"
 
 
+def test_request_with_retry_backs_off(monkeypatch):
+    prov = MicrosoftEmailProvider("user")
+
+    calls = {"n": 0}
+
+    async def _fake_auth():  # type: ignore
+        return "TOKEN"
+
+    monkeypatch.setattr(prov, "_auth", _fake_auth)
+
+    # Patch httpx.AsyncClient.request to simulate 429 -> 429 -> 200
+    original_client = __import__("httpx").AsyncClient
+
+    class _FakeClient(original_client):  # type: ignore
+        async def request(self, method, url, **kw):  # type: ignore
+            calls["n"] += 1
+            code = 429 if calls["n"] < 3 else 200
+            return _Resp(code, {"value": []})
+
+    monkeypatch.setattr(__import__("httpx"), "AsyncClient", _FakeClient)
+
+    items = prov.list_inbox(5)
+    assert isinstance(items, list)
+    assert calls["n"] >= 3
