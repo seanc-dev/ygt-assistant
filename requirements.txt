@@ -10,3 +10,4 @@ psycopg[binary]
 
 numpy
 jsonschema
+pytest
