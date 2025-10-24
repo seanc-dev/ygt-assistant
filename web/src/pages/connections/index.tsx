@@ -21,6 +21,8 @@ type ConnectionStatus =
       expires_at?: string;
       tenant_id?: string;
       sync_history?: { ts: string; status: string }[];
+      live?: boolean;
+      live_flags?: { list_inbox?: boolean; send_mail?: boolean; create_events?: boolean };
     };
 
 export default function ConnectionsPage() {
@@ -86,6 +88,18 @@ export default function ConnectionsPage() {
     );
     const data = await res.json();
     setToast(data.ok ? "Graph test succeeded" : "Graph test failed");
+    if (data && typeof data === "object") {
+      setStatus((prev) => ({
+        ...(prev.connected ? prev : { connected: !!data.ok }),
+        ...(prev.connected ? {} : {}),
+        live: data.live,
+        live_flags: data.live_flags,
+        scopes: prev.connected ? prev.scopes : prev.scopes,
+        expires_at: prev.connected ? prev.expires_at : prev.expires_at,
+        tenant_id: prev.connected ? prev.tenant_id : prev.tenant_id,
+        sync_history: prev.connected ? prev.sync_history : prev.sync_history,
+      }) as ConnectionStatus);
+    }
   };
 
   return (
@@ -126,6 +140,18 @@ export default function ConnectionsPage() {
                 <Text variant="caption">
                   Token refresh {status.expires_at ? new Date(status.expires_at).toLocaleString() : "scheduled"}
                 </Text>
+                {typeof status.live !== "undefined" ? (
+                  <div className="text-xs text-[color:var(--ds-text-secondary)]">
+                    <div>Live slice: {status.live ? "enabled" : "disabled"}</div>
+                    {status.live_flags ? (
+                      <ul className="list-disc pl-4">
+                        <li>Inbox: {status.live_flags.list_inbox ? "on" : "off"}</li>
+                        <li>Send mail: {status.live_flags.send_mail ? "on" : "off"}</li>
+                        <li>Create events: {status.live_flags.create_events ? "on" : "off"}</li>
+                      </ul>
+                    ) : null}
+                  </div>
+                ) : null}
               </Stack>
             ) : (
               <Text variant="muted">

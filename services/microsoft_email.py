@@ -160,6 +160,14 @@ class MicrosoftEmailProvider(EmailProvider):
                 headers={"Authorization": f"Bearer {token}"},
                 expected_status=[200],
             )
+            if r.status_code == 401:
+                raise ProviderError(
+                    "microsoft",
+                    "list_inbox",
+                    "unauthorized",
+                    status_code=401,
+                    hint="Reconnect Microsoft",
+                )
             data = r.json()
             items = data.get("value", [])
             increment("ms.email.inbox.listed", n=len(items))

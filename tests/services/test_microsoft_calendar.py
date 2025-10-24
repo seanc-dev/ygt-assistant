@@ -3,6 +3,7 @@ from typing import Any, Dict
 import httpx
 
 from services.microsoft_calendar import MicrosoftCalendarProvider
+from services.providers.errors import ProviderError
 
 
 class _Resp:
@@ -64,3 +65,26 @@ def test_calendar_retry_on_429(monkeypatch):
     ev = prov.create_event({"subject": "S", "start": {}, "end": {}})
     assert ev["id"] == "ev2"
     assert calls["n"] >= 3
+
+
+def test_create_event_401_provider_error(monkeypatch):
+    prov = MicrosoftCalendarProvider("user")
+
+    async def _fake_auth():  # type: ignore
+        return "TOKEN"
+
+    original_client = __import__("httpx").AsyncClient
+
+    class _FakeClient401(original_client):  # type: ignore
+        async def request(self, method, url, **kw):  # type: ignore
+            return _Resp(401, {})
+
+    monkeypatch.setattr(prov, "_auth", _fake_auth)
+    monkeypatch.setattr(__import__("httpx"), "AsyncClient", _FakeClient401)
+
+    try:
+        prov.create_event({"subject": "S", "start": {}, "end": {}})
+        assert False, "expected ProviderError"
+    except ProviderError as e:
+        assert e.status_code == 401
+        assert "Reconnect" in (e.hint or "")

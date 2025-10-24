@@ -143,6 +143,14 @@ class MicrosoftCalendarProvider(CalendarProvider):
                 headers={"Authorization": f"Bearer {token}"},
                 expected_status=[201, 200],
             )
+            if r.status_code == 401:
+                raise ProviderError(
+                    "microsoft",
+                    "create_event",
+                    "unauthorized",
+                    status_code=401,
+                    hint="Reconnect Microsoft",
+                )
             increment("ms.cal.create_event.ok")
             return r.json()
 
