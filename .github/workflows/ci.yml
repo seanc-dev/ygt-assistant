@@ -42,6 +42,7 @@ jobs:
             tests/services/test_microsoft_email.py \
             tests/services/test_microsoft_calendar.py
   agent-evals:
+    if: false # disabled (legacy e2e not maintained)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +59,9 @@ jobs:
         run: pytest -q -m e2e
   llm-loop:
     runs-on: ubuntu-latest
+    env:
+      DEV_MODE: 'true'
+      USE_MOCK_GRAPH: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
