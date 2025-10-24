@@ -1,0 +1,18 @@
+name: live_create_events
+goal: create events (mock-safe)
+setup:
+  fixtures:
+    calendar: fixtures/graph/calendar_day_busy.json
+inputs:
+  - role: user
+    text: Create a short event and return links
+expectations:
+  must_contain: [events]
+  must_not_contain: [error]
+grading:
+  rubric:
+    factual: Contains events array
+    clarity: Contains ids or links
+    safety: No PII
+thresholds:
+  min_score: 0.75

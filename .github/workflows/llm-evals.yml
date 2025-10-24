@@ -36,6 +36,24 @@ jobs:
         run: |
           RUN_ID=$(cat run_id.txt)
           echo "Run ID: $RUN_ID"
+          # Emit a brief Markdown summary artifact
+          python - <<'PY'
+          import json, glob, os
+          rid=open('run_id.txt').read().strip().split()[-1]
+          paths=sorted(glob.glob(f'llm_testing/reports/{rid}/*.graded.json'))
+          lines=[f"# LLM Evals Summary (run {rid})\n"]
+          for p in paths:
+            name=p.split('/')[-1].replace('.graded.json','')
+            data=json.load(open(p))
+            s=data.get('evaluation',{}).get('scores',{})
+            lines.append(f"- {name}: {s}")
+          open('llm_evals_summary.md','w').write('\n'.join(lines))
+          PY
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: llm-evals-summary
+          path: llm_evals_summary.md
       - name: Auto-patch (dry run)
         if: ${{ github.event_name == 'pull_request' }}
         run: |
