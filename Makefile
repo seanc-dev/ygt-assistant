@@ -42,6 +42,18 @@ live-smoke:
 	@echo "Running live smoke (requires FEATURE_GRAPH_LIVE=true and per-action flags)" && \
 	$(PY) scripts/live_smoke.py
 
+live-on:
+	@echo "Enabling FEATURE_GRAPH_LIVE in .env.dev" && \
+	grep -q '^FEATURE_GRAPH_LIVE=' .env.dev 2>/dev/null && \
+	sed -i '' 's/^FEATURE_GRAPH_LIVE=.*/FEATURE_GRAPH_LIVE=true/' .env.dev || \
+	echo 'FEATURE_GRAPH_LIVE=true' >> .env.dev
+
+live-off:
+	@echo "Disabling FEATURE_GRAPH_LIVE in .env.dev" && \
+	grep -q '^FEATURE_GRAPH_LIVE=' .env.dev 2>/dev/null && \
+	sed -i '' 's/^FEATURE_GRAPH_LIVE=.*/FEATURE_GRAPH_LIVE=false/' .env.dev || \
+	echo 'FEATURE_GRAPH_LIVE=false' >> .env.dev
+
 llm-auto-patch:
 	@RUN_ID=$$(ls -1t llm_testing/reports | head -1); \
 	if [ -z "$$RUN_ID" ]; then echo "No run found"; exit 1; fi; \
