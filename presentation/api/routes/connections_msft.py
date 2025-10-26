@@ -3,10 +3,10 @@ from typing import Any, Dict
 import os
 import httpx
 from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import RedirectResponse, JSONResponse
 
-from utils.crypto import fernet_from, encrypt
+from utils.crypto import fernet_from, encrypt, decrypt
 from settings import ENCRYPTION_KEY
 from services.ms_auth import token_store_from_env
 from utils.metrics import increment
@@ -24,14 +24,23 @@ def _client() -> Dict[str, str]:
     return {"client_id": cid, "client_secret": secret, "redirect_uri": redirect}
 
 
+def _resolve_user_id_from_cookie(request: Request) -> str | None:
+    try:
+        return request.cookies.get("ygt_user")
+    except Exception:
+        return None
+
+
 @router.get("/status")
-async def status(user_id: str = Query(...)) -> Dict[str, Any]:
+async def status(request: Request, user_id: str | None = Query(None)) -> Dict[str, Any]:
+    if not user_id:
+        user_id = _resolve_user_id_from_cookie(request)
     try:
         store = token_store_from_env()
     except Exception:
         increment("ms.status.disconnected", reason="no_store")
         return {"connected": False}
-    row = store.get(user_id)
+    row = store.get(user_id or "") if user_id else None
     if not row:
         increment("ms.status.disconnected", reason="no_row")
         return {"connected": False}
@@ -50,18 +59,29 @@ async def status(user_id: str = Query(...)) -> Dict[str, Any]:
 
 
 @router.get("/oauth/start")
-async def oauth_start(
-    user_id: str = Query(...), tenant: str = Query("common")
-) -> RedirectResponse:
+async def oauth_start(tenant: str = Query("common")) -> RedirectResponse:
     cfg = _client()
-    # PKCE for later; MVP uses basic code flow
+    # Minimal state token (encrypted), PKCE later
+    import secrets as _secrets
+    f, _k = fernet_from(ENCRYPTION_KEY)
+    payload = {
+        "nonce": _secrets.token_urlsafe(16),
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "tenant": tenant,
+    }
+    try:
+        import json as _json
+
+        state_token = encrypt(f, _json.dumps(payload))
+    except Exception:
+        state_token = encrypt(f, payload["nonce"])  # fallback
     params = {
         "client_id": cfg["client_id"],
         "response_type": "code",
         "redirect_uri": cfg["redirect_uri"],
         "response_mode": "query",
-        "scope": "User.Read offline_access Mail.ReadWrite Mail.Send Calendars.ReadWrite",
-        "state": user_id,
+        "scope": "openid profile email offline_access Mail.ReadWrite Mail.Send Calendars.ReadWrite",
+        "state": state_token,
     }
     url = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize".format(
         tenant=tenant
@@ -73,8 +93,11 @@ async def oauth_start(
 
 @router.get("/oauth/callback")
 async def oauth_callback(
-    code: str = Query(...), state: str = Query(...), tenant: str = Query("common")
-) -> Dict[str, Any]:
+    request: Request,
+    code: str = Query(...),
+    state: str = Query(...),
+    tenant: str = Query("common"),
+) -> JSONResponse:
     cfg = _client()
     data = {
         "client_id": cfg["client_id"],
@@ -89,6 +112,18 @@ async def oauth_callback(
         r.raise_for_status()
         tok = r.json()
 
+    # Decode state (best-effort)
+    user_cookie_id: str | None = None
+    try:
+        f, _k = fernet_from(ENCRYPTION_KEY)
+        import json as _json
+
+        decoded = decrypt(f, state)
+        st = _json.loads(decoded)
+        _ = st.get("nonce")
+    except Exception:
+        st = {"tenant": tenant}
+
     # Persist tokens encrypted
     access_token = tok.get("access_token") or ""
     refresh_token = tok.get("refresh_token") or ""
@@ -96,11 +131,32 @@ async def oauth_callback(
     scopes_list = (tok.get("scope") or "").split()
     tenant_id = tenant
 
+    # Identify user via Graph /me (avoid id_token parsing for MVP)
+    try:
+        async with httpx.AsyncClient(timeout=10) as c:
+            me = await c.get(
+                "https://graph.microsoft.com/v1.0/me",
+                headers={"Authorization": f"Bearer {access_token}"},
+                params={"$select": "id,userPrincipalName,mail,displayName"},
+            )
+            me.raise_for_status()
+            me_json = me.json()
+            aad_user_id = me_json.get("id") or ""
+            email = me_json.get("mail") or me_json.get("userPrincipalName") or ""
+            display_name = me_json.get("displayName") or ""
+    except Exception:
+        aad_user_id = ""
+        email = ""
+        display_name = ""
+
     f, _k = fernet_from(ENCRYPTION_KEY)
     try:
         store = token_store_from_env()
+        # Use aad_user_id as the key
+        if not aad_user_id:
+            raise RuntimeError("cannot_resolve_user")
         store.upsert(
-            state,
+            aad_user_id,
             {
                 "provider": "microsoft",
                 "tenant_id": tenant_id,
@@ -112,25 +168,71 @@ async def oauth_callback(
                 "scopes": scopes_list,
             },
         )
+        # Upsert profiles via Supabase REST
+        base_url = os.getenv("SUPABASE_URL", "").rstrip("/") + "/rest/v1"
+        api_key = os.getenv("SUPABASE_API_SECRET", "")
+        if base_url and api_key and aad_user_id:
+            async with httpx.AsyncClient(timeout=10) as c:
+                payload = {
+                    "aad_user_id": aad_user_id,
+                    "email": email,
+                    "display_name": display_name,
+                    "tenant_id": tenant_id,
+                }
+                r = await c.post(
+                    f"{base_url}/profiles",
+                    headers={
+                        "apikey": api_key,
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                        "Accept": "application/json",
+                    },
+                    json=payload,
+                )
+                if r.status_code == 409:
+                    await c.patch(
+                        f"{base_url}/profiles",
+                        params={"aad_user_id": f"eq.{aad_user_id}"},
+                        headers={
+                            "apikey": api_key,
+                            "Authorization": f"Bearer {api_key}",
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                        },
+                        json={k: v for k, v in payload.items() if v},
+                    )
+        user_cookie_id = aad_user_id
         increment("ms.oauth.callback.ok")
     except Exception:
         # Non-fatal in dev; caller can reconnect
         increment("ms.oauth.callback.persist_fail")
 
-    return {
-        "ok": True,
-        "user_id": state,
-        "scopes": scopes_list,
-        "expires_in": expires_in,
-    }
+    resp = JSONResponse(
+        {
+            "ok": True,
+            "user_id": user_cookie_id or "",
+            "scopes": scopes_list,
+            "expires_in": expires_in,
+        }
+    )
+    # Dev cookie for user resolution in subsequent calls
+    if user_cookie_id:
+        resp.set_cookie(
+            key="ygt_user",
+            value=user_cookie_id,
+            httponly=True,
+            samesite="lax",
+        )
+    return resp
 
 
 @router.post("/test")
-async def test_conn(user_id: str = Query(...)) -> Dict[str, Any]:
+async def test_conn(request: Request, user_id: str | None = Query(None)) -> Dict[str, Any]:
     # Minimal: presence of token row indicates connected
     try:
         store = token_store_from_env()
-        row = store.get(user_id)
+        uid = user_id or _resolve_user_id_from_cookie(request) or ""
+        row = store.get(uid)
         ok = bool(row)
         increment("ms.test", ok=ok)
         # Live slice flags visibility for manual smoke
