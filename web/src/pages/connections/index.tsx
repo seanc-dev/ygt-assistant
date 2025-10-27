@@ -37,15 +37,15 @@ export default function ConnectionsPage() {
 
   const apiBase =
     process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000";
-  const userId = "local-user";
+  const userId = ""; // cookie-based after OAuth
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `${apiBase}/connections/ms/status?user_id=${encodeURIComponent(userId)}`
-      );
+      const res = await fetch(`${apiBase}/connections/ms/status`, {
+        credentials: "include",
+      });
       const data = await res.json();
       setStatus(data);
     } catch (e: any) {
@@ -77,23 +77,19 @@ export default function ConnectionsPage() {
   };
 
   const handleDisconnect = async () => {
-    await fetch(
-      `${apiBase}/connections/ms/disconnect?user_id=${encodeURIComponent(
-        userId
-      )}`,
-      {
-        method: "POST",
-      }
-    );
+    await fetch(`${apiBase}/connections/ms/disconnect`, {
+      method: "POST",
+      credentials: "include",
+    });
     setToast("Disconnected");
     await refresh();
   };
 
   const handleTest = async () => {
-    const res = await fetch(
-      `${apiBase}/connections/ms/test?user_id=${encodeURIComponent(userId)}`,
-      { method: "POST" }
-    );
+    const res = await fetch(`${apiBase}/connections/ms/test`, {
+      method: "POST",
+      credentials: "include",
+    });
     const data = await res.json();
     setToast(data.ok ? "Graph test succeeded" : "Graph test failed");
     if (data && typeof data === "object") {

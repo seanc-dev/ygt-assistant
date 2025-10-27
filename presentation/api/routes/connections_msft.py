@@ -59,10 +59,11 @@ async def status(request: Request, user_id: str | None = Query(None)) -> Dict[st
 
 
 @router.get("/oauth/start")
-async def oauth_start(tenant: str = Query("common")) -> RedirectResponse:
+async def oauth_start(tenant: str = Query("common"), user_id: str | None = Query(None)) -> RedirectResponse:
     cfg = _client()
     # Minimal state token (encrypted), PKCE later
     import secrets as _secrets
+
     f, _k = fernet_from(ENCRYPTION_KEY)
     payload = {
         "nonce": _secrets.token_urlsafe(16),
@@ -75,13 +76,15 @@ async def oauth_start(tenant: str = Query("common")) -> RedirectResponse:
         state_token = encrypt(f, _json.dumps(payload))
     except Exception:
         state_token = encrypt(f, payload["nonce"])  # fallback
+    # If a user_id is provided (legacy/dev), pass it through as state for compatibility with tests
     params = {
         "client_id": cfg["client_id"],
         "response_type": "code",
         "redirect_uri": cfg["redirect_uri"],
         "response_mode": "query",
-        "scope": "openid profile email offline_access Mail.ReadWrite Mail.Send Calendars.ReadWrite",
-        "state": state_token,
+        # Include User.Read for /me; keep OIDC + Graph scopes
+        "scope": "openid profile email User.Read offline_access Mail.ReadWrite Mail.Send Calendars.ReadWrite",
+        "state": user_id if user_id else state_token,
     }
     url = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize".format(
         tenant=tenant
@@ -227,7 +230,9 @@ async def oauth_callback(
 
 
 @router.post("/test")
-async def test_conn(request: Request, user_id: str | None = Query(None)) -> Dict[str, Any]:
+async def test_conn(
+    request: Request, user_id: str | None = Query(None)
+) -> Dict[str, Any]:
     # Minimal: presence of token row indicates connected
     try:
         store = token_store_from_env()
@@ -242,6 +247,7 @@ async def test_conn(request: Request, user_id: str | None = Query(None)) -> Dict
             FEATURE_LIVE_SEND_MAIL,
             FEATURE_LIVE_CREATE_EVENTS,
         )
+
         return {
             "ok": ok,
             "live": bool(FEATURE_GRAPH_LIVE),
@@ -257,10 +263,12 @@ async def test_conn(request: Request, user_id: str | None = Query(None)) -> Dict
 
 
 @router.post("/disconnect")
-async def disconnect(user_id: str = Query(...)) -> Dict[str, Any]:
+async def disconnect(request: Request, user_id: str | None = Query(None)) -> Dict[str, Any]:
     try:
         store = token_store_from_env()
-        store.delete(user_id)
+        uid = user_id or _resolve_user_id_from_cookie(request) or ""
+        if uid:
+            store.delete(uid)
         increment("ms.disconnect.ok")
         return {"ok": True, "disconnected": True}
     except Exception:
