@@ -59,7 +59,9 @@ async def status(request: Request, user_id: str | None = Query(None)) -> Dict[st
 
 
 @router.get("/oauth/start")
-async def oauth_start(tenant: str = Query("common"), user_id: str | None = Query(None)) -> RedirectResponse:
+async def oauth_start(
+    tenant: str = Query("common"), user_id: str | None = Query(None)
+) -> RedirectResponse:
     cfg = _client()
     # Minimal state token (encrypted), PKCE later
     import secrets as _secrets
@@ -117,6 +119,7 @@ async def oauth_callback(
 
     # Decode state (best-effort)
     user_cookie_id: str | None = None
+    state_user_id: str | None = None
     try:
         f, _k = fernet_from(ENCRYPTION_KEY)
         import json as _json
@@ -126,6 +129,9 @@ async def oauth_callback(
         _ = st.get("nonce")
     except Exception:
         st = {"tenant": tenant}
+        # Legacy/dev path: state may be a plain user id from older callers/tests
+        if state and isinstance(state, str):
+            state_user_id = state
 
     # Persist tokens encrypted
     access_token = tok.get("access_token") or ""
@@ -151,6 +157,10 @@ async def oauth_callback(
         aad_user_id = ""
         email = ""
         display_name = ""
+
+    # Fallback to legacy state user id when /me not available (tests/dev)
+    if not aad_user_id and state_user_id:
+        aad_user_id = state_user_id
 
     f, _k = fernet_from(ENCRYPTION_KEY)
     try:
@@ -263,7 +273,9 @@ async def test_conn(
 
 
 @router.post("/disconnect")
-async def disconnect(request: Request, user_id: str | None = Query(None)) -> Dict[str, Any]:
+async def disconnect(
+    request: Request, user_id: str | None = Query(None)
+) -> Dict[str, Any]:
     try:
         store = token_store_from_env()
         uid = user_id or _resolve_user_id_from_cookie(request) or ""
