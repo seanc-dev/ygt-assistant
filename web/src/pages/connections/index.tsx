@@ -22,7 +22,11 @@ type ConnectionStatus =
       tenant_id?: string;
       sync_history?: { ts: string; status: string }[];
       live?: boolean;
-      live_flags?: { list_inbox?: boolean; send_mail?: boolean; create_events?: boolean };
+      live_flags?: {
+        list_inbox?: boolean;
+        send_mail?: boolean;
+        create_events?: boolean;
+      };
     };
 
 export default function ConnectionsPage() {
@@ -31,16 +35,17 @@ export default function ConnectionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState("");
 
-  const apiBase = process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000";
-  const userId = "local-user";
+  const apiBase =
+    process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000";
+  const userId = ""; // cookie-based after OAuth
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `${apiBase}/connections/ms/status?user_id=${encodeURIComponent(userId)}`
-      );
+      const res = await fetch(`${apiBase}/connections/ms/status`, {
+        credentials: "include",
+      });
       const data = await res.json();
       setStatus(data);
     } catch (e: any) {
@@ -68,37 +73,41 @@ export default function ConnectionsPage() {
   }, [status]);
 
   const handleConnect = () => {
-    window.location.href = `${apiBase}/connections/ms/oauth/start?user_id=${encodeURIComponent(
-      userId
-    )}`;
+    window.location.href = `${apiBase}/connections/ms/oauth/start`;
   };
 
   const handleDisconnect = async () => {
-    await fetch(`${apiBase}/connections/ms/disconnect?user_id=${encodeURIComponent(userId)}`, {
+    await fetch(`${apiBase}/connections/ms/disconnect`, {
       method: "POST",
+      credentials: "include",
     });
     setToast("Disconnected");
     await refresh();
   };
 
   const handleTest = async () => {
-    const res = await fetch(
-      `${apiBase}/connections/ms/test?user_id=${encodeURIComponent(userId)}`,
-      { method: "POST" }
-    );
+    const res = await fetch(`${apiBase}/connections/ms/test`, {
+      method: "POST",
+      credentials: "include",
+    });
     const data = await res.json();
     setToast(data.ok ? "Graph test succeeded" : "Graph test failed");
     if (data && typeof data === "object") {
-      setStatus((prev) => ({
-        ...(prev.connected ? prev : { connected: !!data.ok }),
-        ...(prev.connected ? {} : {}),
-        live: data.live,
-        live_flags: data.live_flags,
-        scopes: prev.connected ? prev.scopes : prev.scopes,
-        expires_at: prev.connected ? prev.expires_at : prev.expires_at,
-        tenant_id: prev.connected ? prev.tenant_id : prev.tenant_id,
-        sync_history: prev.connected ? prev.sync_history : prev.sync_history,
-      }) as ConnectionStatus);
+      setStatus(
+        (prev) =>
+          ({
+            ...(prev.connected ? prev : { connected: !!data.ok }),
+            ...(prev.connected ? {} : {}),
+            live: data.live,
+            live_flags: data.live_flags,
+            scopes: prev.connected ? prev.scopes : prev.scopes,
+            expires_at: prev.connected ? prev.expires_at : prev.expires_at,
+            tenant_id: prev.connected ? prev.tenant_id : prev.tenant_id,
+            sync_history: prev.connected
+              ? prev.sync_history
+              : prev.sync_history,
+          } as ConnectionStatus)
+      );
     }
   };
 
@@ -111,7 +120,8 @@ export default function ConnectionsPage() {
             Connections
           </Heading>
           <Text variant="muted">
-            Keep Microsoft Graph healthy and understand the sync cadence that feeds approvals.
+            Keep Microsoft Graph healthy and understand the sync cadence that
+            feeds approvals.
           </Text>
         </div>
 
@@ -135,19 +145,33 @@ export default function ConnectionsPage() {
             {status.connected ? (
               <Stack gap="sm">
                 <Text variant="body">
-                  Tenant {status.tenant_id || "unknown"} with scopes {(status.scopes || []).join(", ") || "none"}.
+                  Tenant {status.tenant_id || "unknown"} with scopes{" "}
+                  {(status.scopes || []).join(", ") || "none"}.
                 </Text>
                 <Text variant="caption">
-                  Token refresh {status.expires_at ? new Date(status.expires_at).toLocaleString() : "scheduled"}
+                  Token refresh{" "}
+                  {status.expires_at
+                    ? new Date(status.expires_at).toLocaleString()
+                    : "scheduled"}
                 </Text>
                 {typeof status.live !== "undefined" ? (
                   <div className="text-xs text-[color:var(--ds-text-secondary)]">
-                    <div>Live slice: {status.live ? "enabled" : "disabled"}</div>
+                    <div>
+                      Live slice: {status.live ? "enabled" : "disabled"}
+                    </div>
                     {status.live_flags ? (
                       <ul className="list-disc pl-4">
-                        <li>Inbox: {status.live_flags.list_inbox ? "on" : "off"}</li>
-                        <li>Send mail: {status.live_flags.send_mail ? "on" : "off"}</li>
-                        <li>Create events: {status.live_flags.create_events ? "on" : "off"}</li>
+                        <li>
+                          Inbox: {status.live_flags.list_inbox ? "on" : "off"}
+                        </li>
+                        <li>
+                          Send mail:{" "}
+                          {status.live_flags.send_mail ? "on" : "off"}
+                        </li>
+                        <li>
+                          Create events:{" "}
+                          {status.live_flags.create_events ? "on" : "off"}
+                        </li>
                       </ul>
                     ) : null}
                   </div>
@@ -155,12 +179,17 @@ export default function ConnectionsPage() {
               </Stack>
             ) : (
               <Text variant="muted">
-                {status.reason || "Connect Microsoft 365 to sync approvals and focus plans."}
+                {status.reason ||
+                  "Connect Microsoft 365 to sync approvals and focus plans."}
               </Text>
             )}
 
             <ActionBar
-              helperText={status.connected ? "Stay connected while syncing" : "No data flows until you’re connected"}
+              helperText={
+                status.connected
+                  ? "Stay connected while syncing"
+                  : "No data flows until you’re connected"
+              }
               primaryAction={
                 status.connected ? (
                   <Button onClick={handleTest}>Run health check</Button>
@@ -170,7 +199,11 @@ export default function ConnectionsPage() {
               }
               secondaryActions={[
                 status.connected ? (
-                  <Button key="disconnect" variant="ghost" onClick={handleDisconnect}>
+                  <Button
+                    key="disconnect"
+                    variant="ghost"
+                    onClick={handleDisconnect}
+                  >
                     Disconnect
                   </Button>
                 ) : (
@@ -198,10 +231,14 @@ export default function ConnectionsPage() {
                   className="flex items-center justify-between rounded-lg border border-[color:var(--ds-border-subtle)] bg-[color:var(--ds-surface)] px-4 py-3"
                 >
                   <div>
-                    <Text variant="body">{new Date(item.ts).toLocaleString()}</Text>
+                    <Text variant="body">
+                      {new Date(item.ts).toLocaleString()}
+                    </Text>
                     <Text variant="caption">Status: {item.status}</Text>
                   </div>
-                  <Badge tone={item.status === "ok" ? "success" : "warning"}>{item.status}</Badge>
+                  <Badge tone={item.status === "ok" ? "success" : "warning"}>
+                    {item.status}
+                  </Badge>
                 </div>
               ))}
             </Stack>
