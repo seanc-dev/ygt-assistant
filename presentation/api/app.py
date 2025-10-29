@@ -380,6 +380,7 @@ except Exception:
 
 try:
     from presentation.api.routes.whatsapp import router as whatsapp_router
+
     if _wa_flag:
         app.include_router(whatsapp_router)
 except Exception:
@@ -387,24 +388,28 @@ except Exception:
 
 try:
     from presentation.api.routes.actions import router as actions_router
+
     app.include_router(actions_router)
 except Exception:
     pass
 
 try:
     from presentation.api.routes.email import router as email_router
+
     app.include_router(email_router)
 except Exception:
     pass
 
 try:
     from presentation.api.routes.calendar import router as calendar_router
+
     app.include_router(calendar_router)
 except Exception:
     pass
 
 try:
     from presentation.api.routes.core import router as core_router
+
     app.include_router(core_router)
 except Exception:
     pass
@@ -413,6 +418,7 @@ try:
     from presentation.api.routes.connections_google import (
         router as connections_google_router,
     )
+
     app.include_router(connections_google_router)
 except Exception:
     pass
@@ -421,24 +427,30 @@ try:
     from presentation.api.routes.connections_msft import (
         router as connections_ms_router,
     )
+
     app.include_router(connections_ms_router)
 except Exception:
     pass
 
 try:
     from presentation.api.routes.chat import router as chat_router
+
     app.include_router(chat_router)
 except Exception:
     pass
 
 try:
     from presentation.api.routes.actions_email import router as actions_email_router
+
     app.include_router(actions_email_router)
 except Exception:
     pass
 
 try:
-    from presentation.api.routes.actions_calendar import router as actions_calendar_router
+    from presentation.api.routes.actions_calendar import (
+        router as actions_calendar_router,
+    )
+
     app.include_router(actions_calendar_router)
 except Exception:
     pass
@@ -863,60 +875,11 @@ async def whatsapp_send_plan_today(body: WhatsAppSendPlanIn) -> Dict[str, Any]:
         raise HTTPException(status_code=502, detail=str(e))
 
 
-# Email endpoints
-class DraftIn(BaseModel):
-    to: List[str] = Field(default_factory=list)
-    subject: str = ""
-    body: str = ""
-    tone: Optional[str] = None
-
-
-@app.post("/email/drafts")
-async def email_create_draft(body: DraftIn) -> Dict[str, Any]:
-    g = GmailService()
-    d = g.create_draft(body.to, body.subject, body.body)
-    _drafts_store[d["id"]] = d
-    return d
-
-
-@app.post("/email/send/{draft_id}")
-async def email_send(draft_id: str) -> Dict[str, Any]:
-    g = GmailService()
-    out = g.send(draft_id)
-    if draft_id in _drafts_store:
-        _drafts_store[draft_id]["status"] = "sent"
-    _history_log.append(
-        {
-            "ts": datetime.now(timezone.utc).isoformat(),
-            "verb": "send",
-            "object": "draft",
-            "id": draft_id,
-        }
-    )
-    return out
-
-
-@app.get("/drafts")
-async def list_drafts() -> List[Dict[str, Any]]:
-    return list(_drafts_store.values())
-
-
-# Calendar endpoints
-@app.post("/calendar/plan-today")
-async def calendar_plan_today() -> Dict[str, Any]:
-    c = CalendarService()
-    plan = c.list_today()
-    # Emit a WhatsApp-friendly card text (POC) in response
-    card_text = "Plan for Today\n" + "\n".join(
-        [f"• {i.get('time','10:00')} {i.get('title','Focus block')}" for i in plan]
-    )
-    return {"plan": plan, "card": card_text}
-
-
-@app.post("/calendar/reschedule")
-async def calendar_reschedule(body: Dict[str, Any]) -> Dict[str, Any]:
-    c = CalendarService()
-    return c.create_or_update(body)
+"""
+Email and calendar endpoints are provided by presentation.api.routes.email and
+presentation.api.routes.calendar. Duplicate in-file endpoints removed to avoid
+route shadowing and ensure single source of truth.
+"""
 
 
 # Core endpoints
