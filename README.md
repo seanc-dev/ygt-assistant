@@ -127,8 +127,8 @@ supabase db push --yes
 Microsoft connections
 
 ```
-open "http://localhost:8000/connections/ms/oauth/start?user_id=local-user"
-curl "http://localhost:8000/connections/ms/status?user_id=local-user"
+open "http://localhost:8000/connections/ms/oauth/start"
+curl -i --cookie-jar cookies.txt "http://localhost:8000/connections/ms/status"
 ```
 
 Make targets
@@ -151,6 +151,18 @@ API surface (selected)
 - Core memory: `/core/context`, `/core/notes`, `/core/preview`
 - Chat stand‑in: `/chat` (scan/approve/skip text interface)
 - Connections (Microsoft): `/connections/ms/oauth/start|callback|status|disconnect`
+
+LLM scenarios (mock-only)
+
+```
+python -m llm_testing.runner --scenarios \
+  llm_testing/scenarios/plan_today_buffers.yaml \
+  llm_testing/scenarios/triage_sla.yaml \
+  llm_testing/scenarios/reschedule_ranked.yaml \
+  llm_testing/scenarios/reconnect_retry.yaml
+```
+
+See `docs/graph/01-live-slice.md` and `docs/graph/02-observability.md` for live flags and metrics.
 
 Design principles
 
