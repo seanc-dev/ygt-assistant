@@ -29,6 +29,7 @@ def run_scenario(scn_path: str) -> Dict[str, Any]:
         # Per-action flags toggled below per scenario
     # Import after env is prepared so FastAPI app can initialize in dev mode
     from llm_testing.backends.inprocess import InProcessBackend  # type: ignore
+
     backend = InProcessBackend()
     reports_dir = Path("llm_testing") / "reports" / run_id
     reports_dir.mkdir(parents=True, exist_ok=True)
@@ -94,7 +95,9 @@ def run_scenario(scn_path: str) -> Dict[str, Any]:
         elif name == "undo_event":
             # Minimal: create then undo by approvals flow placeholder
             p = backend.calendar_plan_today()
-            transcript["steps"].append({"endpoint": "/calendar/plan-today", "response": p})
+            transcript["steps"].append(
+                {"endpoint": "/calendar/plan-today", "response": p}
+            )
         elif name == "token_expired_reconnect":
             # Simulate via expectations in evaluator fallback; mocks won't 401
             resp = backend.actions_scan(["email"])
@@ -104,72 +107,43 @@ def run_scenario(scn_path: str) -> Dict[str, Any]:
             r = backend.client.get(
                 "/actions/live/inbox", params={"user_id": "default", "limit": 5}
             )
-            transcript["steps"].append({"endpoint": "/actions/live/inbox", "response": r.json()})
+            transcript["steps"].append(
+                {"endpoint": "/actions/live/inbox", "response": r.json()}
+            )
         elif name == "live_send":
             os.environ["FEATURE_LIVE_SEND_MAIL"] = "true"
             r = backend.client.post(
                 "/actions/live/send",
                 params={"user_id": "default"},
-                json={"to": ["user@example.com"], "subject": "[YGT Test]", "body": "Hi"},
+                json={
+                    "to": ["user@example.com"],
+                    "subject": "[YGT Test]",
+                    "body": "Hi",
+                },
             )
-            transcript["steps"].append({"endpoint": "/actions/live/send", "response": r.json()})
+            transcript["steps"].append(
+                {"endpoint": "/actions/live/send", "response": r.json()}
+            )
         elif name == "live_create_events":
             os.environ["FEATURE_LIVE_CREATE_EVENTS"] = "true"
-            ev = {"title": "Block", "start": "2025-10-25T09:00:00Z", "end": "2025-10-25T09:30:00Z"}
+            ev = {
+                "title": "Block",
+                "start": "2025-10-25T09:00:00Z",
+                "end": "2025-10-25T09:30:00Z",
+            }
             r = backend.client.post(
-                "/actions/live/create-events", params={"user_id": "default"}, json={"events": [ev]}
+                "/actions/live/create-events",
+                params={"user_id": "default"},
+                json={"events": [ev]},
             )
-            transcript["steps"].append({"endpoint": "/actions/live/create-events", "response": r.json()})
+            transcript["steps"].append(
+                {"endpoint": "/actions/live/create-events", "response": r.json()}
+            )
         else:
             # default: just run scan
             resp = backend.actions_scan([])
             transcript["steps"].append({"endpoint": "/actions/scan", "response": resp})
-    if name == "plan_today":
-        resp = backend.calendar_plan_today()
-        transcript["steps"].append(
-            {"endpoint": "/calendar/plan-today", "response": resp}
-        )
-    elif name == "approve_send":
-        d = backend.email_create_draft(["user@example.com"], "Hello", "Body")
-        transcript["steps"].append({"endpoint": "/email/drafts", "response": d})
-        s = backend.email_send(d.get("id"))
-        transcript["steps"].append({"endpoint": "/email/send/{id}", "response": s})
-    elif name == "triage_inbox":
-        resp = backend.actions_scan(["email"])
-        transcript["steps"].append({"endpoint": "/actions/scan", "response": resp})
-    elif name == "undo_event":
-        # Minimal: create then undo by approvals flow placeholder
-        p = backend.calendar_plan_today()
-        transcript["steps"].append({"endpoint": "/calendar/plan-today", "response": p})
-    elif name == "token_expired_reconnect":
-        # Simulate via expectations in evaluator fallback; mocks won't 401
-        resp = backend.actions_scan(["email"])
-        transcript["steps"].append({"endpoint": "/actions/scan", "response": resp})
-    elif name == "live_inbox":
-        os.environ["FEATURE_LIVE_LIST_INBOX"] = "true"
-        r = backend.client.get(
-            "/actions/live/inbox", params={"user_id": "default", "limit": 5}
-        )
-        transcript["steps"].append({"endpoint": "/actions/live/inbox", "response": r.json()})
-    elif name == "live_send":
-        os.environ["FEATURE_LIVE_SEND_MAIL"] = "true"
-        r = backend.client.post(
-            "/actions/live/send",
-            params={"user_id": "default"},
-            json={"to": ["user@example.com"], "subject": "[YGT Test]", "body": "Hi"},
-        )
-        transcript["steps"].append({"endpoint": "/actions/live/send", "response": r.json()})
-    elif name == "live_create_events":
-        os.environ["FEATURE_LIVE_CREATE_EVENTS"] = "true"
-        ev = {"title": "Block", "start": "2025-10-25T09:00:00Z", "end": "2025-10-25T09:30:00Z"}
-        r = backend.client.post(
-            "/actions/live/create-events", params={"user_id": "default"}, json={"events": [ev]}
-        )
-        transcript["steps"].append({"endpoint": "/actions/live/create-events", "response": r.json()})
-    else:
-        # default: just run scan
-        resp = backend.actions_scan([])
-        transcript["steps"].append({"endpoint": "/actions/scan", "response": resp})
+    # (legacy block removed; scenarios are executed only once)
 
     out_path = reports_dir / f"{name}.json"
     with open(out_path, "w") as f:
