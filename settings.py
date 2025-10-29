@@ -6,6 +6,14 @@ def _is_truthy(value: str | None) -> bool:
     return (value or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+# Simple env int helper with default
+def env_int(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, str(default)))
+    except Exception:
+        return default
+
+
 def _is_testing() -> bool:
     # PYTEST_CURRENT_TEST is populated while tests are executing; allow TESTING flag for early imports.
     return bool(os.getenv("PYTEST_CURRENT_TEST")) or _is_truthy(os.getenv("TESTING"))
@@ -59,13 +67,29 @@ ADMIN_UI_ORIGIN = os.getenv("ADMIN_UI_ORIGIN", "http://localhost:3000")
 CLIENT_UI_ORIGIN = os.getenv("CLIENT_UI_ORIGIN", "http://localhost:3000")
 
 # Feature flags for live Graph slice (default off)
-FEATURE_GRAPH_LIVE = os.getenv("FEATURE_GRAPH_LIVE", "false").strip().lower() in {"1","true","yes","on"}
-FEATURE_LIVE_LIST_INBOX = os.getenv("FEATURE_LIVE_LIST_INBOX", "false").strip().lower() in {"1","true","yes","on"}
-FEATURE_LIVE_SEND_MAIL = os.getenv("FEATURE_LIVE_SEND_MAIL", "false").strip().lower() in {"1","true","yes","on"}
-FEATURE_LIVE_CREATE_EVENTS = os.getenv("FEATURE_LIVE_CREATE_EVENTS", "false").strip().lower() in {"1","true","yes","on"}
-GRAPH_TIMEOUT_MS = int(os.getenv("GRAPH_TIMEOUT_MS", "8000"))
-GRAPH_RETRY_MAX = int(os.getenv("GRAPH_RETRY_MAX", "3"))
-LIVE_MODE_BANNER = os.getenv("LIVE_MODE_BANNER", "true").strip().lower() in {"1","true","yes","on"}
+FEATURE_GRAPH_LIVE = os.getenv("FEATURE_GRAPH_LIVE", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+FEATURE_LIVE_LIST_INBOX = os.getenv(
+    "FEATURE_LIVE_LIST_INBOX", "false"
+).strip().lower() in {"1", "true", "yes", "on"}
+FEATURE_LIVE_SEND_MAIL = os.getenv(
+    "FEATURE_LIVE_SEND_MAIL", "false"
+).strip().lower() in {"1", "true", "yes", "on"}
+FEATURE_LIVE_CREATE_EVENTS = os.getenv(
+    "FEATURE_LIVE_CREATE_EVENTS", "false"
+).strip().lower() in {"1", "true", "yes", "on"}
+GRAPH_TIMEOUT_MS = env_int("GRAPH_TIMEOUT_MS", 8000)
+GRAPH_RETRY_MAX = env_int("GRAPH_RETRY_MAX", 3)
+LIVE_MODE_BANNER = os.getenv("LIVE_MODE_BANNER", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 
 def _enforce_secret_hardening() -> bool:

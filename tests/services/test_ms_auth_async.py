@@ -40,5 +40,3 @@ def test_async_ensure_access_token(monkeypatch):
         assert tok == "ASYNC_TOKEN"
 
     asyncio.run(_run())
-
-

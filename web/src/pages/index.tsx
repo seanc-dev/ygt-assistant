@@ -40,7 +40,9 @@ export default function Home() {
   const router = useRouter();
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [focusBlocks, setFocusBlocks] = useState<FocusBlock[]>([]);
-  const [connection, setConnection] = useState<ConnectionStatus>({ state: "loading" });
+  const [connection, setConnection] = useState<ConnectionStatus>({
+    state: "loading",
+  });
 
   useEffect(() => {
     api
@@ -50,7 +52,8 @@ export default function Home() {
 
     fetch(
       `${
-        process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.ygt-assistant.com"
+        process.env.NEXT_PUBLIC_ADMIN_API_BASE ||
+        "https://api.ygt-assistant.com"
       }/calendar/plan-today`,
       { credentials: "include" }
     )
@@ -73,7 +76,7 @@ export default function Home() {
 
     setConnection({ state: "loading" });
 
-    fetch(`${apiBase}/connections/ms/status?user_id=${encodeURIComponent(userId)}`)
+    fetch(`${apiBase}/connections/ms/status`, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : Promise.reject(res.statusText)))
       .then((data) => {
         if (data?.connected) {
@@ -105,15 +108,19 @@ export default function Home() {
             Today
           </Heading>
           <Text variant="muted">
-            Stay ahead with a focused queue, deep-work blocks, and Microsoft Graph
-            health at a glance.
+            Stay ahead with a focused queue, deep-work blocks, and Microsoft
+            Graph health at a glance.
           </Text>
         </div>
 
         <ActionBar
           helperText="There are approvals waiting for you."
           primaryAction={primaryAction}
-          secondaryActions={[<Link key="queue" href="/review">View queue</Link>]}
+          secondaryActions={[
+            <Link key="queue" href="/review">
+              View queue
+            </Link>,
+          ]}
         />
 
         <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
@@ -129,16 +136,22 @@ export default function Home() {
                 className="text-sm text-[color:var(--ds-text-subtle)]"
               >
                 <span>
-                  Keyboard: <strong>A</strong> approve, <strong>E</strong> edit, <strong>S</strong> skip, <strong>U</strong> undo
+                  Keyboard: <strong>A</strong> approve, <strong>E</strong> edit,{" "}
+                  <strong>S</strong> skip, <strong>U</strong> undo
                 </span>
-                <Link className="text-[color:var(--ds-text-accent)]" href="/review">
+                <Link
+                  className="text-[color:var(--ds-text-accent)]"
+                  href="/review"
+                >
                   Open focus pane →
                 </Link>
               </Stack>
             }
           >
             {approvals.length === 0 ? (
-              <Text variant="muted">You’re all caught up. We’ll nudge you when something arrives.</Text>
+              <Text variant="muted">
+                You’re all caught up. We’ll nudge you when something arrives.
+              </Text>
             ) : (
               <Stack gap="sm">
                 {approvals.map((approval) => (
@@ -147,11 +160,16 @@ export default function Home() {
                     className="flex items-start justify-between gap-3 rounded-lg border border-[color:var(--ds-border-subtle)] bg-[color:var(--ds-surface)] p-3"
                   >
                     <div className="space-y-1">
-                      <Text variant="label" className="text-[color:var(--ds-text-primary)]">
+                      <Text
+                        variant="label"
+                        className="text-[color:var(--ds-text-primary)]"
+                      >
                         {approval.title || approval.summary || approval.id}
                       </Text>
                       {approval.due_at ? (
-                        <Text variant="caption">Due {new Date(approval.due_at).toLocaleTimeString()}</Text>
+                        <Text variant="caption">
+                          Due {new Date(approval.due_at).toLocaleTimeString()}
+                        </Text>
                       ) : null}
                     </div>
                     <Badge tone="calm">Queued</Badge>
@@ -167,7 +185,9 @@ export default function Home() {
             description="Protect your most critical work windows."
           >
             {focusBlocks.length === 0 ? (
-              <Text variant="muted">No focus sessions queued. Sync a plan from your calendar.</Text>
+              <Text variant="muted">
+                No focus sessions queued. Sync a plan from your calendar.
+              </Text>
             ) : (
               <Stack gap="sm">
                 {focusBlocks.map((block, index) => (
@@ -176,7 +196,10 @@ export default function Home() {
                     className="flex items-center justify-between rounded-lg bg-[color:var(--ds-surface-muted)] px-4 py-3"
                   >
                     <div>
-                      <Text variant="label" className="text-[color:var(--ds-text-primary)]">
+                      <Text
+                        variant="label"
+                        className="text-[color:var(--ds-text-primary)]"
+                      >
                         {block.label}
                       </Text>
                       <Text variant="caption">Deep work protected</Text>
@@ -200,7 +223,10 @@ export default function Home() {
                 <Text variant="caption">
                   Need a reset? Check connection details and guided steps.
                 </Text>
-                <Link className="text-[color:var(--ds-text-accent)]" href="/connections">
+                <Link
+                  className="text-[color:var(--ds-text-accent)]"
+                  href="/connections"
+                >
                   Go to connections →
                 </Link>
               </Stack>
@@ -214,12 +240,17 @@ export default function Home() {
               <Stack gap="sm">
                 <div className="flex items-center justify-between rounded-lg bg-white/60 px-4 py-3 backdrop-blur dark:bg-slate-950/50">
                   <div>
-                    <Text variant="label" className="text-[color:var(--ds-text-primary)]">
+                    <Text
+                      variant="label"
+                      className="text-[color:var(--ds-text-primary)]"
+                    >
                       Connected
                     </Text>
                     <Text variant="caption">
                       {connection.expires_at
-                        ? `Token refresh ${new Date(connection.expires_at).toLocaleTimeString()}`
+                        ? `Token refresh ${new Date(
+                            connection.expires_at
+                          ).toLocaleTimeString()}`
                         : "Token refresh scheduled"}
                     </Text>
                   </div>
@@ -239,9 +270,13 @@ export default function Home() {
             {connection.state === "disconnected" ? (
               <Stack gap="sm">
                 <Text variant="muted">
-                  {connection.reason || "Reconnect to resume syncing approvals."}
+                  {connection.reason ||
+                    "Reconnect to resume syncing approvals."}
                 </Text>
-                <Button variant="secondary" onClick={() => router.push("/connections")}>
+                <Button
+                  variant="secondary"
+                  onClick={() => router.push("/connections")}
+                >
                   Reconnect
                 </Button>
               </Stack>
@@ -250,9 +285,13 @@ export default function Home() {
             {connection.state === "error" ? (
               <Stack gap="sm">
                 <Text variant="muted">
-                  {connection.message || "Something went wrong retrieving status."}
+                  {connection.message ||
+                    "Something went wrong retrieving status."}
                 </Text>
-                <Button variant="secondary" onClick={() => router.push("/connections")}>
+                <Button
+                  variant="secondary"
+                  onClick={() => router.push("/connections")}
+                >
                   Troubleshoot
                 </Button>
               </Stack>

@@ -14,6 +14,9 @@ from utils.metrics import increment
 
 router = APIRouter(prefix="/connections/ms", tags=["connections-msft"])
 
+# Dev-only fallback when Supabase is not configured/available
+_DEV_TOKEN_STORE: Dict[str, Dict[str, Any]] = {}
+
 
 def _client() -> Dict[str, str]:
     cid = os.getenv("MS_CLIENT_ID", "")
@@ -31,19 +34,91 @@ def _resolve_user_id_from_cookie(request: Request) -> str | None:
         return None
 
 
+@router.get("/debug")
+async def debug(request: Request) -> Dict[str, Any]:
+    """Dev helper: introspect cookie user and presence in stores (no secrets)."""
+    cookie_uid = _resolve_user_id_from_cookie(request) or ""
+    try:
+        store = token_store_from_env()
+        has_store = bool(cookie_uid and store.get(cookie_uid))
+    except Exception:
+        has_store = False
+    has_dev = bool(cookie_uid and cookie_uid in _DEV_TOKEN_STORE)
+    return {
+        "cookie_uid": cookie_uid,
+        "has_store": has_store,
+        "has_dev_fallback": has_dev,
+    }
+
+
+@router.post("/dev/connect")
+async def dev_connect(
+    request: Request, uid: str | None = Query(None)
+) -> Dict[str, Any]:
+    """Dev-only helper: set cookie and a fake token row to simulate connection."""
+    if not os.getenv("DEV_MODE"):
+        raise HTTPException(status_code=404, detail="not_found")
+    user_id = uid or _resolve_user_id_from_cookie(request) or "local-user"
+    # populate minimal token row
+    _DEV_TOKEN_STORE[user_id] = {
+        "provider": "microsoft",
+        "tenant_id": os.getenv("MS_TENANT_ID", "common"),
+        "access_token": "dev-fallback",
+        "refresh_token": "dev-fallback",
+        "expiry": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(),
+        "scopes": [
+            "openid",
+            "profile",
+            "email",
+            "User.Read",
+            "offline_access",
+            "Mail.ReadWrite",
+            "Mail.Send",
+            "Calendars.ReadWrite",
+        ],
+    }
+    resp = JSONResponse({"ok": True, "user_id": user_id})
+    resp.set_cookie(
+        key="ygt_user", value=user_id, httponly=True, samesite="lax", path="/"
+    )
+    return resp
+
+
 @router.get("/status")
 async def status(request: Request, user_id: str | None = Query(None)) -> Dict[str, Any]:
-    if not user_id:
-        user_id = _resolve_user_id_from_cookie(request)
+    # Prefer cookie-derived user over query param to avoid stale ids in the UI
+    cookie_uid = _resolve_user_id_from_cookie(request)
+    if cookie_uid:
+        user_id = cookie_uid
     try:
         store = token_store_from_env()
     except Exception:
         increment("ms.status.disconnected", reason="no_store")
-        return {"connected": False}
+        # Dev fallback
+        row = _DEV_TOKEN_STORE.get(user_id or "") if user_id else None
+        if not row:
+            return {"connected": False}
+        # continue with row from fallback
+        expiry = row.get("expiry")
+        scopes = row.get("scopes") or []
+        provider = row.get("provider")
+        tenant_id = row.get("tenant_id")
+        increment("ms.status.connected")
+        return {
+            "connected": True,
+            "scopes": scopes,
+            "expires_at": expiry,
+            "provider": provider,
+            "tenant_id": tenant_id,
+        }
     row = store.get(user_id or "") if user_id else None
     if not row:
-        increment("ms.status.disconnected", reason="no_row")
-        return {"connected": False}
+        # Dev fallback: check in-memory store when no DB row
+        if user_id and user_id in _DEV_TOKEN_STORE:
+            row = _DEV_TOKEN_STORE[user_id]
+        else:
+            increment("ms.status.disconnected", reason="no_row")
+            return {"connected": False}
     expiry = row.get("expiry")
     scopes = row.get("scopes") or []
     provider = row.get("provider")
@@ -60,9 +135,11 @@ async def status(request: Request, user_id: str | None = Query(None)) -> Dict[st
 
 @router.get("/oauth/start")
 async def oauth_start(
-    tenant: str = Query("common"), user_id: str | None = Query(None)
+    tenant: str | None = Query(None), user_id: str | None = Query(None)
 ) -> RedirectResponse:
     cfg = _client()
+    # Resolve tenant from query → env → common
+    tenant = tenant or os.getenv("MS_TENANT_ID", "common")
     # Minimal state token (encrypted), PKCE later
     import secrets as _secrets
 
@@ -99,11 +176,29 @@ async def oauth_start(
 @router.get("/oauth/callback")
 async def oauth_callback(
     request: Request,
-    code: str = Query(...),
-    state: str = Query(...),
-    tenant: str = Query("common"),
+    code: str | None = Query(None),
+    state: str | None = Query(None),
+    tenant: str | None = Query(None),
+    error: str | None = Query(None),
+    error_description: str | None = Query(None),
 ) -> JSONResponse:
+    # Early error from IdP (e.g., MFA failure, policy)
+    if error:
+        return JSONResponse(
+            {"ok": False, "error": error, "error_description": error_description},
+            status_code=400,
+        )
     cfg = _client()
+    tenant = tenant or os.getenv("MS_TENANT_ID", "common")
+    if not code:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "missing_code",
+                "error_description": "Authorization code not provided by identity provider.",
+            },
+            status_code=400,
+        )
     data = {
         "client_id": cfg["client_id"],
         "client_secret": cfg["client_secret"],
@@ -111,22 +206,35 @@ async def oauth_callback(
         "code": code,
         "redirect_uri": cfg["redirect_uri"],
     }
-    async with httpx.AsyncClient(timeout=15) as c:
-        token_url = f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
-        r = await c.post(token_url, data=data)
-        r.raise_for_status()
-        tok = r.json()
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            token_url = f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
+            r = await c.post(token_url, data=data)
+            r.raise_for_status()
+            tok = r.json()
+    except Exception as exc:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "token_exchange_failed",
+                "error_description": "Failed to exchange code for tokens. Please retry connect.",
+            },
+            status_code=400,
+        )
 
     # Decode state (best-effort)
     user_cookie_id: str | None = None
     state_user_id: str | None = None
     try:
-        f, _k = fernet_from(ENCRYPTION_KEY)
-        import json as _json
+        if state:
+            f, _k = fernet_from(ENCRYPTION_KEY)
+            import json as _json
 
-        decoded = decrypt(f, state)
-        st = _json.loads(decoded)
-        _ = st.get("nonce")
+            decoded = decrypt(f, state)
+            st = _json.loads(decoded)
+            _ = st.get("nonce")
+        else:
+            st = {"tenant": tenant}
     except Exception:
         st = {"tenant": tenant}
         # Legacy/dev path: state may be a plain user id from older callers/tests
@@ -168,19 +276,19 @@ async def oauth_callback(
         # Use aad_user_id as the key
         if not aad_user_id:
             raise RuntimeError("cannot_resolve_user")
-        store.upsert(
-            aad_user_id,
-            {
-                "provider": "microsoft",
-                "tenant_id": tenant_id,
-                "access_token": encrypt(f, access_token),
-                "refresh_token": encrypt(f, refresh_token),
-                "expiry": (
-                    datetime.now(timezone.utc) + timedelta(seconds=expires_in)
-                ).isoformat(),
-                "scopes": scopes_list,
-            },
-        )
+        payload_row = {
+            "provider": "microsoft",
+            "tenant_id": tenant_id,
+            "access_token": encrypt(f, access_token),
+            "refresh_token": encrypt(f, refresh_token),
+            "expiry": (
+                datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+            ).isoformat(),
+            "scopes": scopes_list,
+        }
+        store.upsert(aad_user_id, payload_row)
+        # Cache in dev fallback as well to ensure UI reflects connection immediately
+        _DEV_TOKEN_STORE[aad_user_id] = payload_row
         # Upsert profiles via Supabase REST
         base_url = os.getenv("SUPABASE_URL", "").rstrip("/") + "/rest/v1"
         api_key = os.getenv("SUPABASE_API_SECRET", "")
@@ -217,7 +325,18 @@ async def oauth_callback(
         user_cookie_id = aad_user_id
         increment("ms.oauth.callback.ok")
     except Exception:
-        # Non-fatal in dev; caller can reconnect
+        # Dev fallback: keep tokens in memory to unblock local testing
+        if aad_user_id:
+            _DEV_TOKEN_STORE[aad_user_id] = {
+                "provider": "microsoft",
+                "tenant_id": tenant_id,
+                "access_token": "dev-fallback",
+                "refresh_token": "dev-fallback",
+                "expiry": (
+                    datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+                ).isoformat(),
+                "scopes": scopes_list,
+            }
         increment("ms.oauth.callback.persist_fail")
 
     resp = JSONResponse(
@@ -235,7 +354,26 @@ async def oauth_callback(
             value=user_cookie_id,
             httponly=True,
             samesite="lax",
+            path="/",
         )
+    # Optional redirect back to connections page if WEB_ORIGIN is set
+    web_origin = os.getenv("WEB_ORIGIN") or os.getenv("NEXT_PUBLIC_CLIENT_APP_URL")
+    if web_origin:
+        try:
+            redir = RedirectResponse(
+                url=f"{web_origin.rstrip('/')}/connections", status_code=302
+            )
+            if user_cookie_id:
+                redir.set_cookie(
+                    key="ygt_user",
+                    value=user_cookie_id,
+                    httponly=True,
+                    samesite="lax",
+                    path="/",
+                )
+            return redir
+        except Exception:
+            pass
     return resp
 
 
@@ -246,8 +384,11 @@ async def test_conn(
     # Minimal: presence of token row indicates connected
     try:
         store = token_store_from_env()
-        uid = user_id or _resolve_user_id_from_cookie(request) or ""
+        cookie_uid = _resolve_user_id_from_cookie(request)
+        uid = cookie_uid or user_id or ""
         row = store.get(uid)
+        if not row and uid in _DEV_TOKEN_STORE:
+            row = _DEV_TOKEN_STORE[uid]
         ok = bool(row)
         increment("ms.test", ok=ok)
         # Live slice flags visibility for manual smoke
@@ -275,15 +416,31 @@ async def test_conn(
 @router.post("/disconnect")
 async def disconnect(
     request: Request, user_id: str | None = Query(None)
-) -> Dict[str, Any]:
+) -> JSONResponse:
+    uid = user_id or _resolve_user_id_from_cookie(request) or ""
+    ok = True
     try:
         store = token_store_from_env()
-        uid = user_id or _resolve_user_id_from_cookie(request) or ""
         if uid:
-            store.delete(uid)
+            try:
+                store.delete(uid)
+            except Exception:
+                pass
+        # Also clear dev fallback if present
+        if uid and uid in _DEV_TOKEN_STORE:
+            try:
+                del _DEV_TOKEN_STORE[uid]
+            except Exception:
+                pass
         increment("ms.disconnect.ok")
-        return {"ok": True, "disconnected": True}
     except Exception:
         # Still report success to keep UX simple in dev
+        ok = True
         increment("ms.disconnect.fail")
-        return {"ok": True, "disconnected": True}
+    resp = JSONResponse({"ok": ok, "disconnected": True})
+    # Clear cookie so subsequent status checks don't resolve stale user
+    if uid:
+        resp.set_cookie(
+            key="ygt_user", value="", max_age=0, path="/", httponly=True, samesite="lax"
+        )
+    return resp
