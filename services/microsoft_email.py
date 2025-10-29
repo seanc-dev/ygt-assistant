@@ -33,6 +33,13 @@ class MicrosoftEmailProvider(EmailProvider):
             row = store.get(self.user_id)
         except Exception:
             row = _dev_token_get(self.user_id)
+        if not row:
+            try:
+                from presentation.api.routes import connections_msft as _cm  # type: ignore
+
+                row = (_cm._DEV_TOKEN_STORE or {}).get(self.user_id)
+            except Exception:
+                row = None
         if row:
             # Avoid anyio.run when inside FastAPI event loop by using sync path
             return ensure_access_token_sync(self.user_id, row, self.tenant_id)

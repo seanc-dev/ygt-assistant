@@ -32,6 +32,13 @@ class MicrosoftCalendarProvider(CalendarProvider):
             row = store.get(self.user_id)
         except Exception:
             row = _dev_token_get(self.user_id)
+        if not row:
+            try:
+                from presentation.api.routes import connections_msft as _cm  # type: ignore
+
+                row = (_cm._DEV_TOKEN_STORE or {}).get(self.user_id)
+            except Exception:
+                row = None
         if row:
             return ensure_access_token_sync(self.user_id, row, self.tenant_id)
         tok = os.getenv("MS_TEST_ACCESS_TOKEN", "")
