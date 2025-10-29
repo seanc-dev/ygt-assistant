@@ -34,8 +34,96 @@ def run_scenario(scn_path: str) -> Dict[str, Any]:
     reports_dir.mkdir(parents=True, exist_ok=True)
     transcript: Dict[str, Any] = {"scenario": name, "steps": []}
 
-    # Apply fixtures is implicit via mock providers reading from llm_testing/fixtures
-    # Execute primary action per scenario by name
+    # If scenario defines explicit steps, execute them generically
+    if scn.get("steps"):
+        expectations: Dict[str, Any] = scn.get("expectations") or {}
+        text_chunks: list[str] = []
+        for step in scn.get("steps", []):
+            act = (step or {}).get("action")
+            if act == "http":
+                method = (step.get("method") or "GET").upper()
+                url = step.get("url") or "/"
+                params = step.get("params") or {}
+                body = step.get("json") or step.get("body")
+                if method == "GET":
+                    r = backend.client.get(url, params=params)
+                elif method == "POST":
+                    r = backend.client.post(url, params=params, json=body)
+                elif method == "DELETE":
+                    r = backend.client.delete(url, params=params)
+                else:
+                    r = backend.client.request(method, url, params=params, json=body)
+                try:
+                    payload = r.json()
+                except Exception:
+                    payload = {"text": r.text}
+                transcript["steps"].append({"endpoint": url, "response": payload})
+                text_chunks.append(str(payload))
+            elif act == "grade":
+                rubric = step.get("rubric") or {}
+                must = rubric.get("must_include") or []
+                dis = rubric.get("disallow") or []
+                # map to evaluator expectations for offline/online scoring
+                exp = expectations or {}
+                exp.setdefault("must_contain", [])
+                exp.setdefault("must_not_contain", [])
+                exp["must_contain"].extend(must)
+                exp["must_not_contain"].extend(dis)
+                expectations = exp
+        # attach synthesized expectations
+        if expectations:
+            scn["expectations"] = expectations
+        # minimal concatenated text for simple grep evaluators
+        transcript["text"] = "\n".join(text_chunks)
+    else:
+        # Apply fixtures is implicit via mock providers reading from llm_testing/fixtures
+        # Execute primary action per scenario by name
+        if name == "plan_today":
+            resp = backend.calendar_plan_today()
+            transcript["steps"].append(
+                {"endpoint": "/calendar/plan-today", "response": resp}
+            )
+        elif name == "approve_send":
+            d = backend.email_create_draft(["user@example.com"], "Hello", "Body")
+            transcript["steps"].append({"endpoint": "/email/drafts", "response": d})
+            s = backend.email_send(d.get("id"))
+            transcript["steps"].append({"endpoint": "/email/send/{id}", "response": s})
+        elif name == "triage_inbox":
+            resp = backend.actions_scan(["email"])
+            transcript["steps"].append({"endpoint": "/actions/scan", "response": resp})
+        elif name == "undo_event":
+            # Minimal: create then undo by approvals flow placeholder
+            p = backend.calendar_plan_today()
+            transcript["steps"].append({"endpoint": "/calendar/plan-today", "response": p})
+        elif name == "token_expired_reconnect":
+            # Simulate via expectations in evaluator fallback; mocks won't 401
+            resp = backend.actions_scan(["email"])
+            transcript["steps"].append({"endpoint": "/actions/scan", "response": resp})
+        elif name == "live_inbox":
+            os.environ["FEATURE_LIVE_LIST_INBOX"] = "true"
+            r = backend.client.get(
+                "/actions/live/inbox", params={"user_id": "default", "limit": 5}
+            )
+            transcript["steps"].append({"endpoint": "/actions/live/inbox", "response": r.json()})
+        elif name == "live_send":
+            os.environ["FEATURE_LIVE_SEND_MAIL"] = "true"
+            r = backend.client.post(
+                "/actions/live/send",
+                params={"user_id": "default"},
+                json={"to": ["user@example.com"], "subject": "[YGT Test]", "body": "Hi"},
+            )
+            transcript["steps"].append({"endpoint": "/actions/live/send", "response": r.json()})
+        elif name == "live_create_events":
+            os.environ["FEATURE_LIVE_CREATE_EVENTS"] = "true"
+            ev = {"title": "Block", "start": "2025-10-25T09:00:00Z", "end": "2025-10-25T09:30:00Z"}
+            r = backend.client.post(
+                "/actions/live/create-events", params={"user_id": "default"}, json={"events": [ev]}
+            )
+            transcript["steps"].append({"endpoint": "/actions/live/create-events", "response": r.json()})
+        else:
+            # default: just run scan
+            resp = backend.actions_scan([])
+            transcript["steps"].append({"endpoint": "/actions/scan", "response": resp})
     if name == "plan_today":
         resp = backend.calendar_plan_today()
         transcript["steps"].append(

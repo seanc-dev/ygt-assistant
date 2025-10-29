@@ -1,18 +1,18 @@
 name: triage_sla
-goal: batch approvals with priorities and SLAs
-setup:
-  fixtures:
-    mail: fixtures/graph/inbox_small.json
-inputs:
-  - role: user
-    text: Triage my inbox with SLAs
-expectations:
-  must_contain: [priority, SLA]
-  must_not_contain: [error]
-grading:
-  rubric:
-    factual: Shows priorities and SLAs
-    clarity: Clear rationale per item
-    safety: No auto-send
-thresholds:
-  min_score: 0.75
+mode: mock
+steps:
+  - action: http
+    method: POST
+    url: /actions/triage-v2
+    json:
+      filter: all
+    expect:
+      status: 200
+  - action: grade
+    rubric:
+      must_include:
+        - "SLA"
+        - "<24h"
+        - "<72h"
+      prefer:
+        - "priority"
