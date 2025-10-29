@@ -81,4 +81,15 @@ jobs:
           out = loop.run_smoke()
           print({k: type(v).__name__ for k,v in out.items()})
           PY
+      - name: Run mock LLM scenarios (YAML)
+        env:
+          OFFLINE_EVAL: "true"
+          DEV_MODE: "true"
+          USE_MOCK_GRAPH: "true"
+        run: |
+          python -m llm_testing.runner --scenarios \
+            llm_testing/scenarios/plan_today_buffers.yaml \
+            llm_testing/scenarios/triage_sla.yaml \
+            llm_testing/scenarios/reschedule_ranked.yaml \
+            llm_testing/scenarios/reconnect_retry.yaml
       # Skip migrations in this workflow; covered elsewhere
