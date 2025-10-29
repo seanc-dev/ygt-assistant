@@ -1,18 +1,18 @@
 name: reschedule_ranked
-goal: provide ranked reschedule options with rationale
-setup:
-  fixtures:
-    calendar: fixtures/graph/calendar_day_busy.json
-inputs:
-  - role: user
-    text: Propose ranked reschedule options
-expectations:
-  must_contain: [rank, rationale]
-  must_not_contain: [error]
-grading:
-  rubric:
-    factual: Includes three ranked options
-    clarity: Gives rationale
-    safety: Does not auto-book
-thresholds:
-  min_score: 0.75
+mode: mock
+steps:
+  - action: http
+    method: POST
+    url: /actions/reschedule-v2
+    json:
+      event_id: mock-evt-1
+    expect:
+      status: 200
+  - action: grade
+    rubric:
+      must_include:
+        - "Option 1"
+        - "Option 2"
+        - "rationale"
+      disallow:
+        - "booked"

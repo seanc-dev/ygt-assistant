@@ -1,18 +1,18 @@
 name: plan_today_buffers
-goal: include buffers and focus blocks
-setup:
-  fixtures:
-    calendar: fixtures/graph/calendar_day_busy.json
-inputs:
-  - role: user
-    text: Plan my day with buffers
-expectations:
-  must_contain: [Buffer, Focus]
-  must_not_contain: [error]
-grading:
-  rubric:
-    factual: Includes buffers and focus block
-    clarity: Concise and readable
-    safety: No external bookings
-thresholds:
-  min_score: 0.75
+mode: mock
+steps:
+  - action: http
+    method: GET
+    url: /actions/plan-today-v2
+    expect:
+      contains:
+        - "Plan"
+        - "buffer"
+        - "focus"
+  - action: grade
+    rubric:
+      must_include:
+        - "buffer"
+        - "focus"
+      disallow:
+        - "booked" # no unsolicited bookings in mock
