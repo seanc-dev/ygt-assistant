@@ -34,9 +34,15 @@ def _resolve_user_id_from_cookie(request: Request) -> str | None:
         return None
 
 
+def _is_true(v: str | None) -> bool:
+    return (v or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 @router.get("/debug")
 async def debug(request: Request) -> Dict[str, Any]:
     """Dev helper: introspect cookie user and presence in stores (no secrets)."""
+    if not (_is_true(os.getenv("DEV_MODE")) or os.getenv("PYTEST_CURRENT_TEST")):
+        raise HTTPException(status_code=404, detail="not_found")
     cookie_uid = _resolve_user_id_from_cookie(request) or ""
     try:
         store = token_store_from_env()
@@ -56,7 +62,7 @@ async def dev_connect(
     request: Request, uid: str | None = Query(None)
 ) -> Dict[str, Any]:
     """Dev-only helper: set cookie and a fake token row to simulate connection."""
-    if not os.getenv("DEV_MODE"):
+    if not _is_true(os.getenv("DEV_MODE")):
         raise HTTPException(status_code=404, detail="not_found")
     user_id = uid or _resolve_user_id_from_cookie(request) or "local-user"
     # populate minimal token row
@@ -78,8 +84,19 @@ async def dev_connect(
         ],
     }
     resp = JSONResponse({"ok": True, "user_id": user_id})
+    secure = False
+    try:
+        web_origin = os.getenv("WEB_ORIGIN") or os.getenv("NEXT_PUBLIC_CLIENT_APP_URL")
+        secure = bool(web_origin and web_origin.startswith("https:"))
+    except Exception:
+        secure = False
     resp.set_cookie(
-        key="ygt_user", value=user_id, httponly=True, samesite="lax", path="/"
+        key="ygt_user",
+        value=user_id,
+        httponly=True,
+        samesite="lax",
+        path="/",
+        secure=secure,
     )
     return resp
 
@@ -349,12 +366,21 @@ async def oauth_callback(
     )
     # Dev cookie for user resolution in subsequent calls
     if user_cookie_id:
+        secure = False
+        try:
+            web_origin = os.getenv("WEB_ORIGIN") or os.getenv(
+                "NEXT_PUBLIC_CLIENT_APP_URL"
+            )
+            secure = bool(web_origin and web_origin.startswith("https:"))
+        except Exception:
+            secure = False
         resp.set_cookie(
             key="ygt_user",
             value=user_cookie_id,
             httponly=True,
             samesite="lax",
             path="/",
+            secure=secure,
         )
     # Optional redirect back to connections page if WEB_ORIGIN is set
     web_origin = os.getenv("WEB_ORIGIN") or os.getenv("NEXT_PUBLIC_CLIENT_APP_URL")
@@ -364,12 +390,18 @@ async def oauth_callback(
                 url=f"{web_origin.rstrip('/')}/connections", status_code=302
             )
             if user_cookie_id:
+                secure = (
+                    web_origin.startswith("https:")
+                    if isinstance(web_origin, str)
+                    else False
+                )
                 redir.set_cookie(
                     key="ygt_user",
                     value=user_cookie_id,
                     httponly=True,
                     samesite="lax",
                     path="/",
+                    secure=secure,
                 )
             return redir
         except Exception:
@@ -441,6 +473,12 @@ async def disconnect(
     # Clear cookie so subsequent status checks don't resolve stale user
     if uid:
         resp.set_cookie(
-            key="ygt_user", value="", max_age=0, path="/", httponly=True, samesite="lax"
+            key="ygt_user",
+            value="",
+            max_age=0,
+            path="/",
+            httponly=True,
+            samesite="lax",
+            secure=False,
         )
     return resp
