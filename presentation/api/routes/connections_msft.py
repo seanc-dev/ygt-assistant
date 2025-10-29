@@ -34,10 +34,14 @@ def _resolve_user_id_from_cookie(request: Request) -> str | None:
         return None
 
 
+def _is_true(v: str | None) -> bool:
+    return (v or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 @router.get("/debug")
 async def debug(request: Request) -> Dict[str, Any]:
     """Dev helper: introspect cookie user and presence in stores (no secrets)."""
-    if not (os.getenv("DEV_MODE") or os.getenv("PYTEST_CURRENT_TEST")):
+    if not (_is_true(os.getenv("DEV_MODE")) or os.getenv("PYTEST_CURRENT_TEST")):
         raise HTTPException(status_code=404, detail="not_found")
     cookie_uid = _resolve_user_id_from_cookie(request) or ""
     try:
@@ -58,7 +62,7 @@ async def dev_connect(
     request: Request, uid: str | None = Query(None)
 ) -> Dict[str, Any]:
     """Dev-only helper: set cookie and a fake token row to simulate connection."""
-    if not os.getenv("DEV_MODE"):
+    if not _is_true(os.getenv("DEV_MODE")):
         raise HTTPException(status_code=404, detail="not_found")
     user_id = uid or _resolve_user_id_from_cookie(request) or "local-user"
     # populate minimal token row
