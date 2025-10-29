@@ -8,7 +8,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 
 from utils.crypto import fernet_from, encrypt, decrypt
 from settings import ENCRYPTION_KEY
-from services.ms_auth import token_store_from_env
+from services.ms_auth import token_store_from_env, dev_upsert as _dev_token_upsert
 from utils.metrics import increment
 
 
@@ -306,6 +306,7 @@ async def oauth_callback(
         store.upsert(aad_user_id, payload_row)
         # Cache in dev fallback as well to ensure UI reflects connection immediately
         _DEV_TOKEN_STORE[aad_user_id] = payload_row
+        _dev_token_upsert(aad_user_id, payload_row)
         # Upsert profiles via Supabase REST
         base_url = os.getenv("SUPABASE_URL", "").rstrip("/") + "/rest/v1"
         api_key = os.getenv("SUPABASE_API_SECRET", "")
@@ -344,16 +345,19 @@ async def oauth_callback(
     except Exception:
         # Dev fallback: keep tokens in memory to unblock local testing
         if aad_user_id:
-            _DEV_TOKEN_STORE[aad_user_id] = {
+            # Persist real tokens in dev fallback store so providers can use them without DB
+            payload_row = {
                 "provider": "microsoft",
                 "tenant_id": tenant_id,
-                "access_token": "dev-fallback",
-                "refresh_token": "dev-fallback",
+                "access_token": encrypt(f, access_token),
+                "refresh_token": encrypt(f, refresh_token),
                 "expiry": (
                     datetime.now(timezone.utc) + timedelta(seconds=expires_in)
                 ).isoformat(),
                 "scopes": scopes_list,
             }
+            _DEV_TOKEN_STORE[aad_user_id] = payload_row
+            _dev_token_upsert(aad_user_id, payload_row)
         increment("ms.oauth.callback.persist_fail")
 
     resp = JSONResponse(

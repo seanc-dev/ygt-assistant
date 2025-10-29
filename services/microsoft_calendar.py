@@ -9,6 +9,7 @@ from services.ms_auth import (
     ensure_access_token,
     ensure_access_token_sync,
     token_store_from_env,
+    dev_get as _dev_token_get,
 )
 from utils.metrics import increment
 import uuid
@@ -30,7 +31,7 @@ class MicrosoftCalendarProvider(CalendarProvider):
             store = token_store_from_env()
             row = store.get(self.user_id)
         except Exception:
-            row = None
+            row = _dev_token_get(self.user_id)
         if row:
             return ensure_access_token_sync(self.user_id, row, self.tenant_id)
         tok = os.getenv("MS_TEST_ACCESS_TOKEN", "")
@@ -121,7 +122,9 @@ class MicrosoftCalendarProvider(CalendarProvider):
 
         return anyio.run(_run)
 
-    async def list_events_async(self, time_min: str, time_max: str) -> List[Dict[str, Any]]:
+    async def list_events_async(
+        self, time_min: str, time_max: str
+    ) -> List[Dict[str, Any]]:
         token = await self._auth()
         params = {
             "startDateTime": time_min,
@@ -234,7 +237,9 @@ class MicrosoftCalendarProvider(CalendarProvider):
 
         return anyio.run(_run)
 
-    async def update_event_async(self, event_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
+    async def update_event_async(
+        self, event_id: str, patch: Dict[str, Any]
+    ) -> Dict[str, Any]:
         token = await self._auth()
         r = await self._request_with_retry(
             "PATCH",

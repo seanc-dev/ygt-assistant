@@ -9,6 +9,7 @@ from services.ms_auth import (
     ensure_access_token,
     ensure_access_token_sync,
     token_store_from_env,
+    dev_get as _dev_token_get,
 )
 from utils.metrics import increment
 import uuid
@@ -31,7 +32,7 @@ class MicrosoftEmailProvider(EmailProvider):
             store = token_store_from_env()
             row = store.get(self.user_id)
         except Exception:
-            row = None
+            row = _dev_token_get(self.user_id)
         if row:
             # Avoid anyio.run when inside FastAPI event loop by using sync path
             return ensure_access_token_sync(self.user_id, row, self.tenant_id)

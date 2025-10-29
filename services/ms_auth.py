@@ -8,6 +8,17 @@ from utils.crypto import fernet_from, decrypt
 from settings import ENCRYPTION_KEY
 from utils.metrics import increment
 
+# Dev fallback token store shared across modules (populated when DB is unavailable)
+DEV_TOKEN_STORE: Dict[str, Dict[str, Any]] = {}
+
+
+def dev_get(user_id: str) -> Optional[Dict[str, Any]]:
+    return DEV_TOKEN_STORE.get(user_id)
+
+
+def dev_upsert(user_id: str, data: Dict[str, Any]) -> None:
+    DEV_TOKEN_STORE[user_id] = data
+
 
 class MsTokenStore:
     """Minimal token accessor for oauth_tokens table via Supabase REST.
