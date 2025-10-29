@@ -187,6 +187,8 @@ from utils.email_templates import render_onboarding_email
 from services.gmail import GmailService
 from services.calendar import CalendarService
 from services import llm as llm_service
+from presentation.api.deps.providers import get_email_provider_for
+from settings import FEATURE_GRAPH_LIVE, FEATURE_LIVE_LIST_INBOX
 from core.store import get_store
 import yaml
 import uuid
@@ -661,7 +663,7 @@ class ScanIn(BaseModel):
 
 
 @app.post("/actions/scan")
-async def actions_scan(body: ScanIn) -> List[Dict[str, Any]]:
+async def actions_scan(body: ScanIn, request: Request) -> List[Dict[str, Any]]:
     store = get_store()
     core_ctx = {
         "episodic": [m.__dict__ for m in store.list_by_level("episodic")][:5],
@@ -670,6 +672,15 @@ async def actions_scan(body: ScanIn) -> List[Dict[str, Any]]:
         "narrative": [m.__dict__ for m in store.list_by_level("narrative")][:5],
     }
     context = {"domains": body.domains}
+    # Optionally enrich with live inbox slice when enabled
+    try:
+        if FEATURE_GRAPH_LIVE and FEATURE_LIVE_LIST_INBOX:
+            uid = request.cookies.get("ygt_user") or "default"
+            p = get_email_provider_for("list_inbox", uid)
+            if hasattr(p, "list_inbox"):
+                context["inbox"] = p.list_inbox(5)
+    except Exception:
+        pass
     approvals = llm_service.summarise_and_propose(context, core_ctx)
     # Cache approvals in memory for POC flows
     for a in approvals:

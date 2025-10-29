@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 from core.store import get_store
 
 
@@ -21,6 +21,8 @@ def _audit_repo():
 from settings import TENANT_DEFAULT
 from presentation.api.state import approvals_store, history_log
 from services import llm as llm_service
+from presentation.api.deps.providers import get_email_provider_for
+from settings import FEATURE_GRAPH_LIVE, FEATURE_LIVE_LIST_INBOX
 
 router = APIRouter()
 
@@ -40,7 +42,7 @@ async def approvals_list(
 
 
 @router.post("/actions/scan")
-async def actions_scan(body: Dict[str, Any]) -> List[Dict[str, Any]]:
+async def actions_scan(body: Dict[str, Any], request: Request) -> List[Dict[str, Any]]:
     try:
         store = get_store()
         core_ctx = {
@@ -50,6 +52,16 @@ async def actions_scan(body: Dict[str, Any]) -> List[Dict[str, Any]]:
             "narrative": [m.__dict__ for m in store.list_by_level("narrative")][:5],
         }
         context = {"domains": body.get("domains") or []}
+        # If live inbox is enabled, pull a small slice and feed into the LLM proposer
+        try:
+            if FEATURE_GRAPH_LIVE and FEATURE_LIVE_LIST_INBOX:
+                uid = request.cookies.get("ygt_user") or "default"
+                p = get_email_provider_for("list_inbox", uid)
+                if hasattr(p, "list_inbox"):
+                    context["inbox"] = p.list_inbox(5)
+        except Exception:
+            # Non-fatal; fall back to pure LLM proposals
+            pass
         approvals = llm_service.summarise_and_propose(context, core_ctx)
         for a in approvals:
             a.setdefault("status", "proposed")
