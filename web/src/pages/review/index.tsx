@@ -38,18 +38,15 @@ export default function ReviewPage() {
   const current = items[0];
   const queue = items.slice(1);
 
-  const load = useCallback(
-    async (nextFilter: string) => {
-      setLoading(true);
-      try {
-        const res = await api.approvals(nextFilter);
-        setItems(res || []);
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+  const load = useCallback(async (nextFilter: string) => {
+    setLoading(true);
+    try {
+      const res = await api.approvals(nextFilter);
+      setItems(res || []);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     load(filter);
@@ -150,7 +147,8 @@ export default function ReviewPage() {
             Focus review
           </Heading>
           <Text variant="muted">
-            Work one decision at a time. Your queue stays nearby, and undo is only a keypress away.
+            Work one decision at a time. Your queue stays nearby, and undo is
+            only a keypress away.
           </Text>
         </div>
 
@@ -182,12 +180,16 @@ export default function ReviewPage() {
         <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <Panel
             kicker={current ? current.kind || "Approval" : "Queue empty"}
-            title={current ? current.title || current.summary || current.id : "Nothing to review"}
-              description={
-                current
-                  ? "Respond with confidence. Secondary actions stay tucked away until you need them."
-                  : "You’re clear for now. New proposals will land here first."
-              }
+            title={
+              current
+                ? current.title || current.summary || current.id
+                : "Nothing to review"
+            }
+            description={
+              current
+                ? "Respond with confidence. Secondary actions stay tucked away until you need them."
+                : "You’re clear for now. New proposals will land here first."
+            }
             actions={
               current ? (
                 <Badge tone="calm">Top priority</Badge>
@@ -198,7 +200,9 @@ export default function ReviewPage() {
             footer={
               current ? (
                 <Stack direction="horizontal" justify="between" align="center">
-                  <Text variant="caption">Status: {current.status || "Proposed"}</Text>
+                  <Text variant="caption">
+                    Status: {current.status || "Proposed"}
+                  </Text>
                   <Button variant="ghost" onClick={() => onUndo(current.id)}>
                     Undo last change
                   </Button>
@@ -211,13 +215,16 @@ export default function ReviewPage() {
               <Stack gap="md">
                 <div className="space-y-2 rounded-lg border border-[color:var(--ds-border-subtle)] bg-[color:var(--ds-surface)] p-4">
                   <Text variant="body">
-                    {current.summary || "No summary available. Pull additional context if needed."}
+                    {current.summary ||
+                      "No summary available. Pull additional context if needed."}
                   </Text>
                   {current.metadata ? (
                     <dl className="grid gap-2 text-sm text-[color:var(--ds-text-secondary)] sm:grid-cols-2">
                       {Object.entries(current.metadata).map(([key, value]) => (
                         <div key={key}>
-                          <dt className="font-medium capitalize">{key.replace(/_/g, " ")}</dt>
+                          <dt className="font-medium capitalize">
+                            {key.replace(/_/g, " ")}
+                          </dt>
                           <dd>{value}</dd>
                         </div>
                       ))}
@@ -225,33 +232,45 @@ export default function ReviewPage() {
                   ) : null}
                 </div>
                 <Stack direction="horizontal" gap="sm" wrap align="center">
-                  <Button variant="secondary" onClick={() => onEdit(current.id)}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => onEdit(current.id)}
+                  >
                     Open for edits
                   </Button>
                   <Button variant="ghost" onClick={() => onSkip(current.id)}>
                     Skip for later
                   </Button>
-                  <Button variant="ghost" onClick={() => router.push("/history")}>View history</Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => router.push("/history")}
+                  >
+                    View history
+                  </Button>
                 </Stack>
               </Stack>
             ) : (
               <Text variant="muted">
-                Queue is empty. Relax or explore history while Microsoft Graph keeps listening.
+                Queue is empty. Relax or explore history while Microsoft Graph
+                keeps listening.
               </Text>
             )}
           </Panel>
 
-            <Panel
-              kicker="Queue"
-              title="Up next"
-              description="Stay aware of what’s queued without breaking focus."
+          <Panel
+            kicker="Queue"
+            title="Up next"
+            description="Stay aware of what’s queued without breaking focus."
             footer={
               <Text variant="caption">
-                Items automatically reshuffle as you approve. Undo brings them right back.
+                Items automatically reshuffle as you approve. Undo brings them
+                right back.
               </Text>
             }
           >
-            {loading && items.length === 0 ? <Text variant="muted">Loading queue…</Text> : null}
+            {loading && items.length === 0 ? (
+              <Text variant="muted">Loading queue…</Text>
+            ) : null}
             {queue.length === 0 ? (
               <Text variant="muted">No additional approvals waiting.</Text>
             ) : (
@@ -261,7 +280,10 @@ export default function ReviewPage() {
                     key={item.id}
                     className="rounded-lg border border-[color:var(--ds-border-subtle)] bg-[color:var(--ds-surface-muted)] p-3"
                   >
-                    <Text variant="label" className="text-[color:var(--ds-text-primary)]">
+                    <Text
+                      variant="label"
+                      className="text-[color:var(--ds-text-primary)]"
+                    >
                       {item.title || item.summary || item.id}
                     </Text>
                     <div className="flex items-center justify-between text-xs text-[color:var(--ds-text-subtle)]">
@@ -275,10 +297,15 @@ export default function ReviewPage() {
           </Panel>
         </div>
 
-          <ActionBar
-            helperText={current ? "Approve the highlighted suggestion" : "You’re caught up"}
+        <ActionBar
+          helperText={
+            current ? "Approve the highlighted suggestion" : "You’re caught up"
+          }
           primaryAction={
-            <Button onClick={() => current && onApprove(current.id)} disabled={!current}>
+            <Button
+              onClick={() => current && onApprove(current.id)}
+              disabled={!current}
+            >
               Approve and move forward
             </Button>
           }

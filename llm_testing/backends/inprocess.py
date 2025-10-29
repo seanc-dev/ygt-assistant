@@ -7,6 +7,7 @@ class InProcessBackend:
     def __init__(self) -> None:
         # Prepare minimal env for app import
         import os
+
         os.environ.setdefault("DEV_MODE", "true")
         os.environ.setdefault("USE_MOCK_GRAPH", "true")
         try:
@@ -17,7 +18,10 @@ class InProcessBackend:
 
     # WhatsApp
     def whatsapp_verify(self, mode: str, token: str, challenge: str) -> str:
-        r = self.client.get("/whatsapp/webhook", params={"mode": mode, "token": token, "challenge": challenge})
+        r = self.client.get(
+            "/whatsapp/webhook",
+            params={"mode": mode, "token": token, "challenge": challenge},
+        )
         r.raise_for_status()
         return r.text
 
@@ -38,7 +42,9 @@ class InProcessBackend:
         return r.json()
 
     def actions_edit(self, approval_id: str, instructions: str) -> Dict[str, Any]:
-        r = self.client.post(f"/actions/edit/{approval_id}", json={"instructions": instructions})
+        r = self.client.post(
+            f"/actions/edit/{approval_id}", json={"instructions": instructions}
+        )
         r.raise_for_status()
         return r.json()
 
@@ -53,8 +59,12 @@ class InProcessBackend:
         return r.json()
 
     # Email
-    def email_create_draft(self, to: List[str], subject: str, body: str) -> Dict[str, Any]:
-        r = self.client.post("/email/drafts", json={"to": to, "subject": subject, "body": body})
+    def email_create_draft(
+        self, to: List[str], subject: str, body: str
+    ) -> Dict[str, Any]:
+        r = self.client.post(
+            "/email/drafts", json={"to": to, "subject": subject, "body": body}
+        )
         r.raise_for_status()
         return r.json()
 

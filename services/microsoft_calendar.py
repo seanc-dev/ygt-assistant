@@ -13,6 +13,7 @@ from services.ms_auth import (
 from utils.metrics import increment
 import uuid
 import asyncio
+from settings import GRAPH_TIMEOUT_MS, GRAPH_RETRY_MAX
 
 
 class MicrosoftCalendarProvider(CalendarProvider):
@@ -58,9 +59,9 @@ class MicrosoftCalendarProvider(CalendarProvider):
         last_exc: Exception | None = None
         req_id = str(uuid.uuid4())
         h = {**headers, "x-ms-client-request-id": req_id}
-        for attempt in range(3):
+        for attempt in range(max(1, GRAPH_RETRY_MAX)):
             try:
-                async with httpx.AsyncClient(timeout=timeout) as c:
+                async with httpx.AsyncClient(timeout=GRAPH_TIMEOUT_MS / 1000.0) as c:
                     r = await c.request(
                         method, url, params=params, json=json, headers=h
                     )
