@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Dict, List
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 import os
 
 from settings import (
@@ -26,10 +26,11 @@ def _live_enabled(action_flag: bool) -> bool:
 
 
 @router.get("/actions/live/inbox")
-async def list_inbox_live(user_id: str = "default", limit: int = 5) -> Dict[str, Any]:
+async def list_inbox_live(request: Request, user_id: str = "default", limit: int = 5) -> Dict[str, Any]:
     if not _live_enabled(FEATURE_LIVE_LIST_INBOX):
         return {"ok": False, "live": False}
-    p = get_email_provider_for("list_inbox", user_id)
+    uid = request.cookies.get("ygt_user") or user_id or "default"
+    p = get_email_provider_for("list_inbox", uid)
     if not hasattr(p, "list_inbox"):
         return {"ok": False, "error": "not_supported"}
     try:
@@ -52,7 +53,7 @@ async def list_inbox_live(user_id: str = "default", limit: int = 5) -> Dict[str,
 
 @router.post("/actions/live/send")
 async def send_mail_live(
-    user_id: str = "default", body: Dict[str, Any] | None = None
+    request: Request, user_id: str = "default", body: Dict[str, Any] | None = None
 ) -> Dict[str, Any]:
     if not _live_enabled(FEATURE_LIVE_SEND_MAIL):
         return {"ok": False, "live": False}
@@ -60,12 +61,15 @@ async def send_mail_live(
     to = b.get("to") or ["user@example.com"]
     subj = b.get("subject") or "[YGT] Test"
     txt = b.get("body") or "Hello from YGT"
-    p = get_email_provider_for("send_mail", user_id)
+    uid = request.cookies.get("ygt_user") or user_id or "default"
+    p = get_email_provider_for("send_mail", uid)
     # Irreversible: return warning copy for UI confirm
     if hasattr(p, "send_message_async"):
         out = await p.send_message_async(to, subj, txt)  # type: ignore[attr-defined]
     else:
         out = p.send_message(to, subj, txt)
-    history_log.append({"ts": "now", "verb": "send", "object": "email", "subject": subj})
+    history_log.append(
+        {"ts": "now", "verb": "send", "object": "email", "subject": subj}
+    )
     increment("live.mail.sent")
     return {"ok": True, "warning": "Sending is irreversible.", **out}
