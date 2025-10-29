@@ -45,7 +45,7 @@ def run_scenario(scn_path: str) -> Dict[str, Any]:
                 method = (step.get("method") or "GET").upper()
                 url = step.get("url") or "/"
                 params = step.get("params") or {}
-                body = step.get("json") or step.get("body")
+                body = step["json"] if "json" in step else step.get("body")
                 if method == "GET":
                     r = backend.client.get(url, params=params)
                 elif method == "POST":
