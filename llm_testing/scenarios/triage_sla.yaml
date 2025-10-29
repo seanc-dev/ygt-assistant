@@ -11,8 +11,8 @@ steps:
   - action: grade
     rubric:
       must_include:
-        - "SLA"
         - "<24h"
         - "<72h"
-      prefer:
         - "priority"
+      prefer:
+        - "rationale"

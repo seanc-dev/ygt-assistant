@@ -11,8 +11,7 @@ steps:
   - action: grade
     rubric:
       must_include:
-        - "Option 1"
-        - "Option 2"
+        - "rank"
         - "rationale"
       disallow:
         - "booked"

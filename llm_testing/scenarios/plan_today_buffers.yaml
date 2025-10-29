@@ -2,17 +2,18 @@ name: plan_today_buffers
 mode: mock
 steps:
   - action: http
-    method: GET
+    method: POST
     url: /actions/plan-today-v2
+    json: {}
     expect:
       contains:
-        - "Plan"
-        - "buffer"
-        - "focus"
+        - "plan"
+        - "Buffer"
+        - "Focus"
   - action: grade
     rubric:
       must_include:
-        - "buffer"
-        - "focus"
+        - "Buffer"
+        - "Focus"
       disallow:
         - "booked" # no unsolicited bookings in mock
