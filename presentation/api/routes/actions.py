@@ -57,7 +57,9 @@ async def actions_scan(body: Dict[str, Any], request: Request) -> List[Dict[str,
             if FEATURE_GRAPH_LIVE and FEATURE_LIVE_LIST_INBOX:
                 uid = request.cookies.get("ygt_user") or "default"
                 p = get_email_provider_for("list_inbox", uid)
-                if hasattr(p, "list_inbox"):
+                if hasattr(p, "list_inbox_async"):
+                    context["inbox"] = await p.list_inbox_async(5)  # type: ignore[attr-defined]
+                elif hasattr(p, "list_inbox"):
                     context["inbox"] = p.list_inbox(5)
         except Exception:
             # Non-fatal; fall back to pure LLM proposals
@@ -79,7 +81,15 @@ async def actions_scan(body: Dict[str, Any], request: Request) -> List[Dict[str,
         return approvals
     except Exception as e:
         # Return an empty list in dev to avoid UI hangs; attach error via header is not possible here
-        return [{"id": "err", "kind": "error", "title": type(e).__name__, "summary": str(e), "status": "error"}]
+        return [
+            {
+                "id": "err",
+                "kind": "error",
+                "title": type(e).__name__,
+                "summary": str(e),
+                "status": "error",
+            }
+        ]
 
 
 @router.post("/actions/approve/{approval_id}")
@@ -154,7 +164,13 @@ async def plan_today_v2(body: Dict[str, Any]) -> Dict[str, Any]:
         {"time": "12:30", "title": "Buffer", "kind": "buffer"},
     ]
     history_log.append(
-        {"ts": "now", "verb": "plan", "object": "day", "rationale": "Added travel buffers and energy-based focus.", "plan": plan}
+        {
+            "ts": "now",
+            "verb": "plan",
+            "object": "day",
+            "rationale": "Added travel buffers and energy-based focus.",
+            "plan": plan,
+        }
     )
     return {"plan": plan}
 
@@ -162,14 +178,37 @@ async def plan_today_v2(body: Dict[str, Any]) -> Dict[str, Any]:
 @router.post("/actions/triage-v2")
 async def triage_v2(body: Dict[str, Any]) -> List[Dict[str, Any]]:
     items = [
-        {"id": "t1", "title": "Invoice due", "priority": "high", "sla": "<24h", "rationale": "Finance-critical"},
-        {"id": "t2", "title": "Schedule meeting", "priority": "medium", "sla": "<72h", "rationale": "Client scheduling"},
-        {"id": "t3", "title": "Thanks", "priority": "low", "sla": "<72h", "rationale": "No action required"},
+        {
+            "id": "t1",
+            "title": "Invoice due",
+            "priority": "high",
+            "sla": "<24h",
+            "rationale": "Finance-critical",
+        },
+        {
+            "id": "t2",
+            "title": "Schedule meeting",
+            "priority": "medium",
+            "sla": "<72h",
+            "rationale": "Client scheduling",
+        },
+        {
+            "id": "t3",
+            "title": "Thanks",
+            "priority": "low",
+            "sla": "<72h",
+            "rationale": "No action required",
+        },
     ]
     for it in items:
         approvals_store[it["id"]] = {**it, "status": "proposed", "kind": "email"}
     history_log.append(
-        {"ts": "now", "verb": "scan", "object": "inbox", "rationale": "Batch approvals with priorities and SLAs."}
+        {
+            "ts": "now",
+            "verb": "scan",
+            "object": "inbox",
+            "rationale": "Batch approvals with priorities and SLAs.",
+        }
     )
     return items
 
@@ -189,18 +228,48 @@ async def draft_v2(body: Dict[str, Any]) -> Dict[str, Any]:
         "follow_up_note": follow_up_note,
         "status": "proposed",
     }
-    history_log.append({"ts": "now", "verb": "draft", "object": "email", "id": draft["id"], "rationale": f"Tone preset {tone}"})
+    history_log.append(
+        {
+            "ts": "now",
+            "verb": "draft",
+            "object": "email",
+            "id": draft["id"],
+            "rationale": f"Tone preset {tone}",
+        }
+    )
     return draft
 
 
 @router.post("/actions/reschedule-v2")
 async def reschedule_v2(body: Dict[str, Any]) -> Dict[str, Any]:
     options = [
-        {"rank": 1, "start": "2025-10-24T10:00:00Z", "end": "2025-10-24T10:30:00Z", "rationale": "No conflicts; within working hours"},
-        {"rank": 2, "start": "2025-10-24T15:00:00Z", "end": "2025-10-24T15:30:00Z", "rationale": "Minor conflict; resolvable"},
-        {"rank": 3, "start": "2025-10-25T09:00:00Z", "end": "2025-10-25T09:30:00Z", "rationale": "Alternative next day"},
+        {
+            "rank": 1,
+            "start": "2025-10-24T10:00:00Z",
+            "end": "2025-10-24T10:30:00Z",
+            "rationale": "No conflicts; within working hours",
+        },
+        {
+            "rank": 2,
+            "start": "2025-10-24T15:00:00Z",
+            "end": "2025-10-24T15:30:00Z",
+            "rationale": "Minor conflict; resolvable",
+        },
+        {
+            "rank": 3,
+            "start": "2025-10-25T09:00:00Z",
+            "end": "2025-10-25T09:30:00Z",
+            "rationale": "Alternative next day",
+        },
     ]
-    history_log.append({"ts": "now", "verb": "reschedule", "object": "event", "rationale": "Ranked options with rationale"})
+    history_log.append(
+        {
+            "ts": "now",
+            "verb": "reschedule",
+            "object": "event",
+            "rationale": "Ranked options with rationale",
+        }
+    )
     return {"options": options}
 
 

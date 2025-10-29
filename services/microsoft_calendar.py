@@ -121,6 +121,34 @@ class MicrosoftCalendarProvider(CalendarProvider):
 
         return anyio.run(_run)
 
+    async def list_events_async(self, time_min: str, time_max: str) -> List[Dict[str, Any]]:
+        token = await self._auth()
+        params = {
+            "startDateTime": time_min,
+            "endDateTime": time_max,
+            "$select": "subject,start,end,location,onlineMeeting,webLink",
+            "$orderby": "start/dateTime",
+        }
+        r = await self._request_with_retry(
+            "GET",
+            f"{self._base()}/me/calendarView",
+            params=params,
+            headers={"Authorization": f"Bearer {token}"},
+            expected_status=[200],
+        )
+        items = r.json().get("value", [])
+        increment("ms.cal.list_events.ok", n=len(items))
+        return [
+            {
+                "id": it.get("id"),
+                "title": it.get("subject"),
+                "start": (it.get("start") or {}).get("dateTime"),
+                "end": (it.get("end") or {}).get("dateTime"),
+                "link": it.get("webLink"),
+            }
+            for it in items
+        ]
+
     def freebusy(self, time_min: str, time_max: str) -> Dict[str, Any]:
         # MVP: derive from list_events
         events = self.list_events(time_min, time_max)
@@ -157,6 +185,32 @@ class MicrosoftCalendarProvider(CalendarProvider):
 
         return anyio.run(_run)
 
+    async def create_event_async(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        token = await self._auth()
+        payload = {
+            "subject": event.get("title") or event.get("subject"),
+            "start": {"dateTime": event.get("start"), "timeZone": "UTC"},
+            "end": {"dateTime": event.get("end"), "timeZone": "UTC"},
+            "location": {"displayName": (event.get("location") or "")},
+        }
+        r = await self._request_with_retry(
+            "POST",
+            f"{self._base()}/me/events",
+            json=payload,
+            headers={"Authorization": f"Bearer {token}"},
+            expected_status=[201, 200],
+        )
+        if r.status_code == 401:
+            raise ProviderError(
+                "microsoft",
+                "create_event",
+                "unauthorized",
+                status_code=401,
+                hint="Reconnect Microsoft",
+            )
+        increment("ms.cal.create_event.ok")
+        return r.json()
+
     def create_events_batch(self, events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         results: List[Dict[str, Any]] = []
         for ev in events:
@@ -180,6 +234,18 @@ class MicrosoftCalendarProvider(CalendarProvider):
 
         return anyio.run(_run)
 
+    async def update_event_async(self, event_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
+        token = await self._auth()
+        r = await self._request_with_retry(
+            "PATCH",
+            f"{self._base()}/me/events/{event_id}",
+            json=patch,
+            headers={"Authorization": f"Bearer {token}"},
+            expected_status=[200, 204],
+        )
+        increment("ms.cal.update_event.ok")
+        return r.json() if r.content else {"id": event_id}
+
     def delete_event(self, event_id: str) -> Dict[str, Any]:
         import anyio
 
@@ -195,3 +261,14 @@ class MicrosoftCalendarProvider(CalendarProvider):
             return {"id": event_id, "deleted": True}
 
         return anyio.run(_run)
+
+    async def delete_event_async(self, event_id: str) -> Dict[str, Any]:
+        token = await self._auth()
+        _ = await self._request_with_retry(
+            "DELETE",
+            f"{self._base()}/me/events/{event_id}",
+            headers={"Authorization": f"Bearer {token}"},
+            expected_status=[204, 200],
+        )
+        increment("ms.cal.delete_event.ok")
+        return {"id": event_id, "deleted": True}

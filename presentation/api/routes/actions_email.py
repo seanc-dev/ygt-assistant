@@ -9,6 +9,7 @@ from settings import (
     FEATURE_LIVE_SEND_MAIL,
 )
 from presentation.api.deps.providers import get_email_provider_for
+from services.providers.errors import ProviderError
 from utils.metrics import increment
 from presentation.api.state import history_log
 
@@ -31,7 +32,20 @@ async def list_inbox_live(user_id: str = "default", limit: int = 5) -> Dict[str,
     p = get_email_provider_for("list_inbox", user_id)
     if not hasattr(p, "list_inbox"):
         return {"ok": False, "error": "not_supported"}
-    items = p.list_inbox(limit)
+    try:
+        if hasattr(p, "list_inbox_async"):
+            # Prefer async path inside FastAPI event loop
+            items = await p.list_inbox_async(limit)  # type: ignore[attr-defined]
+        else:
+            items = p.list_inbox(limit)
+    except ProviderError as e:
+        return {
+            "ok": False,
+            "live": True,
+            "error": str(e),
+            "status": e.status_code,
+            "hint": e.hint,
+        }
     increment("live.inbox.listed", n=len(items))
     return {"ok": True, "items": items}
 
@@ -48,7 +62,10 @@ async def send_mail_live(
     txt = b.get("body") or "Hello from YGT"
     p = get_email_provider_for("send_mail", user_id)
     # Irreversible: return warning copy for UI confirm
-    out = p.send_message(to, subj, txt)
+    if hasattr(p, "send_message_async"):
+        out = await p.send_message_async(to, subj, txt)  # type: ignore[attr-defined]
+    else:
+        out = p.send_message(to, subj, txt)
     history_log.append({"ts": "now", "verb": "send", "object": "email", "subject": subj})
     increment("live.mail.sent")
     return {"ok": True, "warning": "Sending is irreversible.", **out}

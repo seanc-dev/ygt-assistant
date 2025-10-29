@@ -188,6 +188,43 @@ class MicrosoftEmailProvider(EmailProvider):
 
         return anyio.run(_run)
 
+    async def list_inbox_async(self, limit: int = 5) -> List[Dict[str, Any]]:
+        token = await self._auth()
+        params = {
+            "$top": str(max(1, min(limit or 5, 25))),
+            "$select": "subject,from,toRecipients,receivedDateTime,bodyPreview,webLink",
+            "$orderby": "receivedDateTime desc",
+        }
+        r = await self._request_with_retry(
+            "GET",
+            f"{self._base()}/me/messages",
+            params=params,
+            headers={"Authorization": f"Bearer {token}"},
+            expected_status=[200],
+        )
+        if r.status_code == 401:
+            raise ProviderError(
+                "microsoft",
+                "list_inbox",
+                "unauthorized",
+                status_code=401,
+                hint="Reconnect Microsoft",
+            )
+        data = r.json()
+        items = data.get("value", [])
+        increment("ms.email.inbox.listed", n=len(items))
+        return [
+            {
+                "id": it.get("id"),
+                "subject": it.get("subject"),
+                "from": (it.get("from") or {}).get("emailAddress", {}).get("address"),
+                "received_at": it.get("receivedDateTime"),
+                "preview": it.get("bodyPreview"),
+                "link": it.get("webLink"),
+            }
+            for it in items
+        ]
+
     def create_draft(self, to: List[str], subject: str, body: str) -> Dict[str, Any]:
         import anyio
 
@@ -265,6 +302,29 @@ class MicrosoftEmailProvider(EmailProvider):
             return {"id": "send_mail", "status": "sent"}
 
         return anyio.run(_run)
+
+    async def send_message_async(
+        self, to: List[str], subject: str, body: str
+    ) -> Dict[str, Any]:
+        token = await self._auth()
+        payload = {
+            "message": {
+                "subject": subject,
+                "body": {"contentType": "Text", "content": body},
+                "toRecipients": [{"emailAddress": {"address": t}} for t in to],
+            }
+        }
+        r = await self._request_with_retry(
+            "POST",
+            f"{self._base()}/me/sendMail",
+            json=payload,
+            headers={"Authorization": f"Bearer {token}"},
+            expected_status=[202, 200, 204],
+        )
+        if r.status_code not in (202, 200, 204):
+            raise ProviderError("microsoft", "send_message", f"status={r.status_code}")
+        increment("ms.email.send_message.ok")
+        return {"id": "send_mail", "status": "sent"}
 
     def get_message(self, message_id: str) -> Dict[str, Any]:
         import anyio

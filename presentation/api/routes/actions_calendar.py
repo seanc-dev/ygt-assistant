@@ -23,7 +23,12 @@ async def create_events_live(
         return {"ok": False, "live": False}
     p = get_calendar_provider_for("create_events", user_id)
     events = (body or {}).get("events") or []
-    if hasattr(p, "create_events_batch"):
+    if hasattr(p, "create_event_async"):
+        out = [
+            await p.create_event_async(e)  # type: ignore[attr-defined]
+            for e in events
+        ]
+    elif hasattr(p, "create_events_batch"):
         out = p.create_events_batch(events)
     else:
         out = [p.create_event(e) for e in events]
@@ -54,7 +59,9 @@ async def undo_event_live(user_id: str, event_id: str) -> Dict[str, Any]:
     p = get_calendar_provider_for("create_events", user_id)
     try:
         # Best-effort delete via provider
-        if hasattr(p, "delete_event"):
+        if hasattr(p, "delete_event_async"):
+            await p.delete_event_async(event_id)  # type: ignore[attr-defined]
+        elif hasattr(p, "delete_event"):
             p.delete_event(event_id)
         # Only remove from local store after successful delete
         created_events_store.pop(event_id, None)

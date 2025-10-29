@@ -689,7 +689,9 @@ async def actions_scan(body: ScanIn, request: Request) -> List[Dict[str, Any]]:
         if FEATURE_GRAPH_LIVE and FEATURE_LIVE_LIST_INBOX:
             uid = request.cookies.get("ygt_user") or "default"
             p = get_email_provider_for("list_inbox", uid)
-            if hasattr(p, "list_inbox"):
+            if hasattr(p, "list_inbox_async"):
+                context["inbox"] = await p.list_inbox_async(5)  # type: ignore[attr-defined]
+            elif hasattr(p, "list_inbox"):
                 context["inbox"] = p.list_inbox(5)
     except Exception:
         pass
