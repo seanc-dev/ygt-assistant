@@ -192,6 +192,9 @@ async def add_to_today(
     if action_id not in queue_store:
         raise HTTPException(status_code=404, detail="action_not_found")
     
+    # Generate schedule block ID
+    schedule_block_id = str(uuid.uuid4())
+    
     # Create schedule block and add to proposed blocks store
     schedule_block = {
         "id": schedule_block_id,
