@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from presentation.api.utils.overload import detect_overload
+from presentation.api.utils.focus_max import calculate_focus_block_max
 from settings import DEFAULT_TZ
 
 
@@ -40,11 +41,17 @@ def generate_alternatives(
     else:
         buffer_min = buffer_max = buffer_config
     
-    # Cap focus blocks at 120 min
+    # Get focus block max (calculate from available time or use configured/default)
+    focus_block_max = day_shape.get("focus_block_max_minutes")
+    if focus_block_max is None:
+        # Calculate based on available time windows
+        focus_block_max = calculate_focus_block_max(work_hours, day_shape, default=120)
+    
+    # Cap focus blocks at configured max
     capped_blocks = []
     for block in proposed_blocks:
         if block.get("kind") == "focus":
-            duration = min(block.get("estimated_minutes", 90), 120)
+            duration = min(block.get("estimated_minutes", 90), focus_block_max)
             capped_block = {**block, "estimated_minutes": duration}
         else:
             capped_block = block
@@ -60,7 +67,7 @@ def generate_alternatives(
     
     # Generate plan A: Focus-first
     plan_a = _generate_focus_first_plan(
-        existing_events, capped_blocks, work_hours, day_shape, buffer_min, buffer_max, tz
+        existing_events, capped_blocks, work_hours, day_shape, buffer_min, buffer_max, focus_block_max, tz
     )
     
     # Generate plan B: Meeting-friendly
@@ -70,7 +77,7 @@ def generate_alternatives(
     
     # Generate plan C: Balanced
     plan_c = _generate_balanced_plan(
-        existing_events, capped_blocks, work_hours, day_shape, buffer_min, buffer_max, tz
+        existing_events, capped_blocks, work_hours, day_shape, buffer_min, buffer_max, focus_block_max, tz
     )
     
     return {
@@ -96,6 +103,7 @@ def _generate_focus_first_plan(
     day_shape: Dict[str, Any],  # noqa: ARG001
     buffer_min: int,  # noqa: ARG001
     buffer_max: int,
+    focus_block_max: int,
     tz: ZoneInfo,
 ) -> List[Dict[str, Any]]:
     """Generate focus-first plan: deep work AM, meetings PM, max buffers."""
@@ -208,12 +216,13 @@ def _generate_meeting_friendly_plan(
 
 
 def _generate_balanced_plan(
-    existing: List[Dict[str, Any]],
+    existing: List[Dict[str, Any]],  # noqa: ARG001
     proposed: List[Dict[str, Any]],
     work_hours: Dict[str, Any],
     day_shape: Dict[str, Any],
     buffer_min: int,
-    buffer_max: int,
+    buffer_max: int,  # noqa: ARG001
+    focus_block_max: int,
     tz: ZoneInfo,
 ) -> List[Dict[str, Any]]:
     """Generate balanced plan: one 90m AM, one 60m PM; errands/admin slotted."""
@@ -230,7 +239,7 @@ def _generate_balanced_plan(
     # One focus block in morning (90m)
     focus_blocks = [b for b in proposed if b.get("kind") == "focus"]
     if focus_blocks and len(focus_lengths) > 0:
-        duration = min(focus_lengths[0], focus_blocks[0].get("estimated_minutes", 90), 120)
+        duration = min(focus_lengths[0], focus_blocks[0].get("estimated_minutes", 90), focus_block_max)
         blocks.append({
             "id": focus_blocks[0].get("id", ""),
             "kind": "focus",
@@ -241,7 +250,7 @@ def _generate_balanced_plan(
     # One focus block in afternoon (60m)
     afternoon_time = datetime.now(tz).replace(hour=14, minute=0, second=0, microsecond=0)
     if len(focus_blocks) > 1 and len(focus_lengths) > 1:
-        duration = min(focus_lengths[1], focus_blocks[1].get("estimated_minutes", 60), 120)
+        duration = min(focus_lengths[1], focus_blocks[1].get("estimated_minutes", 60), focus_block_max)
         blocks.append({
             "id": focus_blocks[1].get("id", ""),
             "kind": "focus",
