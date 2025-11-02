@@ -72,7 +72,16 @@ export const api = {
     }),
   briefToday: () => req("/api/brief/today"),
   workroomTree: () => req("/api/workroom/tree"),
-  createThread: () => req("/api/workroom/thread", { method: "POST" }),
+  createThread: (body: { task_id: string; title: string; prefs?: any }) =>
+    req("/api/workroom/thread", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateTaskStatus: (taskId: string, status: string) =>
+    req(`/api/workroom/task/${encodeURIComponent(taskId)}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
   settings: () => req("/api/settings"),
   updateSettings: (data: any) =>
     req("/api/settings", { method: "PUT", body: JSON.stringify(data) }),
