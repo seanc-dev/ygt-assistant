@@ -1,8 +1,9 @@
 """Schedule alternatives generator."""
 from __future__ import annotations
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from presentation.api.utils.overload import detect_overload
 from settings import DEFAULT_TZ
 
 
@@ -14,8 +15,8 @@ def generate_alternatives(
     """Generate 3 alternative schedule plans (A/B/C).
     
     Types:
-    - A) Focus-first: deep work AM, meetings PM, 10m buffers
-    - B) Meeting-friendly: meetings earlier, focus later, 5-10m buffers
+    - A) Focus-first: deep work AM, meetings PM, max buffers
+    - B) Meeting-friendly: meetings earlier, focus later, avg buffers
     - C) Balanced: one 90m AM, one 60m PM; errands/admin slotted
     
     Respects user_settings.day_shape and existing events.
@@ -27,70 +28,49 @@ def generate_alternatives(
     
     try:
         tz = ZoneInfo(time_zone)
-    except Exception:
+    except (ValueError, KeyError):
         from datetime import timezone
         tz = timezone.utc
     
-    now = datetime.now(tz)
-    today_start = now.replace(hour=int(work_hours["start"].split(":")[0]), minute=int(work_hours["start"].split(":")[1]), second=0, microsecond=0)
-    today_end = now.replace(hour=int(work_hours["end"].split(":")[0]), minute=int(work_hours["end"].split(":")[1]), second=0, microsecond=0)
+    # Get buffer config
+    buffer_config = day_shape.get("buffer_minutes", {"min": 5, "max": 10})
+    if isinstance(buffer_config, dict):
+        buffer_min = buffer_config.get("min", 5)
+        buffer_max = buffer_config.get("max", 10)
+    else:
+        buffer_min = buffer_max = buffer_config
     
-    buffer_minutes = day_shape.get("buffer_minutes", 5)
-    morning_focus = day_shape.get("morning_focus", True)
-    focus_lengths = day_shape.get("focus_block_lengths_min", [90, 60])
-    lunch_window = day_shape.get("lunch_window", {"start": "12:00", "end": "14:00", "duration_min": 45})
-    meeting_avoid = day_shape.get("meeting_avoid_windows", [{"start": "16:00", "end": "17:00"}])
+    # Cap focus blocks at 120 min
+    capped_blocks = []
+    for block in proposed_blocks:
+        if block.get("kind") == "focus":
+            duration = min(block.get("estimated_minutes", 90), 120)
+            capped_block = {**block, "estimated_minutes": duration}
+        else:
+            capped_block = block
+        capped_blocks.append(capped_block)
     
-    # Calculate available minutes
-    total_minutes = int((today_end - today_start).total_seconds() / 60)
-    existing_minutes = sum(
-        int((datetime.fromisoformat(e["end"].replace("Z", "+00:00")) - datetime.fromisoformat(e["start"].replace("Z", "+00:00"))).total_seconds() / 60)
-        for e in existing_events
+    # Detect overload
+    overload_result = detect_overload(
+        existing_events,
+        capped_blocks,
+        user_settings,
+        fixed_personal_blocks=None,
     )
-    buffer_total = len(proposed_blocks) * buffer_minutes
-    available_minutes = total_minutes - existing_minutes - buffer_total
-    
-    # Estimate proposed block minutes (stub - will use LLM estimation later)
-    proposed_minutes = sum(
-        b.get("estimated_minutes", 60) for b in proposed_blocks
-    )
-    
-    overload_detected = proposed_minutes > available_minutes
-    overload_threshold_30 = proposed_minutes > available_minutes + 30
-    overload_threshold_120 = proposed_minutes > available_minutes + 120
-    
-    proposals = []
-    if overload_detected:
-        # Generate proposals for reschedule/decline
-        for block in proposed_blocks[:3]:  # Limit to top 3
-            if overload_threshold_120:
-                proposals.append({
-                    "type": "decline",
-                    "target_id": block.get("id", ""),
-                    "reason": "Insufficient time available",
-                    "requires_approval": True,
-                })
-            elif overload_threshold_30:
-                proposals.append({
-                    "type": "reschedule",
-                    "target_id": block.get("id", ""),
-                    "reason": "Scheduling conflict",
-                    "requires_approval": True,
-                })
     
     # Generate plan A: Focus-first
     plan_a = _generate_focus_first_plan(
-        existing_events, proposed_blocks, work_hours, day_shape, buffer_minutes
+        existing_events, capped_blocks, work_hours, day_shape, buffer_min, buffer_max, tz
     )
     
     # Generate plan B: Meeting-friendly
     plan_b = _generate_meeting_friendly_plan(
-        existing_events, proposed_blocks, work_hours, day_shape, buffer_minutes
+        existing_events, capped_blocks, work_hours, day_shape, buffer_min, buffer_max, tz
     )
     
     # Generate plan C: Balanced
     plan_c = _generate_balanced_plan(
-        existing_events, proposed_blocks, work_hours, day_shape, buffer_minutes
+        existing_events, capped_blocks, work_hours, day_shape, buffer_min, buffer_max, tz
     )
     
     return {
@@ -100,10 +80,11 @@ def generate_alternatives(
             {"id": "plan_c", "type": "balanced", "blocks": plan_c},
         ],
         "overload": {
-            "detected": overload_detected,
-            "available_minutes": available_minutes,
-            "proposed_minutes": proposed_minutes,
-            "proposals": proposals,
+            "detected": overload_result["detected"],
+            "available_minutes": overload_result["available_minutes"],
+            "proposed_minutes": overload_result["proposed_minutes"],
+            "overload_amount": overload_result.get("overload_amount", 0),
+            "proposals": overload_result["proposals"],
         },
     }
 
@@ -112,29 +93,57 @@ def _generate_focus_first_plan(
     existing: List[Dict[str, Any]],
     proposed: List[Dict[str, Any]],
     work_hours: Dict[str, Any],
-    day_shape: Dict[str, Any],
-    buffer_minutes: int,
+    day_shape: Dict[str, Any],  # noqa: ARG001
+    buffer_min: int,  # noqa: ARG001
+    buffer_max: int,
+    tz: ZoneInfo,
 ) -> List[Dict[str, Any]]:
-    """Generate focus-first plan: deep work AM, meetings PM, 10m buffers."""
-    # Stub implementation - will be fully implemented in Phase 2
+    """Generate focus-first plan: deep work AM, meetings PM, max buffers."""
     blocks = []
-    buffer = 10  # Use 10m buffers for focus-first
+    buffer = buffer_max  # Use max buffer for focus-first
     
-    # Sort proposed by priority
-    sorted_proposed = sorted(proposed, key=lambda x: x.get("priority", "medium"), reverse=True)
+    # Sort proposed by priority (focus first)
+    sorted_proposed = sorted(
+        proposed,
+        key=lambda x: (
+            x.get("kind") != "focus",  # Focus blocks first
+            {"high": 0, "medium": 1, "low": 2}.get(x.get("priority", "medium"), 1)
+        )
+    )
     
-    # Place focus blocks in morning
-    current_time = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
+    current_time = datetime.now(tz).replace(
+        hour=int(work_hours["start"].split(":")[0]),
+        minute=int(work_hours["start"].split(":")[1]),
+        second=0,
+        microsecond=0,
+    )
+    
+    # Skip collisions with existing events
+    for event in existing:
+        event_start = datetime.fromisoformat(event["start"].replace("Z", "+00:00")).astimezone(tz)
+        event_end = datetime.fromisoformat(event["end"].replace("Z", "+00:00")).astimezone(tz)
+        if current_time < event_end:
+            current_time = event_end + timedelta(minutes=buffer)
+    
     for block in sorted_proposed:
-        if block.get("kind") == "focus":
-            duration = block.get("estimated_minutes", 90)
-            blocks.append({
-                "id": block.get("id", ""),
-                "kind": "focus",
-                "start": current_time.isoformat(),
-                "end": (current_time + timedelta(minutes=duration)).isoformat(),
-            })
-            current_time += timedelta(minutes=duration + buffer)
+        duration = block.get("estimated_minutes", 60)
+        
+        # Check for collisions
+        block_end = current_time + timedelta(minutes=duration)
+        for event in existing:
+            event_start = datetime.fromisoformat(event["start"].replace("Z", "+00:00")).astimezone(tz)
+            event_end = datetime.fromisoformat(event["end"].replace("Z", "+00:00")).astimezone(tz)
+            if (current_time < event_end and block_end > event_start):
+                current_time = event_end + timedelta(minutes=buffer)
+                block_end = current_time + timedelta(minutes=duration)
+        
+        blocks.append({
+            "id": block.get("id", ""),
+            "kind": block.get("kind", "work"),
+            "start": current_time.isoformat(),
+            "end": block_end.isoformat(),
+        })
+        current_time = block_end + timedelta(minutes=buffer)
     
     return blocks
 
@@ -143,26 +152,57 @@ def _generate_meeting_friendly_plan(
     existing: List[Dict[str, Any]],
     proposed: List[Dict[str, Any]],
     work_hours: Dict[str, Any],
-    day_shape: Dict[str, Any],
-    buffer_minutes: int,
+    day_shape: Dict[str, Any],  # noqa: ARG001
+    buffer_min: int,
+    buffer_max: int,
+    tz: ZoneInfo,
 ) -> List[Dict[str, Any]]:
-    """Generate meeting-friendly plan: meetings earlier, focus later, 5-10m buffers."""
-    # Stub implementation
+    """Generate meeting-friendly plan: meetings earlier, focus later, avg buffers."""
     blocks = []
-    buffer = 7  # Average of 5-10m
+    buffer = (buffer_min + buffer_max) // 2  # Average of min-max
     
-    sorted_proposed = sorted(proposed, key=lambda x: x.get("kind") == "meeting", reverse=True)
+    # Sort: meetings first, then others
+    sorted_proposed = sorted(
+        proposed,
+        key=lambda x: (
+            x.get("kind") not in ["meeting", "internal_meeting", "external_meeting"],
+            {"high": 0, "medium": 1, "low": 2}.get(x.get("priority", "medium"), 1)
+        )
+    )
     
-    current_time = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
+    current_time = datetime.now(tz).replace(
+        hour=int(work_hours["start"].split(":")[0]),
+        minute=int(work_hours["start"].split(":")[1]),
+        second=0,
+        microsecond=0,
+    )
+    
+    # Skip collisions with existing events
+    for event in existing:
+        event_start = datetime.fromisoformat(event["start"].replace("Z", "+00:00")).astimezone(tz)
+        event_end = datetime.fromisoformat(event["end"].replace("Z", "+00:00")).astimezone(tz)
+        if current_time < event_end:
+            current_time = event_end + timedelta(minutes=buffer)
+    
     for block in sorted_proposed:
         duration = block.get("estimated_minutes", 60)
+        
+        # Check for collisions
+        block_end = current_time + timedelta(minutes=duration)
+        for event in existing:
+            event_start = datetime.fromisoformat(event["start"].replace("Z", "+00:00")).astimezone(tz)
+            event_end = datetime.fromisoformat(event["end"].replace("Z", "+00:00")).astimezone(tz)
+            if (current_time < event_end and block_end > event_start):
+                current_time = event_end + timedelta(minutes=buffer)
+                block_end = current_time + timedelta(minutes=duration)
+        
         blocks.append({
             "id": block.get("id", ""),
             "kind": block.get("kind", "work"),
             "start": current_time.isoformat(),
-            "end": (current_time + timedelta(minutes=duration)).isoformat(),
+            "end": block_end.isoformat(),
         })
-        current_time += timedelta(minutes=duration + buffer)
+        current_time = block_end + timedelta(minutes=buffer)
     
     return blocks
 
@@ -172,32 +212,54 @@ def _generate_balanced_plan(
     proposed: List[Dict[str, Any]],
     work_hours: Dict[str, Any],
     day_shape: Dict[str, Any],
-    buffer_minutes: int,
+    buffer_min: int,
+    buffer_max: int,
+    tz: ZoneInfo,
 ) -> List[Dict[str, Any]]:
     """Generate balanced plan: one 90m AM, one 60m PM; errands/admin slotted."""
-    # Stub implementation
     blocks = []
+    focus_lengths = day_shape.get("focus_block_lengths_min", [90, 60])
     
-    # One 90m block in morning
-    morning_time = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
+    morning_time = datetime.now(tz).replace(
+        hour=int(work_hours["start"].split(":")[0]),
+        minute=int(work_hours["start"].split(":")[1]),
+        second=0,
+        microsecond=0,
+    )
+    
+    # One focus block in morning (90m)
     focus_blocks = [b for b in proposed if b.get("kind") == "focus"]
-    if focus_blocks:
+    if focus_blocks and len(focus_lengths) > 0:
+        duration = min(focus_lengths[0], focus_blocks[0].get("estimated_minutes", 90), 120)
         blocks.append({
             "id": focus_blocks[0].get("id", ""),
             "kind": "focus",
             "start": morning_time.isoformat(),
-            "end": (morning_time + timedelta(minutes=90)).isoformat(),
+            "end": (morning_time + timedelta(minutes=duration)).isoformat(),
         })
     
-    # One 60m block in afternoon
-    afternoon_time = datetime.now().replace(hour=14, minute=0, second=0, microsecond=0)
-    if len(focus_blocks) > 1:
+    # One focus block in afternoon (60m)
+    afternoon_time = datetime.now(tz).replace(hour=14, minute=0, second=0, microsecond=0)
+    if len(focus_blocks) > 1 and len(focus_lengths) > 1:
+        duration = min(focus_lengths[1], focus_blocks[1].get("estimated_minutes", 60), 120)
         blocks.append({
             "id": focus_blocks[1].get("id", ""),
             "kind": "focus",
             "start": afternoon_time.isoformat(),
-            "end": (afternoon_time + timedelta(minutes=60)).isoformat(),
+            "end": (afternoon_time + timedelta(minutes=duration)).isoformat(),
         })
     
+    # Add admin blocks in remaining slots
+    admin_blocks = [b for b in proposed if b.get("kind") == "admin"]
+    current_time = afternoon_time + timedelta(minutes=60)
+    for block in admin_blocks[:2]:  # Max 2 admin blocks
+        duration = block.get("estimated_minutes", 30)
+        blocks.append({
+            "id": block.get("id", ""),
+            "kind": "admin",
+            "start": current_time.isoformat(),
+            "end": (current_time + timedelta(minutes=duration)).isoformat(),
+        })
+        current_time += timedelta(minutes=duration + buffer_min)
+    
     return blocks
-
