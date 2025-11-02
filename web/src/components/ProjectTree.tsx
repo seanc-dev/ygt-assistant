@@ -42,7 +42,9 @@ export function ProjectTree({
     new Set((projects || []).map((p) => p.id))
   );
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
-  const [newThreadInput, setNewThreadInput] = useState<Record<string, string>>({});
+  const [newThreadInput, setNewThreadInput] = useState<Record<string, string>>(
+    {}
+  );
 
   const toggleProject = (projectId: string) => {
     const newExpanded = new Set(expandedProjects);
