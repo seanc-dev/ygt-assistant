@@ -3,7 +3,6 @@ import { Heading, Panel, Stack, Text, Button, useTheme, type ThemePreference } f
 import { Layout } from "../../components/Layout";
 import { api } from "../../lib/api";
 import { SettingsForm } from "../../components/SettingsForm";
-import { HotkeysSettingsModal } from "../../components/HotkeysSettingsModal";
 
 interface UserSettings {
   work_hours: {
@@ -67,7 +66,6 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [showHotkeysModal, setShowHotkeysModal] = useState(false);
   const { theme, setTheme, resolvedTheme } = useTheme();
 
   const loadSettings = async () => {
@@ -99,32 +97,6 @@ export default function SettingsPage() {
     } catch (err: any) {
       console.error("Failed to save settings:", err);
       setError(err.message || "Failed to save settings");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveHotkeys = async (hotkeys: { [key: string]: string }) => {
-    if (!settings) return;
-    setSaving(true);
-    setError(null);
-    setSuccess(false);
-
-    try {
-      const updatedSettings = {
-        ...settings,
-        ui_prefs: {
-          ...settings.ui_prefs,
-          hotkeys,
-        },
-      };
-      await api.updateSettings(updatedSettings);
-      setSettings(updatedSettings);
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err: any) {
-      console.error("Failed to save hotkeys:", err);
-      setError(err.message || "Failed to save hotkeys");
     } finally {
       setSaving(false);
     }
@@ -193,22 +165,6 @@ export default function SettingsPage() {
           </div>
         </Panel>
 
-        <Panel>
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <Text variant="label" className="text-sm font-medium">
-                Keyboard Shortcuts
-              </Text>
-              <Text variant="caption" className="text-xs text-[var(--lw-neutral-muted)] mt-1">
-                Configure keyboard shortcuts for common actions
-              </Text>
-            </div>
-            <Button variant="outline" onClick={() => setShowHotkeysModal(true)}>
-              Configure Hotkeys
-            </Button>
-          </div>
-        </Panel>
-
         {loading && !settings ? (
           <Panel>
             <Text variant="muted">Loading settings...</Text>
@@ -221,14 +177,6 @@ export default function SettingsPage() {
           </Panel>
         )}
       </Stack>
-
-      {showHotkeysModal && settings && (
-        <HotkeysSettingsModal
-          hotkeys={settings.ui_prefs?.hotkeys || {}}
-          onSave={handleSaveHotkeys}
-          onClose={() => setShowHotkeysModal(false)}
-        />
-      )}
     </Layout>
   );
 }
