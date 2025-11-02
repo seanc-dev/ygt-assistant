@@ -5,7 +5,7 @@ setup:
     calendar: fixtures/graph/calendar_day_busy.json
 inputs:
   - role: user
-    text: Generate alternative schedule plans for today with these tasks: [90min focus block, 60min meeting, 45min admin]
+    text: "Generate alternative schedule plans for today with these tasks: [90min focus block, 60min meeting, 45min admin]"
 expectations:
   must_contain: [focus-first, meeting-friendly, balanced, plans]
   must_not_contain: [error]
