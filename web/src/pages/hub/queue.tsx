@@ -6,6 +6,8 @@ import { InlineExpandableCard } from "../../components/InlineExpandableCard";
 import { DeferMenu } from "../../components/DeferMenu";
 import { AddToTodayButton } from "../../components/AddToTodayButton";
 import { CompactChat } from "../../components/CompactChat";
+import { useHotkeys } from "../../hooks/useHotkeys";
+import { useRouter } from "next/router";
 
 interface ActionItem {
   action_id: string;
@@ -28,12 +30,19 @@ interface QueueResponse {
 }
 
 export default function QueuePage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [queue, setQueue] = useState<QueueResponse | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
+  const [settings, setSettings] = useState<any>(null);
   const VISIBLE_LIMIT = 5;
   const PRELOAD_COUNT = 10;
+
+  // Load settings for hotkeys
+  useEffect(() => {
+    api.settings().then((data) => setSettings(data)).catch(() => {});
+  }, []);
 
   const loadQueue = useCallback(async (offset = 0) => {
     try {
@@ -85,6 +94,21 @@ export default function QueuePage() {
 
   const visibleItems = queue?.items.slice(0, VISIBLE_LIMIT) || [];
   const hasMore = queue && queue.total > offset + VISIBLE_LIMIT;
+  const firstItem = visibleItems[0];
+
+  // Hotkeys
+  const hotkeyConfig = settings?.ui_prefs?.hotkeys || {};
+  useHotkeys(
+    {
+      defer: () => firstItem && handleDefer(firstItem.action_id, "tomorrow"),
+      add_to_today: () => firstItem && handleAddToToday(firstItem.action_id, "work"),
+      collapse: () => setExpandedId(null),
+      open_workroom: () => router.push("/workroom"),
+      settings: () => router.push("/settings"),
+    },
+    hotkeyConfig,
+    true
+  );
 
   return (
     <Layout>
@@ -99,7 +123,7 @@ export default function QueuePage() {
           </Text>
         </div>
 
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3" role="list" aria-label="Action items queue">
           {loading && !queue ? (
             <Panel>
               <Text variant="muted">Loading queue...</Text>
@@ -109,7 +133,7 @@ export default function QueuePage() {
               <Text variant="muted">Queue is empty.</Text>
             </Panel>
           ) : (
-            visibleItems.map((item) => (
+            visibleItems.map((item, index) => (
               <InlineExpandableCard
                 key={item.action_id}
                 expanded={expandedId === item.action_id}
@@ -121,7 +145,7 @@ export default function QueuePage() {
                 preview={
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <Text variant="label" className="text-sm font-medium">
+                      <Text variant="label" className="text-sm font-medium" aria-label={`Source: ${item.source}`}>
                         {item.source.toUpperCase()}
                       </Text>
                       <Text
@@ -133,6 +157,7 @@ export default function QueuePage() {
                             ? "bg-yellow-100 text-yellow-800"
                             : "bg-gray-100 text-gray-800"
                         }`}
+                        aria-label={`Priority: ${item.priority}`}
                       >
                         {item.priority}
                       </Text>
@@ -146,6 +171,9 @@ export default function QueuePage() {
                     </Text>
                   </div>
                 }
+                role="listitem"
+                aria-posinset={index + 1}
+                aria-setsize={visibleItems.length}
               >
                 <div className="space-y-3">
                   <Text variant="body" className="text-sm">

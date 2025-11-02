@@ -5,6 +5,8 @@ import { api } from "../../lib/api";
 import { ProjectTree } from "../../components/ProjectTree";
 import { WorkroomChat } from "../../components/WorkroomChat";
 import { KanbanBoard } from "../../components/KanbanBoard";
+import { useHotkeys } from "../../hooks/useHotkeys";
+import { useRouter } from "next/router";
 
 interface Project {
   id: string;
@@ -36,10 +38,17 @@ interface WorkroomTreeResponse {
 }
 
 export default function WorkroomPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [tree, setTree] = useState<Project[]>([]);
   const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
   const [viewMode, setViewMode] = useState<"chat" | "kanban">("chat");
+  const [settings, setSettings] = useState<any>(null);
+
+  // Load settings for hotkeys
+  useEffect(() => {
+    api.settings().then((data) => setSettings(data)).catch(() => {});
+  }, []);
 
   const loadTree = async () => {
     try {
@@ -68,6 +77,18 @@ export default function WorkroomPage() {
       console.error("Failed to update task status:", err);
     }
   };
+
+  // Hotkeys
+  const hotkeyConfig = settings?.ui_prefs?.hotkeys || {};
+  useHotkeys(
+    {
+      kanban_toggle: () => setViewMode((prev) => (prev === "kanban" ? "chat" : "kanban")),
+      collapse: () => setSelectedThread(null),
+      settings: () => router.push("/settings"),
+    },
+    hotkeyConfig,
+    true
+  );
 
   return (
     <Layout>
