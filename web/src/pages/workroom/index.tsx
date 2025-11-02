@@ -123,14 +123,22 @@ export default function WorkroomPage() {
           </Panel>
         ) : viewMode === "chat" ? (
           <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-1">
+            <div className="col-span-1" role="complementary" aria-label="Projects and tasks">
               <ProjectTree
-                tree={tree}
-                onThreadSelect={handleThreadSelect}
-                selectedThreadId={selectedThread?.id}
+                projects={tree}
+                onSelectThread={handleThreadSelect}
+                onCreateThread={async (taskId: string, title: string) => {
+                  try {
+                    await api.createThread({ task_id: taskId, title });
+                    await loadTree();
+                  } catch (err) {
+                    console.error("Failed to create thread:", err);
+                  }
+                }}
+                selectedThreadId={selectedThread?.id || null}
               />
             </div>
-            <div className="col-span-2">
+            <div className="col-span-2" role="main" aria-label="Thread chat">
               {selectedThread ? (
                 <WorkroomChat
                   thread={selectedThread}
@@ -145,8 +153,20 @@ export default function WorkroomPage() {
           </div>
         ) : (
           <KanbanBoard
-            tree={tree}
-            onTaskStatusChange={handleTaskStatusChange}
+            projects={tree}
+            onUpdateTaskStatus={handleTaskStatusChange}
+            onSelectTask={(taskId) => {
+              // Find thread for task and select it
+              for (const project of tree) {
+                for (const task of project.children) {
+                  if (task.id === taskId && task.children.length > 0) {
+                    setSelectedThread(task.children[0]);
+                    setViewMode("chat");
+                    break;
+                  }
+                }
+              }
+            }}
           />
         )}
       </Stack>
