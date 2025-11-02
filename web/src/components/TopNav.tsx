@@ -3,12 +3,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
 const items = [
-  { href: "/", label: "Home" },
-  { href: "/review", label: "To review" },
-  { href: "/drafts", label: "Drafts" },
-  { href: "/automations", label: "Automations" },
-  { href: "/connections", label: "Connections" },
+  { href: "/hub/queue", label: "Queue" },
+  { href: "/hub/schedule", label: "Schedule" },
+  { href: "/hub/brief", label: "Brief" },
+  { href: "/workroom", label: "Workroom" },
   { href: "/history", label: "History" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export function TopNav() {

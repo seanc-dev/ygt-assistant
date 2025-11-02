@@ -62,4 +62,48 @@ export const api = {
   undo: (id: string) =>
     req(`/actions/undo/${encodeURIComponent(id)}`, { method: "POST" }),
   history: (limit = 100) => req(`/history?limit=${limit}`),
+  // LucidWork endpoints
+  queue: () => req("/api/queue"),
+  summaryQueue: (days?: number) =>
+    req(`/api/summary/queue${days ? `?days=${days}` : ""}`),
+  scheduleToday: () => req("/api/schedule/today"),
+  scheduleAlternatives: (body: { existing_events?: any[]; proposed_blocks?: any[] }) =>
+    req("/api/schedule/alternatives", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  briefToday: () => req("/api/brief/today"),
+  workroomTree: () => req("/api/workroom/tree"),
+  createThread: (body: { task_id: string; title: string; prefs?: any }) =>
+    req("/api/workroom/thread", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateTaskStatus: (taskId: string, status: string) =>
+    req(`/api/workroom/task/${encodeURIComponent(taskId)}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+  auditLog: (limit?: number, actionType?: string) =>
+    req(`/api/audit/log${limit || actionType ? `?${limit ? `limit=${limit}` : ""}${actionType ? `&action_type=${encodeURIComponent(actionType)}` : ""}` : ""}`),
+  settings: () => req("/api/settings"),
+  updateSettings: (data: any) =>
+    req("/api/settings", { method: "PUT", body: JSON.stringify(data) }),
+  statusFlags: () => req("/api/status/flags"),
+  // Queue actions
+  deferAction: (actionId: string, body: { bucket: string }) =>
+    req(`/api/queue/${encodeURIComponent(actionId)}/defer`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  addToToday: (actionId: string, body: { kind: "admin" | "work"; tasks?: string[] }) =>
+    req(`/api/queue/${encodeURIComponent(actionId)}/add-to-today`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  replyAction: (actionId: string, body: { draft: string }) =>
+    req(`/api/queue/${encodeURIComponent(actionId)}/reply`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };

@@ -33,7 +33,8 @@ ENABLE_ADMIN = os.getenv("ENABLE_ADMIN", "false").strip().lower() in {
 USE_PORTS = os.getenv("USE_PORTS", "false").lower() == "true"
 VERIFY_NYLAS = os.getenv("VERIFY_NYLAS", "false").lower() == "true"
 NYLAS_SIGNING_SECRET = os.getenv("NYLAS_SIGNING_SECRET", "")
-DEFAULT_TZ = os.getenv("TZ", "Pacific/Auckland")
+DEFAULT_TZ = os.getenv("DEFAULT_TZ", os.getenv("TZ", "UTC"))
+PROVIDER = os.getenv("PROVIDER", "microsoft")
 DRY_RUN_DEFAULT = os.getenv("DRY_RUN_DEFAULT", "true").lower() == "true"
 NOTION_API_KEY = os.getenv("NOTION_API_KEY", "")
 NOTION_TASKS_DB_ID = os.getenv("NOTION_TASKS_DB_ID", "")
@@ -85,6 +86,32 @@ FEATURE_LIVE_CREATE_EVENTS = os.getenv(
 GRAPH_TIMEOUT_MS = env_int("GRAPH_TIMEOUT_MS", 8000)
 GRAPH_RETRY_MAX = env_int("GRAPH_RETRY_MAX", 3)
 LIVE_MODE_BANNER = os.getenv("LIVE_MODE_BANNER", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+USE_MOCK_GRAPH = os.getenv("USE_MOCK_GRAPH", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+
+# LucidWork feature flags
+FEATURE_ALTERNATIVES = os.getenv("FEATURE_ALTERNATIVES", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+FEATURE_TRANSLATION = os.getenv("FEATURE_TRANSLATION", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+FEATURE_WEATHER_NEWS = os.getenv("FEATURE_WEATHER_NEWS", "false").strip().lower() in {
     "1",
     "true",
     "yes",

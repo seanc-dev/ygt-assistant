@@ -50,7 +50,9 @@ async def create_events_live(
 
 
 @router.post("/actions/live/undo-event/{event_id}")
-async def undo_event_live(request: Request, user_id: str, event_id: str) -> Dict[str, Any]:
+async def undo_event_live(
+    request: Request, user_id: str, event_id: str
+) -> Dict[str, Any]:
     if not _live_enabled(FEATURE_LIVE_CREATE_EVENTS):
         return {"ok": False, "live": False}
     ev = created_events_store.get(event_id)

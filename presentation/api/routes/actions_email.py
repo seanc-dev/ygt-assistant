@@ -26,7 +26,9 @@ def _live_enabled(action_flag: bool) -> bool:
 
 
 @router.get("/actions/live/inbox")
-async def list_inbox_live(request: Request, user_id: str = "default", limit: int = 5) -> Dict[str, Any]:
+async def list_inbox_live(
+    request: Request, user_id: str = "default", limit: int = 5
+) -> Dict[str, Any]:
     if not _live_enabled(FEATURE_LIVE_LIST_INBOX):
         return {"ok": False, "live": False}
     uid = request.cookies.get("ygt_user") or user_id or "default"

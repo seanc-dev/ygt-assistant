@@ -1,0 +1,60 @@
+{
+  "scenario": {
+    "name": "reconnect_retry",
+    "mode": "mock",
+    "steps": [
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/actions/reconnect-v2",
+        "json": {
+          "simulate": "expired"
+        },
+        "expect": {
+          "status": 200
+        }
+      },
+      {
+        "action": "grade",
+        "rubric": {
+          "must_include": [
+            "Reconnect Microsoft",
+            "retry"
+          ],
+          "disallow": [
+            "token"
+          ]
+        }
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "Reconnect Microsoft",
+        "retry"
+      ],
+      "must_not_contain": [
+        "token"
+      ]
+    }
+  },
+  "transcript": {
+    "scenario": "reconnect_retry",
+    "steps": [
+      {
+        "endpoint": "/actions/reconnect-v2",
+        "response": {
+          "retry": [
+            "now",
+            "in 15 minutes",
+            "this afternoon"
+          ],
+          "cta": "Reconnect Microsoft",
+          "degraded": true,
+          "message": "Connection inactive. Showing mock suggestions until reconnected."
+        }
+      }
+    ],
+    "text": "{'retry': ['now', 'in 15 minutes', 'this afternoon'], 'cta': 'Reconnect Microsoft', 'degraded': True, 'message': 'Connection inactive. Showing mock suggestions until reconnected.'}"
+  },
+  "ts": 1761717097.8018932
+}
