@@ -38,9 +38,6 @@ def detect_overload(
     work_hours = user_settings.get("work_hours", {"start": "09:00", "end": "17:00"})
     day_shape = user_settings.get("day_shape", {})
     buffer_config = day_shape.get("buffer_minutes", {"min": 5, "max": 10})
-    buffer_min = (
-        buffer_config.get("min") if isinstance(buffer_config, dict) else buffer_config
-    )
     buffer_max = (
         buffer_config.get("max") if isinstance(buffer_config, dict) else buffer_config
     )
@@ -146,7 +143,7 @@ def detect_overload(
                         {
                             "type": "reschedule",
                             "target_id": block.get("id", ""),
-                            "reason": f"Reschedule to next available window",
+                            "reason": "Reschedule to next available window",
                             "requires_approval": True,
                         }
                     )
