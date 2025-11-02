@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 def resolve_collisions(
     existing_events: List[Dict[str, Any]],
     proposed_blocks: List[Dict[str, Any]],
-    buffer_minutes: int = 5,
+    buffer_minutes: int | Dict[str, int] = 5,
 ) -> List[Dict[str, Any]]:
     """Resolve collisions between existing events and proposed blocks.
     
@@ -20,6 +20,12 @@ def resolve_collisions(
     
     Returns list of resolved blocks with adjusted start/end times.
     """
+    # Parse buffer_minutes (can be int or dict with min/max)
+    if isinstance(buffer_minutes, dict):
+        buffer = buffer_minutes.get("min", 5)
+    else:
+        buffer = buffer_minutes
+    
     resolved = []
     
     # Sort existing events by start time
@@ -53,7 +59,7 @@ def resolve_collisions(
                 first_event_end = datetime.fromisoformat(
                     sorted_existing[0]["end"].replace("Z", "+00:00")
                 )
-                block_start = first_event_end + timedelta(minutes=buffer_minutes)
+                block_start = first_event_end + timedelta(minutes=buffer)
             else:
                 block_start = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
         
@@ -68,7 +74,7 @@ def resolve_collisions(
             # Check if block overlaps with event
             if (block_start < event_end and block_end > event_start):
                 # Shift block to start after event + buffer
-                block_start = event_end + timedelta(minutes=buffer_minutes)
+                block_start = event_end + timedelta(minutes=buffer)
                 block_end = block_start + timedelta(minutes=duration)
         
         # Check for collisions with previously resolved blocks
@@ -78,7 +84,7 @@ def resolve_collisions(
             
             if (block_start < prev_end and block_end > prev_start):
                 # Shift block to start after previous block + buffer
-                block_start = prev_end + timedelta(minutes=buffer_minutes)
+                block_start = prev_end + timedelta(minutes=buffer)
                 block_end = block_start + timedelta(minutes=duration)
         
         resolved_block = {
@@ -92,7 +98,7 @@ def resolve_collisions(
         }
         
         resolved.append(resolved_block)
-        current_time = block_end + timedelta(minutes=buffer_minutes)
+        current_time = block_end + timedelta(minutes=buffer)
     
     return resolved
 
