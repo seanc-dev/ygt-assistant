@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Heading, Panel, Stack, Text, Button, TextInput } from "@ygt-assistant/ui";
+import { Heading, Panel, Stack, Text, Button } from "@ygt-assistant/ui";
 import { Layout } from "../../components/Layout";
 import { api } from "../../lib/api";
 import { SettingsForm } from "../../components/SettingsForm";
