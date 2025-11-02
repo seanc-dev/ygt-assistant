@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from settings import DEFAULT_TZ
 from presentation.api.repos import user_settings, audit_log
 from presentation.api.utils.defer import compute_defer_until
+from presentation.api.stores import proposed_blocks_store
 
 router = APIRouter()
 
@@ -164,8 +165,18 @@ async def add_to_today(
     if action_id not in queue_store:
         raise HTTPException(status_code=404, detail="action_not_found")
     
-    # TODO: Create ScheduleBlock (stub for Phase 0)
-    schedule_block_id = f"block_{uuid.uuid4().hex[:8]}"
+    # Create schedule block and add to proposed blocks store
+    schedule_block = {
+        "id": schedule_block_id,
+        "user_id": user_id,
+        "kind": body.kind,
+        "tasks": body.tasks or [],
+        "action_id": action_id,
+        "estimated_minutes": 60,  # Default, will be estimated by LLM later
+        "priority": queue_store[action_id].get("priority", "medium"),
+        "estimated_start": None,  # Will be resolved by collision resolver
+    }
+    proposed_blocks_store.append(schedule_block)
     
     queue_store[action_id]["added_to_today"] = True
     

@@ -1,0 +1,20 @@
+name: schedule_alternatives
+goal: verify schedule alternatives generator produces 3 plans respecting day-shape and detects overload
+setup:
+  fixtures:
+    calendar: fixtures/graph/calendar_day_busy.json
+inputs:
+  - role: user
+    text: Generate alternative schedule plans for today with these tasks: [90min focus block, 60min meeting, 45min admin]
+expectations:
+  must_contain: [focus-first, meeting-friendly, balanced, plans]
+  must_not_contain: [error]
+grading:
+  rubric:
+    plan_generation: Produces exactly 3 plans (A/B/C types)
+    day_shape: Respects user day-shape preferences (morning focus, lunch window, buffers)
+    overload: Detects overload when proposed blocks exceed available time
+    proposals: Overload proposals include requires_approval flag
+thresholds:
+  min_score: 0.75
+
