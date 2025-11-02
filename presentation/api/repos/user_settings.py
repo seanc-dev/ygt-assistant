@@ -57,6 +57,9 @@ def update_settings(user_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
         if "focus_block_lengths_min" in ds:
             if not isinstance(ds["focus_block_lengths_min"], list):
                 raise ValueError("day_shape.focus_block_lengths_min must be array")
+        if "focus_block_max_minutes" in ds:
+            if not isinstance(ds["focus_block_max_minutes"], int) or ds["focus_block_max_minutes"] < 30:
+                raise ValueError("day_shape.focus_block_max_minutes must be integer >= 30")
         if "lunch_window" in ds:
             lw = ds["lunch_window"]
             if not _validate_time(lw.get("start", "")) or not _validate_time(lw.get("end", "")):
@@ -119,6 +122,7 @@ def _default_settings() -> Dict[str, Any]:
         "day_shape": {
             "morning_focus": True,
             "focus_block_lengths_min": [90, 60],
+            "focus_block_max_minutes": 120,  # Default, will be calculated based on available time
             "lunch_window": {
                 "start": "12:00",
                 "end": "14:00",
