@@ -64,28 +64,12 @@ export const api = {
   history: (limit = 100) => req(`/history?limit=${limit}`),
   // LucidWork endpoints
   queue: () => req("/api/queue"),
-  summaryQueue: (days?: number) =>
-    req(`/api/summary/queue${days ? `?days=${days}` : ""}`),
   scheduleToday: () => req("/api/schedule/today"),
-  scheduleAlternatives: (body: { existing_events?: any[]; proposed_blocks?: any[] }) =>
-    req("/api/schedule/alternatives", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
+  scheduleAlternatives: () =>
+    req("/api/schedule/alternatives", { method: "POST" }),
   briefToday: () => req("/api/brief/today"),
   workroomTree: () => req("/api/workroom/tree"),
-  createThread: (body: { task_id: string; title: string; prefs?: any }) =>
-    req("/api/workroom/thread", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-  updateTaskStatus: (taskId: string, status: string) =>
-    req(`/api/workroom/task/${encodeURIComponent(taskId)}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ status }),
-    }),
-  auditLog: (limit?: number, actionType?: string) =>
-    req(`/api/audit/log${limit || actionType ? `?${limit ? `limit=${limit}` : ""}${actionType ? `&action_type=${encodeURIComponent(actionType)}` : ""}` : ""}`),
+  createThread: () => req("/api/workroom/thread", { method: "POST" }),
   settings: () => req("/api/settings"),
   updateSettings: (data: any) =>
     req("/api/settings", { method: "PUT", body: JSON.stringify(data) }),

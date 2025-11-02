@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Heading, Panel, Stack, Text, Button } from "@ygt-assistant/ui";
+import { Heading, Panel, Stack, Text, Button, useTheme, type ThemePreference } from "@ygt-assistant/ui";
 import { Layout } from "../../components/Layout";
 import { api } from "../../lib/api";
 import { SettingsForm } from "../../components/SettingsForm";
@@ -68,6 +68,7 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showHotkeysModal, setShowHotkeysModal] = useState(false);
+  const { theme, setTheme, resolvedTheme } = useTheme();
 
   const loadSettings = async () => {
     try {
@@ -157,17 +158,52 @@ export default function SettingsPage() {
           </Panel>
         )}
 
+        {/* Theme Selector */}
+        <Panel>
+          <div className="mb-4">
+            <Text variant="label" className="text-sm font-medium">
+              Theme
+            </Text>
+            <Text variant="caption" className="text-xs text-[var(--lw-neutral-muted)] mt-1">
+              Choose your preferred color theme and accessibility options
+            </Text>
+          </div>
+          <div className="mt-4">
+            <select
+              value={theme}
+              onChange={(e) => setTheme(e.target.value as ThemePreference)}
+              className="w-full border border-[var(--lw-border)] rounded-md px-3 py-2 text-sm bg-[var(--lw-surface)] text-[var(--lw-neutral-text)] focus:outline-none focus:ring-2 focus:ring-[var(--lw-primary)] focus:ring-opacity-40"
+              style={{
+                borderRadius: "var(--lw-radius-sm)",
+              }}
+            >
+              <option value="system">System (Auto)</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="high-contrast">High Contrast</option>
+              <option value="color-blind">Color Blind Safe</option>
+            </select>
+            <Text variant="caption" className="text-xs text-[var(--lw-neutral-muted)] mt-2">
+              {theme === "system" ? (
+                <>Currently using: {resolvedTheme === "dark" ? "Dark" : "Light"} mode (based on system preference)</>
+              ) : (
+                <>Active theme: {theme === "high-contrast" ? "High Contrast" : theme === "color-blind" ? "Color Blind Safe" : theme === "dark" ? "Dark" : "Light"}</>
+              )}
+            </Text>
+          </div>
+        </Panel>
+
         <Panel>
           <div className="flex justify-between items-center mb-4">
             <div>
               <Text variant="label" className="text-sm font-medium">
                 Keyboard Shortcuts
               </Text>
-              <Text variant="caption" className="text-xs text-gray-500 mt-1">
+              <Text variant="caption" className="text-xs text-[var(--lw-neutral-muted)] mt-1">
                 Configure keyboard shortcuts for common actions
               </Text>
             </div>
-            <Button variant="secondary" onClick={() => setShowHotkeysModal(true)}>
+            <Button variant="outline" onClick={() => setShowHotkeysModal(true)}>
               Configure Hotkeys
             </Button>
           </div>

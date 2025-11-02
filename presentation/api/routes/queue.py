@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field
 from settings import DEFAULT_TZ
 from presentation.api.repos import user_settings, audit_log
 from presentation.api.utils.defer import compute_defer_until
-from presentation.api.stores import proposed_blocks_store
 
 router = APIRouter()
 
@@ -46,39 +45,12 @@ class AddToTodayRequest(BaseModel):
 
 
 @router.get("/api/queue")
-async def get_queue(
-    request: Request,
-    limit: int = 5,
-    offset: int = 0,
-    user_id: str = Depends(_get_user_id),
-    use_unified: bool = False,
-) -> Dict[str, Any]:
+async def get_queue(limit: int = 5, offset: int = 0) -> Dict[str, Any]:
     """Get queue of action items.
     
     Returns action items from Outlook, Teams, and Docs change summaries.
     Keeps ≤5 visible; preloads 10.
-    
-    Query params:
-    - limit: Number of items to return (default: 5)
-    - offset: Offset for pagination (default: 0)
-    - use_unified: If true, fetch from unified sources (default: false, uses queue_store)
     """
-    # If use_unified is true, fetch from unified sources
-    if use_unified:
-        try:
-            from presentation.api.services.unified_actions import generate_unified_action_items
-            unified_items = await generate_unified_action_items(user_id, days=7)
-            
-            # Merge with existing queue_store items
-            for item in unified_items:
-                if item["action_id"] not in queue_store:
-                    queue_store[item["action_id"]] = {
-                        **item,
-                        "created_at": datetime.now(timezone.utc).isoformat(),
-                    }
-        except Exception:
-            pass  # Fallback to queue_store if unified fails
-    
     # Filter out deferred items that haven't resurfaced yet
     try:
         tz = ZoneInfo(DEFAULT_TZ)
@@ -192,21 +164,8 @@ async def add_to_today(
     if action_id not in queue_store:
         raise HTTPException(status_code=404, detail="action_not_found")
     
-    # Generate schedule block ID
-    schedule_block_id = str(uuid.uuid4())
-    
-    # Create schedule block and add to proposed blocks store
-    schedule_block = {
-        "id": schedule_block_id,
-        "user_id": user_id,
-        "kind": body.kind,
-        "tasks": body.tasks or [],
-        "action_id": action_id,
-        "estimated_minutes": 60,  # Default, will be estimated by LLM later
-        "priority": queue_store[action_id].get("priority", "medium"),
-        "estimated_start": None,  # Will be resolved by collision resolver
-    }
-    proposed_blocks_store.append(schedule_block)
+    # TODO: Create ScheduleBlock (stub for Phase 0)
+    schedule_block_id = f"block_{uuid.uuid4().hex[:8]}"
     
     queue_store[action_id]["added_to_today"] = True
     

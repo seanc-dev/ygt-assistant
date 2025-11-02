@@ -57,49 +57,25 @@ def update_settings(user_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
         if "focus_block_lengths_min" in ds:
             if not isinstance(ds["focus_block_lengths_min"], list):
                 raise ValueError("day_shape.focus_block_lengths_min must be array")
-        if "focus_block_max_minutes" in ds:
-            if not isinstance(ds["focus_block_max_minutes"], int) or ds["focus_block_max_minutes"] < 30:
-                raise ValueError("day_shape.focus_block_max_minutes must be integer >= 30")
         if "lunch_window" in ds:
             lw = ds["lunch_window"]
             if not _validate_time(lw.get("start", "")) or not _validate_time(lw.get("end", "")):
                 raise ValueError("Invalid lunch_window format")
-            if "min_minutes" in lw and not isinstance(lw["min_minutes"], int):
-                raise ValueError("lunch_window.min_minutes must be integer")
-            if "max_minutes" in lw and not isinstance(lw["max_minutes"], int):
-                raise ValueError("lunch_window.max_minutes must be integer")
         if "meeting_avoid_windows" in ds:
             for window in ds["meeting_avoid_windows"]:
                 if not _validate_time(window.get("start", "")) or not _validate_time(window.get("end", "")):
                     raise ValueError("Invalid meeting_avoid_windows format")
-        if "buffer_minutes" in ds:
-            bm = ds["buffer_minutes"]
-            if isinstance(bm, dict):
-                if "min" in bm and not isinstance(bm["min"], int):
-                    raise ValueError("day_shape.buffer_minutes.min must be integer")
-                if "max" in bm and not isinstance(bm["max"], int):
-                    raise ValueError("day_shape.buffer_minutes.max must be integer")
-            elif not isinstance(bm, int):
-                raise ValueError("day_shape.buffer_minutes must be integer or object with min/max")
+        if "buffer_minutes" in ds and not isinstance(ds["buffer_minutes"], int):
+            raise ValueError("day_shape.buffer_minutes must be integer")
         current["day_shape"] = {**current.get("day_shape", {}), **ds}
     
     # Update translation
     if "translation" in updates:
-        trans = updates["translation"]
-        if "default" in trans and trans["default"] not in ["llm", "azure"]:
-            raise ValueError("translation.default must be 'llm' or 'azure'")
-        if "fallback" in trans and trans["fallback"] not in ["llm", "azure"]:
-            raise ValueError("translation.fallback must be 'llm' or 'azure'")
-        if "rules" in trans:
-            valid_rule_values = ["auto", "prompt", "off"]
-            for key, value in trans["rules"].items():
-                if value not in valid_rule_values:
-                    raise ValueError(f"translation.rules.{key} must be one of: {valid_rule_values}")
-        current["translation"] = {**current.get("translation", {}), **trans}
+        current["translation"] = updates["translation"]
     
     # Update trust_level
     if "trust_level" in updates:
-        if updates["trust_level"] not in ["training_wheels", "standard", "autonomous"]:
+        if updates["trust_level"] not in ["training-wheels", "standard", "autonomous"]:
             raise ValueError("Invalid trust_level")
         current["trust_level"] = updates["trust_level"]
     
@@ -122,45 +98,32 @@ def _default_settings() -> Dict[str, Any]:
         "day_shape": {
             "morning_focus": True,
             "focus_block_lengths_min": [90, 60],
-            "focus_block_max_minutes": 120,  # Default, will be calculated based on available time
             "lunch_window": {
                 "start": "12:00",
                 "end": "14:00",
-                "min_minutes": 45,
-                "max_minutes": 60,
+                "duration_min": 45,
             },
             "meeting_avoid_windows": [
-                {"start": "16:00", "end": "23:59"},
+                {"start": "16:00", "end": "17:00"},
             ],
-            "buffer_minutes": {"min": 5, "max": 10},
+            "buffer_minutes": 5,
         },
         "translation": {
-            "default": "llm",
-            "fallback": "azure",
+            "enabled": False,
             "rules": {
-                "outbound": "auto",
-                "inbound": "prompt",
-                "internal": "off",
-                "external": "auto",
+                "outbound": False,
+                "inbound": False,
+                "internal": False,
+                "external": False,
             },
         },
-        "trust_level": "training_wheels",
+        "trust_level": "standard",
         "ui_prefs": {
             "thread_open_behavior": "new_tab",
             "brief": {
                 "weather": False,
                 "news": False,
-                "tone": "neutral",
-            },
-            "hotkeys": {
-                "approve": "a",
-                "edit": "e",
-                "defer": "d",
-                "add_to_today": "t",
-                "open_workroom": "o",
-                "collapse": "Escape",
-                "kanban_toggle": "Meta+k",
-                "settings": "Meta+,",
+                "tone": "professional",
             },
         },
     }

@@ -514,20 +514,6 @@ try:
 except Exception:
     pass
 
-try:
-    from presentation.api.routes.translation import router as translation_router
-
-    app.include_router(translation_router)
-except Exception:
-    pass
-
-try:
-    from presentation.api.routes.audit import router as audit_router
-
-    app.include_router(audit_router)
-except Exception:
-    pass
-
 # Dev-only helpers (do not enable in production)
 if (os.getenv("DEV_MODE", "").strip().lower() in {"1", "true", "yes", "on"}) or (
     os.getenv("PYTEST_CURRENT_TEST")
