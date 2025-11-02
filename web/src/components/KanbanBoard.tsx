@@ -23,8 +23,9 @@ interface Thread {
 }
 
 interface KanbanBoardProps {
-  tree: Project[];
-  onTaskStatusChange: (taskId: string, status: string) => void;
+  projects: Project[];
+  onUpdateTaskStatus: (taskId: string, status: string) => void;
+  onSelectTask?: (taskId: string) => void;
 }
 
 const statusColumns = [
@@ -34,9 +35,9 @@ const statusColumns = [
   { id: "blocked", label: "Blocked" },
 ];
 
-export function KanbanBoard({ tree, onTaskStatusChange }: KanbanBoardProps) {
+export function KanbanBoard({ projects, onUpdateTaskStatus, onSelectTask }: KanbanBoardProps) {
   // Flatten all tasks from all projects
-  const allTasks: Task[] = tree.flatMap((project) => project.children);
+  const allTasks: Task[] = (projects || []).flatMap((project) => project.children || []);
 
   // Group tasks by status
   const tasksByStatus = {
