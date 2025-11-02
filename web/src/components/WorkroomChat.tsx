@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Stack, Text, TextInput } from "@ygt-assistant/ui";
+import { Button, Stack, Text } from "@ygt-assistant/ui";
 import { api } from "../lib/api";
 
 interface Thread {
@@ -92,7 +92,8 @@ export function WorkroomChat({ thread, onTaskStatusChange }: WorkroomChatProps) 
       {/* Input */}
       <div className="border-t p-4">
         <div className="flex gap-2">
-          <TextInput
+          <input
+            type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={(e) => {
@@ -102,7 +103,7 @@ export function WorkroomChat({ thread, onTaskStatusChange }: WorkroomChatProps) 
               }
             }}
             placeholder="Type a message..."
-            className="flex-1"
+            className="flex-1 border rounded px-3 py-2 text-sm"
           />
           <Button onClick={handleSend}>Send</Button>
         </div>
