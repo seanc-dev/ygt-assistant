@@ -152,6 +152,16 @@ def _default_settings() -> Dict[str, Any]:
                 "news": False,
                 "tone": "neutral",
             },
+            "hotkeys": {
+                "approve": "a",
+                "edit": "e",
+                "defer": "d",
+                "add_to_today": "t",
+                "open_workroom": "o",
+                "collapse": "Escape",
+                "kanban_toggle": "Meta+k",
+                "settings": "Meta+,",
+            },
         },
     }
 
