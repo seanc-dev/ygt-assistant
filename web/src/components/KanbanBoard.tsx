@@ -57,14 +57,17 @@ export function KanbanBoard({ tree, onTaskStatusChange }: KanbanBoardProps) {
             </div>
             <div className="space-y-2">
               {tasksByStatus[column.id as keyof typeof tasksByStatus].map((task) => {
-                const project = tree.find((p) => p.id === task.project_id);
+                const project = (projects || []).find((p) => p.id === task.project_id);
                 return (
                   <div
                     key={task.id}
                     className="border rounded p-2 bg-white hover:shadow-sm cursor-pointer"
                     onClick={() => {
-                      // TODO: Open task detail/thread
-                      console.log("Open task:", task.id);
+                      if (onSelectTask) {
+                        onSelectTask(task.id);
+                      } else {
+                        console.log("Open task:", task.id);
+                      }
                     }}
                   >
                     <div className="text-xs font-medium">{task.title}</div>
@@ -74,7 +77,7 @@ export function KanbanBoard({ tree, onTaskStatusChange }: KanbanBoardProps) {
                       </div>
                     )}
                     <div className="text-xs text-gray-400 mt-1">
-                      {task.children.length} thread{task.children.length !== 1 ? "s" : ""}
+                      {task.children?.length || 0} thread{(task.children?.length || 0) !== 1 ? "s" : ""}
                     </div>
                   </div>
                 );
