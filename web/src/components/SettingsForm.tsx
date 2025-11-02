@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Button, Stack, Text, TextInput, Panel } from "@ygt-assistant/ui";
+import { Button, Stack, Text, Panel } from "@ygt-assistant/ui";
 
 interface UserSettings {
   work_hours: {
@@ -112,20 +112,22 @@ export function SettingsForm({ settings, onSave, saving }: SettingsFormProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs text-gray-600 mb-1 block">Start Time</label>
-              <TextInput
+              <input
                 type="time"
                 value={formData.work_hours.start}
                 onChange={(e) => updateField(["work_hours", "start"], e.target.value)}
                 required
+                className="w-full border rounded px-3 py-2 text-sm"
               />
             </div>
             <div>
               <label className="text-xs text-gray-600 mb-1 block">End Time</label>
-              <TextInput
+              <input
                 type="time"
                 value={formData.work_hours.end}
                 onChange={(e) => updateField(["work_hours", "end"], e.target.value)}
                 required
+                className="w-full border rounded px-3 py-2 text-sm"
               />
             </div>
           </div>
@@ -175,7 +177,8 @@ export function SettingsForm({ settings, onSave, saving }: SettingsFormProps) {
               <label className="text-xs text-gray-600 mb-1 block">
                 Focus Block Lengths (minutes, comma-separated)
               </label>
-              <TextInput
+              <input
+                type="text"
                 value={formData.day_shape.focus_block_lengths_min.join(", ")}
                 onChange={(e) => {
                   const values = e.target.value
@@ -185,6 +188,7 @@ export function SettingsForm({ settings, onSave, saving }: SettingsFormProps) {
                   updateField(["day_shape", "focus_block_lengths_min"], values);
                 }}
                 placeholder="90, 60"
+                className="w-full border rounded px-3 py-2 text-sm"
               />
             </div>
 
@@ -192,7 +196,7 @@ export function SettingsForm({ settings, onSave, saving }: SettingsFormProps) {
               <label className="text-xs text-gray-600 mb-1 block">
                 Focus Block Max (minutes)
               </label>
-              <TextInput
+              <input
                 type="number"
                 min="30"
                 value={formData.day_shape.focus_block_max_minutes}
@@ -202,6 +206,7 @@ export function SettingsForm({ settings, onSave, saving }: SettingsFormProps) {
                     parseInt(e.target.value)
                   )
                 }
+                className="w-full border rounded px-3 py-2 text-sm"
               />
             </div>
 
@@ -210,24 +215,26 @@ export function SettingsForm({ settings, onSave, saving }: SettingsFormProps) {
                 <label className="text-xs text-gray-600 mb-1 block">
                   Lunch Window Start
                 </label>
-                <TextInput
+                <input
                   type="time"
                   value={formData.day_shape.lunch_window.start}
                   onChange={(e) =>
                     updateField(["day_shape", "lunch_window", "start"], e.target.value)
                   }
+                  className="w-full border rounded px-3 py-2 text-sm"
                 />
               </div>
               <div>
                 <label className="text-xs text-gray-600 mb-1 block">
                   Lunch Window End
                 </label>
-                <TextInput
+                <input
                   type="time"
                   value={formData.day_shape.lunch_window.end}
                   onChange={(e) =>
                     updateField(["day_shape", "lunch_window", "end"], e.target.value)
                   }
+                  className="w-full border rounded px-3 py-2 text-sm"
                 />
               </div>
             </div>
@@ -237,7 +244,7 @@ export function SettingsForm({ settings, onSave, saving }: SettingsFormProps) {
                 <label className="text-xs text-gray-600 mb-1 block">
                   Lunch Min Minutes
                 </label>
-                <TextInput
+                <input
                   type="number"
                   value={formData.day_shape.lunch_window.min_minutes}
                   onChange={(e) =>
@@ -246,13 +253,14 @@ export function SettingsForm({ settings, onSave, saving }: SettingsFormProps) {
                       parseInt(e.target.value)
                     )
                   }
+                  className="w-full border rounded px-3 py-2 text-sm"
                 />
               </div>
               <div>
                 <label className="text-xs text-gray-600 mb-1 block">
                   Lunch Max Minutes
                 </label>
-                <TextInput
+                <input
                   type="number"
                   value={formData.day_shape.lunch_window.max_minutes}
                   onChange={(e) =>
@@ -261,6 +269,7 @@ export function SettingsForm({ settings, onSave, saving }: SettingsFormProps) {
                       parseInt(e.target.value)
                     )
                   }
+                  className="w-full border rounded px-3 py-2 text-sm"
                 />
               </div>
             </div>
@@ -270,7 +279,7 @@ export function SettingsForm({ settings, onSave, saving }: SettingsFormProps) {
                 <label className="text-xs text-gray-600 mb-1 block">
                   Buffer Min (minutes)
                 </label>
-                <TextInput
+                <input
                   type="number"
                   value={formData.day_shape.buffer_minutes.min}
                   onChange={(e) =>
@@ -279,13 +288,14 @@ export function SettingsForm({ settings, onSave, saving }: SettingsFormProps) {
                       parseInt(e.target.value)
                     )
                   }
+                  className="w-full border rounded px-3 py-2 text-sm"
                 />
               </div>
               <div>
                 <label className="text-xs text-gray-600 mb-1 block">
                   Buffer Max (minutes)
                 </label>
-                <TextInput
+                <input
                   type="number"
                   value={formData.day_shape.buffer_minutes.max}
                   onChange={(e) =>
@@ -294,6 +304,7 @@ export function SettingsForm({ settings, onSave, saving }: SettingsFormProps) {
                       parseInt(e.target.value)
                     )
                   }
+                  className="w-full border rounded px-3 py-2 text-sm"
                 />
               </div>
             </div>
