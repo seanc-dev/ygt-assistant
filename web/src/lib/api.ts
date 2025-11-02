@@ -64,6 +64,8 @@ export const api = {
   history: (limit = 100) => req(`/history?limit=${limit}`),
   // LucidWork endpoints
   queue: () => req("/api/queue"),
+  summaryQueue: (days?: number) =>
+    req(`/api/summary/queue${days ? `?days=${days}` : ""}`),
   scheduleToday: () => req("/api/schedule/today"),
   scheduleAlternatives: (body: { existing_events?: any[]; proposed_blocks?: any[] }) =>
     req("/api/schedule/alternatives", {
