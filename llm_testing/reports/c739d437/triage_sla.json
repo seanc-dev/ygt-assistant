@@ -1,0 +1,73 @@
+{
+  "scenario": {
+    "name": "triage_sla",
+    "mode": "mock",
+    "steps": [
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/actions/triage-v2",
+        "json": {
+          "filter": "all"
+        },
+        "expect": {
+          "status": 200
+        }
+      },
+      {
+        "action": "grade",
+        "rubric": {
+          "must_include": [
+            "<24h",
+            "<72h",
+            "priority"
+          ],
+          "prefer": [
+            "rationale"
+          ]
+        }
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "<24h",
+        "<72h",
+        "priority"
+      ],
+      "must_not_contain": []
+    }
+  },
+  "transcript": {
+    "scenario": "triage_sla",
+    "steps": [
+      {
+        "endpoint": "/actions/triage-v2",
+        "response": [
+          {
+            "id": "t1",
+            "title": "Invoice due",
+            "priority": "high",
+            "sla": "<24h",
+            "rationale": "Finance-critical"
+          },
+          {
+            "id": "t2",
+            "title": "Schedule meeting",
+            "priority": "medium",
+            "sla": "<72h",
+            "rationale": "Client scheduling"
+          },
+          {
+            "id": "t3",
+            "title": "Thanks",
+            "priority": "low",
+            "sla": "<72h",
+            "rationale": "No action required"
+          }
+        ]
+      }
+    ],
+    "text": "[{'id': 't1', 'title': 'Invoice due', 'priority': 'high', 'sla': '<24h', 'rationale': 'Finance-critical'}, {'id': 't2', 'title': 'Schedule meeting', 'priority': 'medium', 'sla': '<72h', 'rationale': 'Client scheduling'}, {'id': 't3', 'title': 'Thanks', 'priority': 'low', 'sla': '<72h', 'rationale': 'No action required'}]"
+  },
+  "ts": 1761716987.577312
+}

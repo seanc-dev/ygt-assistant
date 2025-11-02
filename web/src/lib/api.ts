@@ -62,4 +62,32 @@ export const api = {
   undo: (id: string) =>
     req(`/actions/undo/${encodeURIComponent(id)}`, { method: "POST" }),
   history: (limit = 100) => req(`/history?limit=${limit}`),
+  // LucidWork endpoints
+  queue: () => req("/api/queue"),
+  scheduleToday: () => req("/api/schedule/today"),
+  scheduleAlternatives: () =>
+    req("/api/schedule/alternatives", { method: "POST" }),
+  briefToday: () => req("/api/brief/today"),
+  workroomTree: () => req("/api/workroom/tree"),
+  createThread: () => req("/api/workroom/thread", { method: "POST" }),
+  settings: () => req("/api/settings"),
+  updateSettings: (data: any) =>
+    req("/api/settings", { method: "PUT", body: JSON.stringify(data) }),
+  statusFlags: () => req("/api/status/flags"),
+  // Queue actions
+  deferAction: (actionId: string, body: { bucket: string }) =>
+    req(`/api/queue/${encodeURIComponent(actionId)}/defer`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  addToToday: (actionId: string, body: { kind: "admin" | "work"; tasks?: string[] }) =>
+    req(`/api/queue/${encodeURIComponent(actionId)}/add-to-today`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  replyAction: (actionId: string, body: { draft: string }) =>
+    req(`/api/queue/${encodeURIComponent(actionId)}/reply`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };

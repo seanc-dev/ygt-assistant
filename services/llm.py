@@ -2,7 +2,9 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 
-def summarise_and_propose(context: Dict[str, Any], core_ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
+def summarise_and_propose(
+    context: Dict[str, Any], core_ctx: Dict[str, Any]
+) -> List[Dict[str, Any]]:
     # If live inbox items are provided in context, propose actions from them
     inbox = context.get("inbox") or []
     if isinstance(inbox, list) and inbox:
@@ -15,7 +17,11 @@ def summarise_and_propose(context: Dict[str, Any], core_ctx: Dict[str, Any]) -> 
             msg_id = (it or {}).get("id") or ""
             approvals.append(
                 {
-                    "id": f"inbox-{msg_id}" if msg_id else f"inbox-{abs(hash(subj+sender))}",
+                    "id": (
+                        f"inbox-{msg_id}"
+                        if msg_id
+                        else f"inbox-{abs(hash(subj+sender))}"
+                    ),
                     "kind": "email",
                     "source": "inbox",
                     "title": subj or (f"Email from {sender}" if sender else "Email"),
@@ -40,7 +46,9 @@ def summarise_and_propose(context: Dict[str, Any], core_ctx: Dict[str, Any]) -> 
     ]
 
 
-def draft_email(intent: Dict[str, Any], tone: str | None, core_ctx: Dict[str, Any]) -> Dict[str, Any]:
+def draft_email(
+    intent: Dict[str, Any], tone: str | None, core_ctx: Dict[str, Any]
+) -> Dict[str, Any]:
     return {
         "id": "draft-1",
         "to": intent.get("to") or [],

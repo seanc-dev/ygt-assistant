@@ -1,0 +1,63 @@
+{
+  "scenario": {
+    "name": "plan_today_buffers",
+    "mode": "mock",
+    "steps": [
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/actions/plan-today-v2",
+        "expect": {
+          "contains": [
+            "plan",
+            "Buffer",
+            "Focus"
+          ]
+        }
+      },
+      {
+        "action": "grade",
+        "rubric": {
+          "must_include": [
+            "Buffer",
+            "Focus"
+          ],
+          "disallow": [
+            "booked"
+          ]
+        }
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "Buffer",
+        "Focus"
+      ],
+      "must_not_contain": [
+        "booked"
+      ]
+    }
+  },
+  "transcript": {
+    "scenario": "plan_today_buffers",
+    "steps": [
+      {
+        "endpoint": "/actions/plan-today-v2",
+        "response": {
+          "detail": [
+            {
+              "type": "missing",
+              "loc": [
+                "body"
+              ],
+              "msg": "Field required",
+              "input": null
+            }
+          ]
+        }
+      }
+    ],
+    "text": "{'detail': [{'type': 'missing', 'loc': ['body'], 'msg': 'Field required', 'input': None}]}"
+  },
+  "ts": 1761716986.904831
+}

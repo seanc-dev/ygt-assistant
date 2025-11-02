@@ -143,7 +143,9 @@ async def ensure_access_token(
         return tok
 
 
-def ensure_access_token_sync(user_id: str, token_row: Dict[str, Any], tenant_id: str) -> str:
+def ensure_access_token_sync(
+    user_id: str, token_row: Dict[str, Any], tenant_id: str
+) -> str:
     """Synchronous variant for provider flows invoked inside FastAPI event loop."""
     f, _ = fernet_from(ENCRYPTION_KEY)
     access_token = (

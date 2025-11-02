@@ -340,9 +340,10 @@ app.add_middleware(
 # Request-ID middleware for structured tracing
 @app.middleware("http")
 async def add_request_id(request: Request, call_next):
-    rid = request.headers.get("x-request-id") or os.getenv(
-        "REQUEST_ID_PREFIX", "req_"
-    ) + secrets.token_hex(8)
+    import uuid
+    rid = request.headers.get("x-request-id") or str(uuid.uuid4())
+    # Store in request state for access by endpoints
+    request.state.request_id = rid
     try:
         response = await call_next(request)
     except Exception as exc:
@@ -452,6 +453,64 @@ try:
     )
 
     app.include_router(actions_calendar_router)
+except Exception:
+    pass
+
+# LucidWork routes
+try:
+    from presentation.api.routes.summary import router as summary_router
+
+    app.include_router(summary_router)
+except Exception:
+    pass
+
+try:
+    from presentation.api.routes.queue import router as queue_router
+
+    app.include_router(queue_router)
+except Exception:
+    pass
+
+try:
+    from presentation.api.routes.schedule import router as schedule_router
+
+    app.include_router(schedule_router)
+except Exception:
+    pass
+
+try:
+    from presentation.api.routes.brief import router as brief_router
+
+    app.include_router(brief_router)
+except Exception:
+    pass
+
+try:
+    from presentation.api.routes.workroom import router as workroom_router
+
+    app.include_router(workroom_router)
+except Exception:
+    pass
+
+try:
+    from presentation.api.routes.settings import router as settings_router
+
+    app.include_router(settings_router)
+except Exception:
+    pass
+
+try:
+    from presentation.api.routes.status import router as status_router
+
+    app.include_router(status_router)
+except Exception:
+    pass
+
+# Dev routes
+try:
+    from presentation.api.routes.dev import router as dev_router
+
+    app.include_router(dev_router)
 except Exception:
     pass
 
