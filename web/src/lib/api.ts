@@ -84,6 +84,8 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ status }),
     }),
+  auditLog: (limit?: number, actionType?: string) =>
+    req(`/api/audit/log${limit || actionType ? `?${limit ? `limit=${limit}` : ""}${actionType ? `&action_type=${encodeURIComponent(actionType)}` : ""}` : ""}`),
   settings: () => req("/api/settings"),
   updateSettings: (data: any) =>
     req("/api/settings", { method: "PUT", body: JSON.stringify(data) }),
