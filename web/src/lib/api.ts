@@ -65,8 +65,11 @@ export const api = {
   // LucidWork endpoints
   queue: () => req("/api/queue"),
   scheduleToday: () => req("/api/schedule/today"),
-  scheduleAlternatives: () =>
-    req("/api/schedule/alternatives", { method: "POST" }),
+  scheduleAlternatives: (body: { existing_events?: any[]; proposed_blocks?: any[] }) =>
+    req("/api/schedule/alternatives", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   briefToday: () => req("/api/brief/today"),
   workroomTree: () => req("/api/workroom/tree"),
   createThread: () => req("/api/workroom/thread", { method: "POST" }),
