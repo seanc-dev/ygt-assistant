@@ -46,12 +46,39 @@ class AddToTodayRequest(BaseModel):
 
 
 @router.get("/api/queue")
-async def get_queue(limit: int = 5, offset: int = 0) -> Dict[str, Any]:
+async def get_queue(
+    request: Request,
+    limit: int = 5,
+    offset: int = 0,
+    user_id: str = Depends(_get_user_id),
+    use_unified: bool = False,
+) -> Dict[str, Any]:
     """Get queue of action items.
     
     Returns action items from Outlook, Teams, and Docs change summaries.
     Keeps ≤5 visible; preloads 10.
+    
+    Query params:
+    - limit: Number of items to return (default: 5)
+    - offset: Offset for pagination (default: 0)
+    - use_unified: If true, fetch from unified sources (default: false, uses queue_store)
     """
+    # If use_unified is true, fetch from unified sources
+    if use_unified:
+        try:
+            from presentation.api.services.unified_actions import generate_unified_action_items
+            unified_items = await generate_unified_action_items(user_id, days=7)
+            
+            # Merge with existing queue_store items
+            for item in unified_items:
+                if item["action_id"] not in queue_store:
+                    queue_store[item["action_id"]] = {
+                        **item,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    }
+        except Exception:
+            pass  # Fallback to queue_store if unified fails
+    
     # Filter out deferred items that haven't resurfaced yet
     try:
         tz = ZoneInfo(DEFAULT_TZ)
