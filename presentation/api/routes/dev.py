@@ -1,4 +1,5 @@
 """Dev endpoint to seed queue with test data."""
+
 from __future__ import annotations
 from typing import Any, Dict, List
 from fastapi import APIRouter, Request, Depends
@@ -19,13 +20,13 @@ async def seed_queue(
     count: int = 10,
 ) -> Dict[str, Any]:
     """Seed queue with test action items (dev only).
-    
+
     Query params:
     - count: Number of items to seed (default: 10, max: 20)
     """
     if count > 20:
         count = 20
-    
+
     test_items = [
         {
             "action_id": str(uuid.uuid4()),
@@ -202,13 +203,13 @@ async def seed_queue(
             "created_at": datetime.now().isoformat(),
         },
     ]
-    
+
     # Add requested number of items (or all if count is large)
     items_to_add = test_items[:count] if count <= len(test_items) else test_items
-    
+
     for item in items_to_add:
         queue_store[item["action_id"]] = item
-    
+
     return {"ok": True, "seeded": len(items_to_add), "total": len(queue_store)}
 
 
@@ -222,11 +223,12 @@ async def seed_schedule(
         tz = ZoneInfo(DEFAULT_TZ)
     except Exception:
         from datetime import timezone
+
         tz = timezone.utc
-    
+
     now = datetime.now(tz)
     today_start = now.replace(hour=9, minute=0, second=0, microsecond=0)
-    
+
     # Add some events
     events = [
         {
@@ -258,7 +260,7 @@ async def seed_schedule(
             "link": "",
         },
     ]
-    
+
     # Add proposed blocks
     blocks = [
         {
@@ -286,13 +288,13 @@ async def seed_schedule(
             "kind": "admin",
         },
     ]
-    
+
     # Add blocks to store (clear existing for this user first)
     existing_blocks = [b for b in proposed_blocks_store if b.get("user_id") != user_id]
     proposed_blocks_store.clear()
     proposed_blocks_store.extend(existing_blocks)
     proposed_blocks_store.extend(blocks)
-    
+
     return {"ok": True, "events": len(events), "blocks": len(blocks)}
 
 
@@ -304,7 +306,7 @@ async def seed_all(
     """Seed all test data at once (dev only)."""
     queue_result = await seed_queue(request, user_id, count=10)
     schedule_result = await seed_schedule(request, user_id)
-    
+
     return {
         "ok": True,
         "queue": queue_result,
@@ -332,5 +334,3 @@ async def clear_schedule(
     proposed_blocks_store.clear()
     proposed_blocks_store.extend(existing_blocks)
     return {"ok": True, "cleared": True}
-
-
