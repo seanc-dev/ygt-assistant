@@ -5,3 +5,5 @@ export * from "./Panel";
 export * from "./ActionBar";
 export * from "./Button";
 export * from "./Badge";
+export * from "./Modal";
+export * from "./Tooltip";

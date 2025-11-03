@@ -20,15 +20,15 @@ export const Text = forwardRef<HTMLElement, TextProps>(function Text(
   const sizeMap: Record<TextVariant, string> = {
     label: "text-sm font-medium",
     body: "text-sm",
-    muted: "text-sm text-slate-500 dark:text-slate-400",
-    caption: "text-xs text-slate-500 dark:text-slate-400",
+    muted: "text-sm text-[var(--lw-neutral-muted)]",
+    caption: "text-xs text-[var(--lw-neutral-muted)]",
   };
 
   return createElement(as, {
     ref,
-    className: clsx("font-normal", sizeMap[variant], className),
+    className: clsx("font-normal lw-text-body", sizeMap[variant], className),
     style: {
-      fontFamily: typography.fontFamily,
+      fontFamily: typography.fontFamily.body,
       lineHeight: typography.lineHeights.normal,
       ...style,
     },
@@ -47,7 +47,7 @@ export const Heading = forwardRef<HTMLElement, HeadingProps>(function Heading(
   const variantMap: Record<HeadingVariant, string> = {
     display: "text-3xl font-semibold",
     title: "text-xl font-semibold",
-    subtitle: "text-base font-semibold text-slate-600 dark:text-slate-300",
+    subtitle: "text-base font-semibold text-[var(--lw-neutral-muted)]",
   };
 
   const lineHeightMap: Record<HeadingVariant, number> = {
@@ -64,11 +64,12 @@ export const Heading = forwardRef<HTMLElement, HeadingProps>(function Heading(
 
   return createElement(as, {
     ref,
-    className: clsx(variantMap[variant], className),
+    className: clsx("lw-text-heading", variantMap[variant], className),
     style: {
-      fontFamily: typography.fontFamily,
+      fontFamily: typography.fontFamily.heading,
       lineHeight: lineHeightMap[variant],
       fontSize: fontSizeMap[variant],
+      letterSpacing: typography.letterSpacing.wide,
       ...style,
     },
     ...props,

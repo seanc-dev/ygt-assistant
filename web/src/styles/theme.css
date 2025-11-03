@@ -1,0 +1,216 @@
+/**
+ * LucidWork Design System - Theme CSS Variables
+ * 
+ * Supports: Light, Dark, High-Contrast, Color-Blind modes
+ * All themes respect prefers-reduced-motion
+ */
+
+:root {
+  /* Light Mode (Default) */
+  --lw-primary: #2563EB;
+  --lw-secondary: #0EA5E9;
+  --lw-base: #F9FAFB;
+  --lw-neutral-text: #1E293B;
+  --lw-neutral-muted: #64748B;
+  --lw-success: #10B981;
+  --lw-warning: #FBBF24;
+  --lw-surface: #FFFFFF;
+  --lw-error: #DC2626;
+  --lw-border: #E2E8F0;
+  
+  /* Spacing */
+  --lw-spacing-xs: 0.5rem; /* 8px */
+  --lw-spacing-md: 1rem; /* 16px */
+  --lw-spacing-lg: 1.5rem; /* 24px */
+  --lw-spacing-xl: 2rem; /* 32px - vertical rhythm minimum */
+  
+  /* Radius */
+  --lw-radius-sm: 0.25rem; /* 4px */
+  --lw-radius-md: 0.375rem; /* 6px */
+  
+  /* Shadows */
+  --lw-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  
+  /* Motion */
+  --lw-duration-fast: 150ms;
+  --lw-duration-normal: 180ms;
+  --lw-duration-slow: 200ms;
+  --lw-easing: ease-in-out;
+  
+  /* Typography */
+  --lw-font-body: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --lw-font-heading: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
+  --lw-line-height-text: 1.45;
+  --lw-line-height-heading: 1.2;
+  --lw-letter-spacing-heading: 0.02em;
+}
+
+[data-theme="dark"] {
+  --lw-primary: #3B82F6;
+  --lw-secondary: #06B6D4;
+  --lw-base: #0F172A;
+  --lw-neutral-text: #F1F5F9;
+  --lw-neutral-muted: #94A3B8;
+  --lw-success: #34D399;
+  --lw-warning: #FACC15;
+  --lw-surface: #1E293B;
+  --lw-error: #F87171;
+  --lw-border: #1F2937;
+}
+
+[data-theme="high-contrast"] {
+  --lw-base: #FFFFFF;
+  --lw-neutral-text: #000000;
+  --lw-primary: #0000FF;
+  --lw-secondary: #00AEEF;
+  --lw-error: #FF0000;
+  --lw-success: #007E33;
+  --lw-surface: #FFFFFF;
+  --lw-border: #000000;
+  --lw-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="color-blind"] {
+  --lw-primary: #1F77B4;
+  --lw-success: #2CA02C;
+  --lw-warning: #FF7F0E;
+  --lw-error: #D62728;
+  --lw-secondary: #17BECF;
+  --lw-base: #F8F9FA;
+  --lw-surface: #FFFFFF;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --lw-duration-fast: 0ms;
+    --lw-duration-normal: 0ms;
+    --lw-duration-slow: 0ms;
+  }
+  
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus styles - primary color @ 70% opacity */
+:focus-visible {
+  outline: 2px solid var(--lw-primary);
+  outline-offset: 2px;
+  opacity: 0.7;
+}
+
+/* Card hover elevation */
+.lw-card-hover {
+  transition: transform var(--lw-duration-fast) var(--lw-easing),
+              box-shadow var(--lw-duration-fast) var(--lw-easing);
+}
+
+.lw-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--lw-shadow-sm);
+}
+
+/* Queue card transition */
+.lw-queue-card {
+  transition: opacity var(--lw-duration-normal) var(--lw-easing),
+              transform var(--lw-duration-normal) var(--lw-easing);
+}
+
+.lw-queue-card-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.lw-queue-card-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Card expansion animation */
+.lw-card-expand {
+  transition: transform var(--lw-duration-slow) var(--lw-easing);
+}
+
+.lw-card-expand-active {
+  transform: scale(1.02);
+}
+
+/* Context panel transition */
+.lw-context-panel {
+  transition: opacity var(--lw-duration-slower) var(--lw-easing),
+              width var(--lw-duration-slower) var(--lw-easing);
+}
+
+/* Modal backdrop blur */
+.lw-modal-backdrop {
+  backdrop-filter: blur(6px);
+  transition: opacity var(--lw-duration-slow) var(--lw-easing);
+}
+
+/* Notification slide-in */
+.lw-notification {
+  transition: transform var(--lw-duration-slow) var(--lw-easing),
+              opacity var(--lw-duration-slow) var(--lw-easing);
+}
+
+.lw-notification-enter {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.lw-notification-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Input focus glow */
+.lw-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.4); /* primary @ 40% opacity */
+}
+
+[data-theme="dark"] .lw-input:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+}
+
+/* Typography utilities */
+.lw-text-body {
+  font-family: var(--lw-font-body);
+  line-height: var(--lw-line-height-text);
+}
+
+.lw-text-heading {
+  font-family: var(--lw-font-heading);
+  line-height: var(--lw-line-height-heading);
+  letter-spacing: var(--lw-letter-spacing-heading);
+}
+
+/* Grid spacing - 8px base */
+.lw-grid {
+  gap: var(--lw-spacing-xs);
+}
+
+.lw-grid-md {
+  gap: var(--lw-spacing-md);
+}
+
+.lw-grid-lg {
+  gap: var(--lw-spacing-lg);
+}
+
+.lw-grid-xl {
+  gap: var(--lw-spacing-xl);
+}
+
+/* Vertical rhythm - 32px minimum */
+.lw-section {
+  margin-bottom: var(--lw-spacing-xl);
+}
+
+.lw-section:last-child {
+  margin-bottom: 0;
+}
+

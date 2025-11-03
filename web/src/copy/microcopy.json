@@ -1,0 +1,48 @@
+{
+  "greeting": "Your day is ready.",
+  "completion": "All clear for now.",
+  "reminder": "Next up, one quick thing.",
+  "success": "Done with clarity.",
+  "loading": "Preparing your workspace…",
+  "support": "Need context? I can summarize it.",
+  "empty": {
+    "queue": "Nothing queued. Your workspace is clear.",
+    "drafts": "No drafts yet. Start creating.",
+    "history": "No history yet.",
+    "automations": "No automations configured."
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "defer": "Defer",
+    "complete": "Complete",
+    "archive": "Archive"
+  },
+  "notifications": {
+    "saved": "Saved successfully",
+    "deleted": "Deleted",
+    "error": "Something went wrong. Please try again.",
+    "loading": "Processing…"
+  },
+  "placeholders": {
+    "search": "Search…",
+    "note": "Add a note…",
+    "comment": "Add a comment…"
+  },
+  "labels": {
+    "settings": "Settings",
+    "profile": "Profile",
+    "preferences": "Preferences",
+    "accessibility": "Accessibility",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "highContrast": "High Contrast",
+    "colorBlind": "Color Blind Safe"
+  }
+}
+
