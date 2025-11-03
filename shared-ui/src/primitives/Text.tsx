@@ -1,4 +1,4 @@
-import { createElement, forwardRef, type HTMLAttributes } from "react";
+import { createElement, forwardRef, type HTMLAttributes, type ElementType } from "react";
 import clsx from "clsx";
 import { typography } from "../tokens/typography";
 
@@ -6,7 +6,7 @@ export type TextVariant = "label" | "body" | "muted" | "caption";
 export type HeadingVariant = "title" | "subtitle" | "display";
 
 type BaseProps = HTMLAttributes<HTMLElement> & {
-  as?: keyof React.JSX.IntrinsicElements;
+  as?: ElementType;
 };
 
 export type TextProps = BaseProps & {
