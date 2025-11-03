@@ -3,6 +3,7 @@ import { Panel, Stack, Text, Button, Heading } from "@ygt-assistant/ui";
 import { useToday, useSettings } from "../../hooks/useHubData";
 import { ScheduleDayView } from "../ScheduleDayView";
 import { AltPlansPanel } from "../AltPlansPanel";
+import { Toast } from "../Toast";
 import { api } from "../../lib/api";
 
 interface TodayOverviewProps {
@@ -15,6 +16,7 @@ export function TodayOverview({ onEditInChat }: TodayOverviewProps) {
   const [alternatives, setAlternatives] = useState<any>(null);
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [expandedBlockId, setExpandedBlockId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string>("");
 
   const handleSuggestAlternatives = useCallback(async () => {
     try {
@@ -25,13 +27,13 @@ export function TodayOverview({ onEditInChat }: TodayOverviewProps) {
       setAlternatives(data);
       setShowAlternatives(true);
       
-      // Show toast notification (using browser alert for now - TODO: use proper toast)
+      // Show toast notification
       if (data?.plans && data.plans.length > 0) {
-        alert(`Found ${data.plans.length} alternative schedule${data.plans.length > 1 ? "s" : ""}`);
+        setToast(`Found ${data.plans.length} alternative schedule${data.plans.length > 1 ? "s" : ""}`);
       }
     } catch (err) {
       console.error("Failed to load alternatives:", err);
-      alert("Failed to load alternatives. Check console for details.");
+      setToast("Failed to load alternatives. Please try again.");
     }
   }, [schedule]);
 
@@ -140,6 +142,7 @@ export function TodayOverview({ onEditInChat }: TodayOverviewProps) {
           </div>
         </Stack>
       </Panel>
+      {toast && <Toast message={toast} onClose={() => setToast("")} />}
     </div>
   );
 }

@@ -2,6 +2,43 @@ import useSWR from "swr";
 import { api } from "../lib/api";
 
 /**
+ * Hook to fetch sync/connection status from /connections/ms/status
+ * Returns sync state: "synced", "syncing", or "error"
+ */
+export function useSyncStatus() {
+  const apiBase =
+    process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000";
+  return useSWR(
+    "/connections/ms/status",
+    () =>
+      fetch(`${apiBase}/connections/ms/status`, { credentials: "include" })
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data || !data.connected) {
+            return { state: "error" as const };
+          }
+          // Check sync history for most recent sync status
+          const syncHistory = data.sync_history || [];
+          if (syncHistory.length > 0) {
+            const lastSync = syncHistory[0];
+            if (lastSync.status === "ok") {
+              return { state: "synced" as const };
+            }
+            return { state: "error" as const };
+          }
+          // If connected but no sync history, assume synced
+          return { state: "synced" as const };
+        })
+        .catch(() => ({ state: "error" as const })),
+    {
+      refreshInterval: 60000, // Refresh every minute
+      revalidateOnFocus: true,
+      fallbackData: { state: "synced" as const },
+    }
+  );
+}
+
+/**
  * Hook to fetch summary data from /api/brief/today (includes weather/news)
  * Returns greeting, weather, news, and status flags
  */
@@ -36,10 +73,10 @@ export function useQueue(options?: { pollMs?: number }) {
 
 /**
  * Hook to fetch recent items from /api/summary/recent
- * Mocked for now - returns empty array
+ * Mocked for now - returns empty array until backend endpoint is implemented
  */
 export function useRecent() {
-  // TODO: Replace with actual endpoint when available
+  // TODO: Replace with actual endpoint when backend implements /api/summary/recent
   return useSWR(
     "/api/summary/recent",
     () => api.summaryRecent().catch(() => ({ ok: true, items: [] })),
