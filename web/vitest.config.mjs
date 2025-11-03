@@ -1,9 +1,16 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      jsxRuntime: "automatic",
+    }),
+  ],
   test: {
     globals: true,
     environment: "jsdom",
@@ -11,11 +18,13 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      react: path.resolve(process.cwd(), "./node_modules/react"),
-      "react-dom": path.resolve(process.cwd(), "./node_modules/react-dom"),
-      "react/jsx-runtime": path.resolve(process.cwd(), "./node_modules/react/jsx-runtime.js"),
-      "react/jsx-dev-runtime": path.resolve(process.cwd(), "./node_modules/react/jsx-dev-runtime.js"),
-      "@ygt-assistant/ui": path.resolve(process.cwd(), "../shared-ui/src"),
+      react: path.resolve(__dirname, "./node_modules/react"),
+      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
+      "@ygt-assistant/ui": path.resolve(__dirname, "../shared-ui/src"),
     },
   },
+  optimizeDeps: {
+    include: ["react", "react-dom"],
+  },
 });
+
