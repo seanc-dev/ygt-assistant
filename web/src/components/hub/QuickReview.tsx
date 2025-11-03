@@ -57,7 +57,7 @@ export function QuickReview() {
             size="sm"
             onClick={() => router.push("/history")}
           >
-            Yesterday's Wrap-up →
+            Yesterday&apos;s Wrap-up →
           </Button>
         </div>
 

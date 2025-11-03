@@ -78,7 +78,7 @@ export function TodayOverview({ onEditInChat }: TodayOverviewProps) {
         <Stack gap="md">
           <div className="flex justify-between items-center">
             <Heading as="h2" variant="title">
-              Today's Schedule
+              Today&apos;s Schedule
             </Heading>
             <Button variant="secondary" onClick={handleSuggestAlternatives} size="sm">
               Suggest 3 Alternatives
