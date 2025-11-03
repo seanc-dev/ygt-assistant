@@ -127,7 +127,7 @@ export function HotkeysSettingsModal({
                   ) : (
                     <>
                       <Button
-                        variant="secondary"
+                        variant="ghost"
                         onClick={() => setEditingKey(action)}
                         className="text-xs"
                         aria-label={`Current shortcut: ${formatKeyCombo(localHotkeys[action] || DEFAULT_HOTKEYS[action] || "")}`}
