@@ -1,42 +1,64 @@
 import { ButtonHTMLAttributes, forwardRef } from "react";
 import clsx from "clsx";
+import { radius } from "../tokens/radius";
+import { motion } from "../tokens/motion";
 
-export type ButtonVariant =
-  | "primary"
-  | "secondary"
-  | "subtle"
-  | "danger"
-  | "ghost";
+/**
+ * LucidWork Button Component
+ * 
+ * Variants:
+ * - solid (primary): Core actions
+ * - outline (secondary): Secondary actions
+ * - ghost (tertiary): Tertiary actions
+ * 
+ * Design: Rounded 4px, calm transitions, focus glow @ 40% opacity
+ */
+export type ButtonVariant = "solid" | "outline" | "ghost";
+export type ButtonSize = "sm" | "md" | "lg";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
-  size?: "sm" | "md";
+  size?: ButtonSize;
   block?: boolean;
 }
 
-const baseStyles =
-  "inline-flex items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed";
+const baseStyles = clsx(
+  "inline-flex items-center justify-center",
+  "font-medium transition-all",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+  "disabled:opacity-60 disabled:cursor-not-allowed",
+  "disabled:pointer-events-none"
+);
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary:
-    "border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 focus-visible:ring-indigo-500",
-  secondary:
-    "border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50 focus-visible:ring-indigo-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
-  subtle:
-    "border-transparent bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200 focus-visible:ring-indigo-500 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700",
-  danger:
-    "border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 focus-visible:ring-red-500",
-  ghost:
-    "border-transparent bg-transparent px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 focus-visible:ring-indigo-500 dark:text-indigo-300 dark:hover:bg-indigo-950/50",
+  solid: clsx(
+    "bg-[var(--lw-primary)] text-white",
+    "hover:opacity-90",
+    "focus-visible:ring-[var(--lw-primary)] focus-visible:ring-opacity-40",
+    "active:opacity-80"
+  ),
+  outline: clsx(
+    "border border-[var(--lw-border)] bg-[var(--lw-surface)] text-[var(--lw-neutral-text)]",
+    "hover:bg-[var(--lw-base)]",
+    "focus-visible:ring-[var(--lw-primary)] focus-visible:ring-opacity-40",
+    "dark:border-[var(--lw-border)] dark:bg-[var(--lw-surface)] dark:text-[var(--lw-neutral-text)]"
+  ),
+  ghost: clsx(
+    "bg-transparent text-[var(--lw-primary)]",
+    "hover:bg-[var(--lw-base)]",
+    "focus-visible:ring-[var(--lw-primary)] focus-visible:ring-opacity-40",
+    "active:opacity-80"
+  ),
 };
 
-const sizeStyles: Record<NonNullable<ButtonProps["size"]>, string> = {
-  sm: "text-xs px-3 py-1.5",
+const sizeStyles: Record<ButtonSize, string> = {
+  sm: "text-sm px-3 py-1.5",
   md: "text-sm px-4 py-2",
+  lg: "text-base px-6 py-3",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "primary", size = "md", className, block, ...props },
+  { variant = "solid", size = "md", className, block, style, ...props },
   ref
 ) {
   return (
@@ -49,6 +71,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         block && "w-full",
         className
       )}
+      style={{
+        borderRadius: radius.sm, // 4px
+        transitionDuration: motion.duration.normal, // 180ms
+        transitionTimingFunction: motion.easing.default,
+        ...style,
+      }}
       {...props}
     />
   );

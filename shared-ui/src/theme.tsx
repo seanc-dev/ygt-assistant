@@ -15,8 +15,8 @@ import { colors } from "./tokens/colors";
 
 const STORAGE_KEY = "ygt-assistant-theme";
 
-export type ThemePreference = "light" | "dark" | "system";
-export type Theme = "light" | "dark";
+export type ThemePreference = "light" | "dark" | "system" | "high-contrast" | "color-blind";
+export type Theme = "light" | "dark" | "high-contrast" | "color-blind";
 
 const themeVariables: Record<Theme, Record<string, string>> = {
   light: {
@@ -35,6 +35,16 @@ const themeVariables: Record<Theme, Record<string, string>> = {
     "--ds-status-success": colors.status.success,
     "--ds-status-warning": colors.status.warning,
     "--ds-status-danger": colors.status.danger,
+    // LucidWork tokens
+    "--lw-primary": colors.light.primary,
+    "--lw-secondary": colors.light.secondary,
+    "--lw-base": colors.light.base,
+    "--lw-neutral-text": colors.light.neutralText,
+    "--lw-neutral-muted": colors.light.neutralMuted,
+    "--lw-success": colors.light.success,
+    "--lw-warning": colors.light.warning,
+    "--lw-surface": colors.light.surface,
+    "--lw-error": colors.light.error,
   },
   dark: {
     "--ds-surface": colors.background.surfaceDark,
@@ -52,6 +62,70 @@ const themeVariables: Record<Theme, Record<string, string>> = {
     "--ds-status-success": colors.status.successDark,
     "--ds-status-warning": colors.status.warningDark,
     "--ds-status-danger": colors.status.dangerDark,
+    // LucidWork tokens
+    "--lw-primary": colors.dark.primary,
+    "--lw-secondary": colors.dark.secondary,
+    "--lw-base": colors.dark.base,
+    "--lw-neutral-text": colors.dark.textPrimary,
+    "--lw-neutral-muted": colors.dark.textMuted,
+    "--lw-success": colors.dark.success,
+    "--lw-warning": colors.dark.warning,
+    "--lw-surface": colors.dark.surface,
+    "--lw-error": colors.dark.error,
+  },
+  "high-contrast": {
+    "--ds-surface": colors.highContrast.base,
+    "--ds-surface-muted": colors.highContrast.base,
+    "--ds-surface-calm": colors.highContrast.base,
+    "--ds-text-primary": colors.highContrast.textPrimary,
+    "--ds-text-secondary": colors.highContrast.textPrimary,
+    "--ds-text-subtle": colors.highContrast.textPrimary,
+    "--ds-text-accent": colors.highContrast.accent1,
+    "--ds-border-subtle": colors.highContrast.textPrimary,
+    "--ds-border-prominent": colors.highContrast.textPrimary,
+    "--ds-brand": colors.highContrast.accent1,
+    "--ds-brand-contrast": colors.highContrast.base,
+    "--ds-status-info": colors.highContrast.accent1,
+    "--ds-status-success": colors.highContrast.success,
+    "--ds-status-warning": colors.highContrast.accent2,
+    "--ds-status-danger": colors.highContrast.error,
+    // LucidWork tokens
+    "--lw-primary": colors.highContrast.accent1,
+    "--lw-secondary": colors.highContrast.accent2,
+    "--lw-base": colors.highContrast.base,
+    "--lw-neutral-text": colors.highContrast.textPrimary,
+    "--lw-neutral-muted": colors.highContrast.textPrimary,
+    "--lw-success": colors.highContrast.success,
+    "--lw-warning": colors.highContrast.accent2,
+    "--lw-surface": colors.highContrast.base,
+    "--lw-error": colors.highContrast.error,
+  },
+  "color-blind": {
+    "--ds-surface": colors.colorBlind.background,
+    "--ds-surface-muted": colors.colorBlind.background,
+    "--ds-surface-calm": colors.colorBlind.background,
+    "--ds-text-primary": colors.text.primary,
+    "--ds-text-secondary": colors.text.secondary,
+    "--ds-text-subtle": colors.text.subtle,
+    "--ds-text-accent": colors.colorBlind.primary,
+    "--ds-border-subtle": colors.border.subtle,
+    "--ds-border-prominent": colors.colorBlind.primary,
+    "--ds-brand": colors.colorBlind.primary,
+    "--ds-brand-contrast": colors.brand.contrast,
+    "--ds-status-info": colors.colorBlind.info,
+    "--ds-status-success": colors.colorBlind.success,
+    "--ds-status-warning": colors.colorBlind.warning,
+    "--ds-status-danger": colors.colorBlind.error,
+    // LucidWork tokens
+    "--lw-primary": colors.colorBlind.primary,
+    "--lw-secondary": colors.colorBlind.info,
+    "--lw-base": colors.colorBlind.background,
+    "--lw-neutral-text": colors.text.primary,
+    "--lw-neutral-muted": colors.text.secondary,
+    "--lw-success": colors.colorBlind.success,
+    "--lw-warning": colors.colorBlind.warning,
+    "--lw-surface": colors.colorBlind.background,
+    "--lw-error": colors.colorBlind.error,
   },
 };
 
@@ -78,7 +152,14 @@ function applyTheme(theme: Theme) {
   const root = window.document.documentElement;
   root.classList.toggle("dark", theme === "dark");
   root.dataset.theme = theme;
-  root.style.colorScheme = theme;
+  
+  // Set color-scheme only for light/dark modes
+  if (theme === "light" || theme === "dark") {
+    root.style.colorScheme = theme;
+  } else {
+    root.style.colorScheme = "light";
+  }
+  
   const vars = themeVariables[theme];
   Object.entries(vars).forEach(([key, value]) => {
     root.style.setProperty(key, value);
@@ -102,8 +183,8 @@ export const ThemeProvider: FC<ThemeProviderProps> = ({
   useEffect(() => {
     if (!isBrowser()) return;
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored === "light" || stored === "dark") {
-      setThemeState(stored);
+    if (stored === "light" || stored === "dark" || stored === "high-contrast" || stored === "color-blind") {
+      setThemeState(stored as ThemePreference);
     } else if (stored === "system") {
       setThemeState("system");
     }
@@ -114,8 +195,12 @@ export const ThemeProvider: FC<ThemeProviderProps> = ({
       ? window.matchMedia("(prefers-color-scheme: dark)")
       : null;
 
-    const resolve = (value: ThemePreference): Theme =>
-      value === "system" ? (mediaQuery?.matches ? "dark" : "light") : value;
+    const resolve = (value: ThemePreference): Theme => {
+      if (value === "system") {
+        return mediaQuery?.matches ? "dark" : "light";
+      }
+      return value as Theme;
+    };
 
     const nextTheme = resolve(theme);
     setResolvedTheme(nextTheme);
@@ -145,8 +230,18 @@ export const ThemeProvider: FC<ThemeProviderProps> = ({
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setTheme(resolvedTheme === "dark" ? "light" : "dark");
-  }, [resolvedTheme, setTheme]);
+    // Cycle through: light -> dark -> light
+    if (theme === "system") {
+      setTheme(resolvedTheme === "dark" ? "light" : "dark");
+    } else if (theme === "light") {
+      setTheme("dark");
+    } else if (theme === "dark") {
+      setTheme("light");
+    } else {
+      // For special modes, default to light
+      setTheme("light");
+    }
+  }, [theme, resolvedTheme, setTheme]);
 
   const contextValue = useMemo<ThemeContextValue>(
     () => ({ theme, resolvedTheme, setTheme, toggleTheme }),
