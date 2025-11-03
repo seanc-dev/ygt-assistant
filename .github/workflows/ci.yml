@@ -41,6 +41,26 @@ jobs:
             tests/services/test_providers_flags_routing.py \
             tests/services/test_microsoft_email.py \
             tests/services/test_microsoft_calendar.py
+  design-system-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+      - name: Run scoped LucidWork design system tests
+        if: github.ref != 'refs/heads/main'
+        working-directory: web
+        run: npm run test -- -t "LucidWork Design System"
+      - name: Run full web test suite
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: web
+        run: npm run test
   agent-evals:
     if: false # disabled (legacy e2e not maintained)
     runs-on: ubuntu-latest

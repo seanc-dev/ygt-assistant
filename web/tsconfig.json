@@ -14,7 +14,7 @@
     "jsx": "preserve",
     "forceConsistentCasingInFileNames": true,
     "incremental": true,
-    "types": ["node", "react", "react-dom"],
+    "types": ["node", "react", "react-dom", "vitest/globals"],
     "plugins": [
       {
         "name": "next"
@@ -25,6 +25,8 @@
     "src",
     "../shared-ui/src/**/*.ts",
     "../shared-ui/src/**/*.tsx",
+    "../components/ui/**/*.ts",
+    "../components/ui/**/*.tsx",
     "next-env.d.ts",
     ".next/types/**/*.ts"
   ],

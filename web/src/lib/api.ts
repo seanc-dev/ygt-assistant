@@ -90,6 +90,10 @@ export const api = {
   updateSettings: (data: any) =>
     req("/api/settings", { method: "PUT", body: JSON.stringify(data) }),
   statusFlags: () => req("/api/status/flags"),
+  // Profile
+  profile: () => req("/api/profile"),
+  // Summary (using brief endpoint which includes weather/news)
+  summaryRecent: () => req("/api/summary/recent").catch(() => ({ ok: true, items: [] })),
   // Queue actions
   deferAction: (actionId: string, body: { bucket: string }) =>
     req(`/api/queue/${encodeURIComponent(actionId)}/defer`, {
