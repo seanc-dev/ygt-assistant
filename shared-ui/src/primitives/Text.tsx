@@ -6,7 +6,7 @@ export type TextVariant = "label" | "body" | "muted" | "caption";
 export type HeadingVariant = "title" | "subtitle" | "display";
 
 type BaseProps = HTMLAttributes<HTMLElement> & {
-  as?: keyof JSX.IntrinsicElements;
+  as?: keyof React.JSX.IntrinsicElements;
 };
 
 export type TextProps = BaseProps & {
