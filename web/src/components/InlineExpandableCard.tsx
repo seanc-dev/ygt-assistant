@@ -24,19 +24,23 @@ export function InlineExpandableCard({
 
   return (
     <div
-      className={`rounded-lg border transition-all ${
+      className={`rounded-lg border transition-all duration-200 ease-in-out ${
         expanded ? "col-span-full" : ""
       }`}
       style={{
         maxHeight: expanded ? `${maxHeight}px` : "none",
         overflow: expanded ? "auto" : "visible",
+        transition: "max-height 0.2s ease-in-out, transform 0.2s ease-in-out",
       }}
     >
-      <div onClick={handleToggle} className="cursor-pointer p-4">
+      <div onClick={handleToggle} className="cursor-pointer p-4 hover:bg-gray-50 transition-colors duration-150">
         {preview}
       </div>
       {expanded && (
-        <div className="p-4 border-t" style={{ maxHeight: `${maxHeight - 100}px`, overflow: "auto" }}>
+        <div 
+          className="p-4 border-t animate-in fade-in duration-200" 
+          style={{ maxHeight: `${maxHeight - 100}px`, overflow: "auto" }}
+        >
           {children}
         </div>
       )}

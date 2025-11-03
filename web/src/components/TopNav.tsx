@@ -3,9 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
 const items = [
-  { href: "/hub/queue", label: "Queue" },
-  { href: "/hub/schedule", label: "Schedule" },
-  { href: "/hub/brief", label: "Brief" },
+  { href: "/hub", label: "Hub" },
   { href: "/workroom", label: "Workroom" },
   { href: "/history", label: "History" },
   { href: "/settings", label: "Settings" },
