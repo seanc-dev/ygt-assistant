@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, type HTMLAttributes } from "react";
 import clsx from "clsx";
 import { Box } from "./Box";
 import { Heading, Text } from "./Text";
@@ -15,7 +15,7 @@ import { motion } from "../tokens/motion";
  * - Inline expansion to chat: scale 1 → 1.02 (200ms), then fade content in
  * - Radius: 6px for cards/panels
  */
-export type PanelProps = {
+export type PanelProps = HTMLAttributes<HTMLDivElement> & {
   title?: string;
   subtitle?: string;
   kicker?: string;
@@ -23,8 +23,6 @@ export type PanelProps = {
   tone?: "default" | "soft" | "calm";
   actions?: ReactNode;
   footer?: ReactNode;
-  children?: ReactNode;
-  className?: string;
   hoverable?: boolean;
   expandable?: boolean;
 };
@@ -56,6 +54,7 @@ export function Panel({
   className,
   hoverable = false,
   expandable = false,
+  ...htmlProps
 }: PanelProps) {
   return (
     <Box
@@ -74,6 +73,7 @@ export function Panel({
         transitionDuration: hoverable ? motion.duration.fast : motion.duration.normal,
         transitionTimingFunction: motion.easing.default,
       }}
+      {...htmlProps}
     >
       {(kicker || title || subtitle || actions) && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
