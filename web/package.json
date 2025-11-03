@@ -1,6 +1,7 @@
 {
   "name": "ygt-admin-ui",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",
@@ -18,16 +19,17 @@
     "swr": "^2.3.0"
   },
   "devDependencies": {
-    "@types/node": "24.3.1",
-    "@types/react": "19.1.13",
-    "@types/react-dom": "19.1.9",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.1.0",
     "@testing-library/user-event": "14.5.1",
+    "@types/node": "24.3.1",
+    "@types/react": "19.1.13",
+    "@types/react-dom": "19.1.9",
+    "@vitejs/plugin-react": "^5.1.0",
     "autoprefixer": "10.4.16",
-    "jsdom": "25.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
+    "jsdom": "25.0.0",
     "postcss": "8.4.31",
     "tailwindcss": "3.4.1",
     "typescript": "5.6.3",
