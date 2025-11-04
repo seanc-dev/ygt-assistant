@@ -403,9 +403,13 @@ export function ActionCard({
           </h3>
 
           {/* Subtext */}
-          <p className={`text-sm text-slate-500 transition-all duration-200 ${
-            expanded ? "mb-0" : "mb-3"
-          }`}>{item.action_label}</p>
+          <p
+            className={`text-sm text-slate-500 transition-all duration-200 ${
+              expanded ? "mb-0" : "mb-3"
+            }`}
+          >
+            {item.action_label}
+          </p>
 
           {/* Hover hint - left-aligned with text content, transitions with quick actions */}
           {!expanded && (
@@ -420,8 +424,11 @@ export function ActionCard({
           )}
 
           {/* Collapsed toolbar - Defer, Schedule, Add to Today, Overflow */}
-          {!expanded && (
-            <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200 flex items-center gap-2 justify-end relative mt-2">
+          <div className={`transition-all duration-200 flex items-center gap-2 justify-end relative ${
+            expanded 
+              ? "opacity-0 max-h-0 overflow-hidden mt-0 pointer-events-none" 
+              : "opacity-0 group-hover:opacity-100 focus-within:opacity-100 mt-2"
+          }`}>
             <div className="relative">
               <button
                 data-menu-trigger
@@ -435,64 +442,9 @@ export function ActionCard({
                 <ArrowRight24Regular />
               </button>
               {!expanded && openMenu === "defer-collapsed" && (
-                <div
-                  key="defer-collapsed"
-                  ref={deferMenuRefCollapsed}
-                  className="absolute right-0 top-full mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black/5 z-20"
-                  onClick={(e) => e.stopPropagation()}
-                  onMouseDown={(e) => e.stopPropagation()}
-                >
-                  <button
-                    onClick={() => handleDeferClick("afternoon")}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
-                  >
-                    Afternoon
-                  </button>
-                  <button
-                    onClick={() => handleDeferClick("tomorrow")}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
-                  >
-                    Tomorrow
-                  </button>
-                  <button
-                    onClick={() => handleDeferClick("this_week")}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
-                  >
-                    This Week
-                  </button>
-                  <button
-                    onClick={() => handleDeferClick("next_week")}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
-                  >
-                    Next Week
-                  </button>
-                </div>
-              )}
-            </div>
-            {!expanded && (
-              <div className="relative">
-                <button
-                  data-menu-trigger
-                  data-schedule-button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOpenMenu(openMenu === "schedule" ? null : "schedule");
-                  }}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  aria-label="Schedule"
-                  className="text-slate-500 hover:text-slate-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded-md p-1.5"
-                  title="Schedule"
-                >
-                  <Clock24Regular />
-                </button>
-                {openMenu === "schedule" && (
                   <div
-                    key="schedule-collapsed"
-                    ref={scheduleMenuRefCollapsed}
+                    key="defer-collapsed"
+                    ref={deferMenuRefCollapsed}
                     className="absolute right-0 top-full mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black/5 z-20"
                     onClick={(e) => e.stopPropagation()}
                     onMouseDown={(e) => e.stopPropagation()}
@@ -528,102 +480,157 @@ export function ActionCard({
                   </div>
                 )}
               </div>
-            )}
-            <div className="relative">
-              <button
-                data-menu-trigger
-                data-add-to-today-button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOpenMenu(
-                    openMenu === "add-to-today" ? null : "add-to-today"
-                  );
-                }}
-                onMouseDown={(e) => e.stopPropagation()}
-                aria-label="Add to Today"
-                className="text-slate-500 hover:text-slate-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded-md p-1.5"
-                title="Add to Today"
-              >
-                <Pin24Regular />
-              </button>
-              {!expanded && openMenu === "add-to-today" && (
-                <div
-                  key="add-to-today-collapsed"
-                  ref={addToTodayMenuRef}
-                  className="absolute right-0 top-full mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black/5 z-20"
-                  onClick={(e) => e.stopPropagation()}
-                  onMouseDown={(e) => e.stopPropagation()}
-                >
+              {!expanded && (
+                <div className="relative">
                   <button
-                    onClick={() => handleAddToTodayScheduleClick("focus_30m")}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
-                  >
-                    Focus 30m
-                  </button>
-                  <button
-                    onClick={() => handleAddToTodayScheduleClick("focus_60m")}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
-                  >
-                    Focus 60m
-                  </button>
-                  <button
-                    onClick={() =>
-                      handleAddToTodayScheduleClick("block_pm_admin")
-                    }
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
-                  >
-                    Block PM Admin
-                  </button>
-                  <button
-                    onClick={() => handleAddToTodayScheduleClick("pick_time")}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
-                  >
-                    Pick time…
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="relative">
-              <button
-                data-menu-trigger
-                data-overflow-button
-                onClick={handleToggleOverflow}
-                onMouseDown={(e) => e.stopPropagation()}
-                aria-label="More actions"
-                className="text-slate-500 hover:text-slate-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded-md p-1.5"
-                title="More actions"
-              >
-                <MoreHorizontal24Regular />
-              </button>
-              {openMenu === "overflow" && (
-                <div
-                  key="overflow-menu"
-                  ref={overflowMenuRef}
-                  className="absolute right-0 top-full mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black/5 z-20"
-                  onClick={(e) => e.stopPropagation()}
-                  onMouseDown={(e) => e.stopPropagation()}
-                >
-                  <button
-                    onClick={async (e) => {
+                    data-menu-trigger
+                    data-schedule-button
+                    onClick={(e) => {
                       e.stopPropagation();
-                      setOpenMenu(null);
-                      await handleCreateTaskClick();
+                      setOpenMenu(openMenu === "schedule" ? null : "schedule");
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50 flex items-center gap-2"
+                    aria-label="Schedule"
+                    className="text-slate-500 hover:text-slate-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded-md p-1.5"
+                    title="Schedule"
                   >
-                    <Add24Regular className="w-4 h-4" />
-                    Add as Task
+                    <Clock24Regular />
                   </button>
+                  {openMenu === "schedule" && (
+                    <div
+                      key="schedule-collapsed"
+                      ref={scheduleMenuRefCollapsed}
+                      className="absolute right-0 top-full mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black/5 z-20"
+                      onClick={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={() => handleDeferClick("afternoon")}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                      >
+                        Afternoon
+                      </button>
+                      <button
+                        onClick={() => handleDeferClick("tomorrow")}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                      >
+                        Tomorrow
+                      </button>
+                      <button
+                        onClick={() => handleDeferClick("this_week")}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                      >
+                        This Week
+                      </button>
+                      <button
+                        onClick={() => handleDeferClick("next_week")}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                      >
+                        Next Week
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
+              <div className="relative">
+                <button
+                  data-menu-trigger
+                  data-add-to-today-button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenMenu(
+                      openMenu === "add-to-today" ? null : "add-to-today"
+                    );
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  aria-label="Add to Today"
+                  className="text-slate-500 hover:text-slate-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded-md p-1.5"
+                  title="Add to Today"
+                >
+                  <Pin24Regular />
+                </button>
+                {!expanded && openMenu === "add-to-today" && (
+                  <div
+                    key="add-to-today-collapsed"
+                    ref={addToTodayMenuRef}
+                    className="absolute right-0 top-full mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black/5 z-20"
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={() => handleAddToTodayScheduleClick("focus_30m")}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                    >
+                      Focus 30m
+                    </button>
+                    <button
+                      onClick={() => handleAddToTodayScheduleClick("focus_60m")}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                    >
+                      Focus 60m
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleAddToTodayScheduleClick("block_pm_admin")
+                      }
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                    >
+                      Block PM Admin
+                    </button>
+                    <button
+                      onClick={() => handleAddToTodayScheduleClick("pick_time")}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                    >
+                      Pick time…
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="relative">
+                <button
+                  data-menu-trigger
+                  data-overflow-button
+                  onClick={handleToggleOverflow}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  aria-label="More actions"
+                  className="text-slate-500 hover:text-slate-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded-md p-1.5"
+                  title="More actions"
+                >
+                  <MoreHorizontal24Regular />
+                </button>
+                {openMenu === "overflow" && (
+                  <div
+                    key="overflow-menu"
+                    ref={overflowMenuRef}
+                    className="absolute right-0 top-full mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black/5 z-20"
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        setOpenMenu(null);
+                        await handleCreateTaskClick();
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50 flex items-center gap-2"
+                    >
+                      <Add24Regular className="w-4 h-4" />
+                      Add as Task
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          )}
         </div>
       </div>
 
