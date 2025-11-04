@@ -27,7 +27,7 @@ export default function OAuthError() {
             {reason ? `Reason: ${reason}` : "An unknown error occurred."}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <Button onClick={closeWindow} className="min-w-[140px]" variant="secondary">
+            <Button onClick={closeWindow} className="min-w-[140px]" variant="outline">
               Close window
             </Button>
             <Link
