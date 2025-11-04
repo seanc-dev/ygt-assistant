@@ -42,10 +42,9 @@ export function TopNav() {
     try {
       const result = await api.seedDevData();
       console.log("Seeded dev data:", result);
-      // Use router.replace to refresh without full page reload
-      setTimeout(() => {
-        router.replace(router.asPath);
-      }, 100);
+      // Trigger a soft refresh by navigating to the same route
+      // This will cause SWR to revalidate without full page reload
+      router.replace(router.asPath);
     } catch (error) {
       console.error("Failed to seed dev data:", error);
       alert("Failed to seed dev data. Check console for details.");
