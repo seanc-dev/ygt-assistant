@@ -26,7 +26,10 @@ export function InlineExpandableCard({
     <div
       className={`rounded-lg border transition-all duration-200 ease-in-out ${
         expanded ? "col-span-full" : ""
-      }`}
+      } ${className || ""}`}
+      role={role}
+      aria-posinset={ariaPosinset}
+      aria-setsize={ariaSetsize}
       style={{
         maxHeight: expanded ? `${maxHeight}px` : "none",
         overflow: expanded ? "auto" : "visible",

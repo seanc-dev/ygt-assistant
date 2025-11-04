@@ -53,7 +53,7 @@ export function QuickReview() {
             Quick Review
           </Heading>
           <Button
-            variant="secondary"
+            variant="outline"
             size="sm"
             onClick={() => router.push("/history")}
           >
@@ -94,7 +94,7 @@ export function QuickReview() {
 
         <div className="pt-2 border-t">
           <Button
-            variant="secondary"
+            variant="outline"
             size="sm"
             onClick={() => router.push("/workroom")}
             className="w-full"

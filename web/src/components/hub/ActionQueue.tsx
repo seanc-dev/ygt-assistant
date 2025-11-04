@@ -151,7 +151,7 @@ export function ActionQueue() {
                         onAddToToday={(kind) => handleAddToToday(item.action_id, kind)}
                       />
                       <Button
-                        variant="secondary"
+                        variant="outline"
                         size="sm"
                         onClick={() => handleChat(item.action_id, item.thread_id)}
                       >

@@ -80,7 +80,7 @@ export function TodayOverview({ onEditInChat }: TodayOverviewProps) {
             <Heading as="h2" variant="title">
               Today&apos;s Schedule
             </Heading>
-            <Button variant="secondary" onClick={handleSuggestAlternatives} size="sm">
+            <Button variant="outline" onClick={handleSuggestAlternatives} size="sm">
               Suggest 3 Alternatives
             </Button>
           </div>
