@@ -14,6 +14,7 @@ import {
   Clock24Regular,
   MoreHorizontal24Regular,
 } from "@fluentui/react-icons";
+import { InlineChat } from "./InlineChat";
 
 type ActionCardProps = {
   item: {
@@ -77,11 +78,21 @@ export function ActionCard({
 }: ActionCardProps) {
   const router = useRouter();
   const [openMenu, setOpenMenu] = useState<MenuType>(null);
+  const [threadId, setThreadId] = useState<string | null>(
+    item.thread_id || null
+  );
   const deferMenuRefCollapsed = useRef<HTMLDivElement>(null);
   const deferMenuRefExpanded = useRef<HTMLDivElement>(null);
   const scheduleMenuRefExpanded = useRef<HTMLDivElement>(null);
   const addToTodayMenuRef = useRef<HTMLDivElement>(null);
   const overflowMenuRef = useRef<HTMLDivElement>(null);
+
+  // Sync thread_id from item prop
+  useEffect(() => {
+    if (item.thread_id) {
+      setThreadId(item.thread_id);
+    }
+  }, [item.thread_id]);
 
   // Close menus when card expands/collapses
   useEffect(() => {
@@ -273,9 +284,22 @@ export function ActionCard({
     [openMenu, item.action_id]
   );
 
-  const handleOpenInWorkroom = () => {
-    router.push("/workroom");
-  };
+  const handleOpenInWorkroom = useCallback(
+    (threadId?: string) => {
+      if (threadId) {
+        router.push(`/workroom?thread=${threadId}`);
+      } else {
+        router.push("/workroom");
+      }
+    },
+    [router]
+  );
+
+  const handleThreadCreated = useCallback((newThreadId: string) => {
+    setThreadId(newThreadId);
+    // TODO: Update the item's thread_id in the parent component/queue
+    // This would typically be done via a callback prop or state management
+  }, []);
 
   const sourceColor = SOURCE_COLORS[item.source];
   const priorityStyle = PRIORITY_STYLES[item.priority];
@@ -641,25 +665,22 @@ export function ActionCard({
           </div>
 
           {/* Content area */}
-          <div className="space-y-4 max-h-[calc(60vh-180px)] overflow-y-auto">
-            {/* Inline Chat preview */}
-            <div className="rounded-lg border border-slate-200 p-4 bg-white">
-              <div className="mb-2 text-sm font-medium text-slate-700">
-                Inline Chat
-              </div>
-              <div className="mb-2 text-xs text-slate-500">Stub - Phase 0</div>
-              {item.thread_id && (
-                <div className="text-xs text-slate-500 mb-2">
-                  Thread: {item.thread_id}
-                </div>
-              )}
-              <button
-                onClick={handleOpenInWorkroom}
-                className="text-xs text-blue-600 hover:text-blue-700 underline focus:outline-none focus:ring-2 focus:ring-blue-300 rounded"
-              >
-                Open in Workroom
-              </button>
-            </div>
+          <div
+            className="space-y-4 max-h-[calc(60vh-180px)] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <InlineChat
+              actionId={item.action_id}
+              threadId={threadId}
+              summary={item.preview}
+              meta={{
+                from: item.source,
+                threadLen: undefined, // TODO: Get from thread data if available
+                lastAt: undefined, // TODO: Get from thread data if available
+              }}
+              onThreadCreated={handleThreadCreated}
+              onOpenWorkroom={handleOpenInWorkroom}
+            />
           </div>
         </div>
       </div>

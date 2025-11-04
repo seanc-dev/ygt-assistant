@@ -112,7 +112,7 @@ export function ActionQueue() {
 
   const handleChat = useCallback((actionId: string) => {
     // Expand the card to show chat
-    setExpandedId((prev) => (prev === actionId ? null : actionId));
+    setExpandedId(actionId);
   }, []);
 
   const handleCreateTask = useCallback(
