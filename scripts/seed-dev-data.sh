@@ -36,3 +36,4 @@ echo "Queue has $TOTAL total items"
 echo ""
 echo "🎉 Done! Visit http://localhost:3001/hub to see the data"
 
+
