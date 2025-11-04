@@ -277,7 +277,7 @@ export default function ChatPage() {
                         To: {entry.to.length ? entry.to.join(", ") : "Not set"}
                       </Text>
                       <Stack direction="horizontal" gap="sm" wrap>
-                        <Button variant="secondary" onClick={() => setToast("Draft opened in editor") }>
+                        <Button variant="outline" onClick={() => setToast("Draft opened in editor") }>
                           Open draft
                         </Button>
                         <Button variant="ghost" onClick={() => setToast("Undo via drafts history") }>
