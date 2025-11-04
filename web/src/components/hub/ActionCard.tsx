@@ -196,10 +196,12 @@ export function ActionCard({
     async (
       preset: "focus_30m" | "focus_60m" | "block_pm_admin" | "pick_time"
     ) => {
+      // Call both handlers: add to today and schedule with the selected preset
+      await onAddToToday(item.action_id);
       await onSchedule(item.action_id, preset);
       setOpenMenu(null);
     },
-    [item.action_id, onSchedule]
+    [item.action_id, onAddToToday, onSchedule]
   );
 
   const handleToggleAddToToday = useCallback(
