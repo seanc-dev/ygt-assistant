@@ -10,6 +10,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@fluentui/react-icons": "^2.0.313",
     "@ygt-assistant/ui": "file:../shared-ui",
     "clsx": "^2.1.1",
     "next": "15.5.3",
