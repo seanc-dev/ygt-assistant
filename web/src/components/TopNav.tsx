@@ -41,12 +41,13 @@ export function TopNav() {
     try {
       const result = await api.seedDevData();
       console.log("Seeded dev data:", result);
-      // Refresh the page to show new data
-      window.location.reload();
+      // Use router.reload with a small delay to avoid potential hangs
+      setTimeout(() => {
+        router.reload();
+      }, 100);
     } catch (error) {
       console.error("Failed to seed dev data:", error);
       alert("Failed to seed dev data. Check console for details.");
-    } finally {
       setIsSeeding(false);
     }
   };
