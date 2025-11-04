@@ -42,9 +42,9 @@ export function TopNav() {
     try {
       const result = await api.seedDevData();
       console.log("Seeded dev data:", result);
-      // Use router.reload with a small delay to avoid potential hangs
+      // Use router.replace to refresh without full page reload
       setTimeout(() => {
-        router.reload();
+        router.replace(router.asPath);
       }, 100);
     } catch (error) {
       console.error("Failed to seed dev data:", error);

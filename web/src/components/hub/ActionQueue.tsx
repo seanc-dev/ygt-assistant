@@ -171,7 +171,7 @@ export function ActionQueue() {
 
             {hasMore && (
               <div className="flex justify-center pt-4">
-                <Button onClick={handleLoadMore} variant="secondary">
+                <Button onClick={handleLoadMore} variant="outline">
                   Load more ({queue.total - visibleCount} remaining)
                 </Button>
               </div>
