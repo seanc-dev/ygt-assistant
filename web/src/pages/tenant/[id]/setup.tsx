@@ -436,7 +436,7 @@ export default function Setup() {
             </div>
             <div className="mt-4">
               <Button
-                variant="secondary"
+                variant="outline"
                 onClick={parseNotionLinkAny}
                 type="button"
               >

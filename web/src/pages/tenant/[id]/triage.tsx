@@ -102,7 +102,7 @@ export default function Triage() {
               </Button>
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
                 onClick={() => {
                   setForm(defaultForm);
                   setResult(null);
