@@ -63,17 +63,6 @@ export function TopNav() {
         className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3 sm:px-6 overflow-x-auto"
         aria-label="Primary"
       >
-        {/* Seed Dev Data Button (dev only) */}
-        {process.env.NODE_ENV === "development" && (
-          <button
-            onClick={handleSeedDevData}
-            disabled={isSeeding}
-            className="rounded px-3 py-1.5 text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title="Seed dev data (queue items, schedule blocks)"
-          >
-            {isSeeding ? "Seeding..." : "🌱 Seed"}
-          </button>
-        )}
         {items.map((it) => {
           const active =
             pathname === it.href || pathname.startsWith(it.href + "/");
@@ -102,6 +91,19 @@ export function TopNav() {
             </Link>
           );
         })}
+        {/* Seed Dev Data Button (dev only) - moved to right side */}
+        {process.env.NODE_ENV === "development" && (
+          <div className="ml-auto">
+            <button
+              onClick={handleSeedDevData}
+              disabled={isSeeding}
+              className="rounded px-3 py-1.5 text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Seed dev data (queue items, schedule blocks)"
+            >
+              {isSeeding ? "Seeding..." : "🌱 Seed"}
+            </button>
+          </div>
+        )}
       </nav>
     </header>
   );
