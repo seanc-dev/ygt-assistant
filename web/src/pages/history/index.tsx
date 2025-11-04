@@ -103,7 +103,7 @@ export default function HistoryPage() {
             {ACTION_TYPES.map((actionType) => (
               <Button
                 key={actionType}
-                variant={filter === actionType ? "primary" : "secondary"}
+                variant={filter === actionType ? "primary" : "outline"}
                 onClick={() => setFilter(actionType)}
                 className="text-xs"
               >
