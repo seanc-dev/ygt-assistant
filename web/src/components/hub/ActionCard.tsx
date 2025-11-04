@@ -234,12 +234,10 @@ export function ActionCard({
   const handleChatClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (!expanded) {
-        onToggleExpand(item.action_id);
-      }
+      // onOpenChat already handles expanding/collapsing the card
       onOpenChat(item.action_id);
     },
-    [expanded, item.action_id, onOpenChat, onToggleExpand]
+    [item.action_id, onOpenChat]
   );
 
   // Menu toggle handlers
