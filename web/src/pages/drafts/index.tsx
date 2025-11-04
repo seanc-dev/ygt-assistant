@@ -167,7 +167,7 @@ export default function DraftsPage() {
                     </Text>
                     <Stack direction="horizontal" gap="sm" wrap>
                       <Button onClick={() => sendViaOutlook(draft.id)}>Send via Outlook</Button>
-                      <Button variant="secondary" onClick={() => sendViaTeams(draft.id)}>
+                      <Button variant="outline" onClick={() => sendViaTeams(draft.id)}>
                         Share to Teams
                       </Button>
                       <Button variant="ghost" onClick={() => setToast("Undo via history")}>Undo</Button>
