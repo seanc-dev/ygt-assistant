@@ -157,7 +157,7 @@ export default function ReviewPage() {
             {FILTERS.map((item) => (
               <Button
                 key={item.key}
-                variant={filter === item.key ? "secondary" : "ghost"}
+                variant={filter === item.key ? "outline" : "ghost"}
                 onClick={() => setFilter(item.key)}
                 disabled={loading && filter === item.key}
               >
