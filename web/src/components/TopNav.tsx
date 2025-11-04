@@ -11,7 +11,8 @@ const items = [
 ];
 
 export function TopNav() {
-  const { pathname } = useRouter();
+  const router = useRouter();
+  const { pathname } = router;
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "unknown">(
     "unknown"
   );
