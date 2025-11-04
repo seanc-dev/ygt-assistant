@@ -5,6 +5,10 @@ interface InlineExpandableCardProps {
   preview: ReactNode;
   expanded?: boolean;
   onToggle?: () => void;
+  className?: string;
+  role?: string;
+  "aria-posinset"?: number;
+  "aria-setsize"?: number;
 }
 
 export function InlineExpandableCard({
@@ -12,6 +16,10 @@ export function InlineExpandableCard({
   preview,
   expanded: controlledExpanded,
   onToggle,
+  className,
+  role,
+  "aria-posinset": ariaPosinset,
+  "aria-setsize": ariaSetsize,
 }: InlineExpandableCardProps) {
   const [internalExpanded, setInternalExpanded] = useState(false);
   const expanded = controlledExpanded ?? internalExpanded;
