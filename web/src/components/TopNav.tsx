@@ -42,9 +42,14 @@ export function TopNav() {
     try {
       const result = await api.seedDevData();
       console.log("Seeded dev data:", result);
-      // Trigger a soft refresh by navigating to the same route
-      // This will cause SWR to revalidate without full page reload
-      router.replace(router.asPath);
+      // SWR will automatically revalidate on focus/interval
+      // No need to force reload - just reset loading state
+      setIsSeeding(false);
+      // Give user feedback that data was seeded
+      if (typeof window !== "undefined") {
+        // Trigger a custom event that SWR components can listen to
+        window.dispatchEvent(new Event("seed-data-complete"));
+      }
     } catch (error) {
       console.error("Failed to seed dev data:", error);
       alert("Failed to seed dev data. Check console for details.");
