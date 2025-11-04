@@ -233,7 +233,7 @@ export default function ReviewPage() {
                 </div>
                 <Stack direction="horizontal" gap="sm" wrap align="center">
                   <Button
-                    variant="secondary"
+                    variant="outline"
                     onClick={() => onEdit(current.id)}
                   >
                     Open for edits
