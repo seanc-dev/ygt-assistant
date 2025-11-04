@@ -48,6 +48,7 @@ interface UserSettings {
       news: boolean;
       tone: string;
     };
+    hotkeys?: { [key: string]: string };
   };
 }
 
