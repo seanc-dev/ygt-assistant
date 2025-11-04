@@ -154,7 +154,7 @@ export function HotkeysSettingsModal({
               Reset All to Defaults
             </Button>
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={onClose}>
+              <Button variant="outline" onClick={onClose}>
                 Cancel
               </Button>
               <Button onClick={handleSave}>Save</Button>
