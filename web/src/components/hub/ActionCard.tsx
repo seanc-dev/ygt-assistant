@@ -507,32 +507,32 @@ export function ActionCard({
                     onMouseDown={(e) => e.stopPropagation()}
                   >
                     <button
-                      onClick={() => handleDeferClick("afternoon")}
+                      onClick={() => handleScheduleClick("focus_30m")}
                       onMouseDown={(e) => e.stopPropagation()}
                       className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                     >
-                      Afternoon
+                      Focus 30m
                     </button>
                     <button
-                      onClick={() => handleDeferClick("tomorrow")}
+                      onClick={() => handleScheduleClick("focus_60m")}
                       onMouseDown={(e) => e.stopPropagation()}
                       className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                     >
-                      Tomorrow
+                      Focus 60m
                     </button>
                     <button
-                      onClick={() => handleDeferClick("this_week")}
+                      onClick={() => handleScheduleClick("block_pm_admin")}
                       onMouseDown={(e) => e.stopPropagation()}
                       className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                     >
-                      This Week
+                      Block PM Admin
                     </button>
                     <button
-                      onClick={() => handleDeferClick("next_week")}
+                      onClick={() => handleScheduleClick("pick_time")}
                       onMouseDown={(e) => e.stopPropagation()}
                       className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                     >
-                      Next Week
+                      Pick time…
                     </button>
                   </div>
                 )}
@@ -714,32 +714,32 @@ export function ActionCard({
                   onMouseDown={(e) => e.stopPropagation()}
                 >
                   <button
-                    onClick={() => handleDeferClick("afternoon")}
+                    onClick={() => handleScheduleClick("focus_30m")}
                     onMouseDown={(e) => e.stopPropagation()}
                     className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                   >
-                    Afternoon
+                    Focus 30m
                   </button>
                   <button
-                    onClick={() => handleDeferClick("tomorrow")}
+                    onClick={() => handleScheduleClick("focus_60m")}
                     onMouseDown={(e) => e.stopPropagation()}
                     className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                   >
-                    Tomorrow
+                    Focus 60m
                   </button>
                   <button
-                    onClick={() => handleDeferClick("this_week")}
+                    onClick={() => handleScheduleClick("block_pm_admin")}
                     onMouseDown={(e) => e.stopPropagation()}
                     className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                   >
-                    This Week
+                    Block PM Admin
                   </button>
                   <button
-                    onClick={() => handleDeferClick("next_week")}
+                    onClick={() => handleScheduleClick("pick_time")}
                     onMouseDown={(e) => e.stopPropagation()}
                     className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                   >
-                    Next Week
+                    Pick time…
                   </button>
                 </div>
               )}
