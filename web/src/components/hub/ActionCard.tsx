@@ -27,17 +27,19 @@ type ActionCardProps = {
   };
   onToggleExpand: (id: string) => void;
   expanded: boolean;
+  selected?: boolean;
   onDefer: (
     id: string,
     bucket: "afternoon" | "tomorrow" | "this_week" | "next_week"
   ) => Promise<void>;
   onAddToToday: (id: string) => Promise<void>;
-  onOpenChat: (id: string) => void;
   onCreateTask: (id: string) => Promise<void>;
   onSchedule: (
     id: string,
     preset: "focus_30m" | "focus_60m" | "block_pm_admin" | "pick_time"
   ) => Promise<void>;
+  onOpenSchedule?: (id: string) => void;
+  cardRef?: React.RefObject<HTMLDivElement | null>;
 };
 
 type MenuType =
@@ -69,12 +71,14 @@ const PRIORITY_LABELS = {
 export function ActionCard({
   item,
   expanded,
+  selected = false,
   onToggleExpand,
   onDefer,
   onAddToToday,
-  onOpenChat,
   onCreateTask,
   onSchedule,
+  onOpenSchedule,
+  cardRef,
 }: ActionCardProps) {
   const router = useRouter();
   const [openMenu, setOpenMenu] = useState<MenuType>(null);
@@ -83,6 +87,7 @@ export function ActionCard({
   );
   const deferMenuRefCollapsed = useRef<HTMLDivElement>(null);
   const deferMenuRefExpanded = useRef<HTMLDivElement>(null);
+  const scheduleMenuRefCollapsed = useRef<HTMLDivElement>(null);
   const scheduleMenuRefExpanded = useRef<HTMLDivElement>(null);
   const addToTodayMenuRef = useRef<HTMLDivElement>(null);
   const overflowMenuRef = useRef<HTMLDivElement>(null);
@@ -140,7 +145,10 @@ export function ActionCard({
       } else if (openMenu === "defer-expanded") {
         menuRef = deferMenuRefExpanded.current;
       } else if (openMenu === "schedule") {
-        menuRef = scheduleMenuRefExpanded.current;
+        // Determine which schedule menu ref to use based on expanded state
+        menuRef = expanded
+          ? scheduleMenuRefExpanded.current
+          : scheduleMenuRefCollapsed.current;
       } else if (openMenu === "add-to-today") {
         menuRef = addToTodayMenuRef.current;
       } else if (openMenu === "overflow") {
@@ -168,20 +176,60 @@ export function ActionCard({
 
   const handleCardClick = useCallback(
     (e: React.MouseEvent) => {
-      // Ignore clicks on menu triggers
+      // Ignore clicks on menu triggers and interactive elements
       const target = e.target as HTMLElement;
-      if (target.closest("[data-menu-trigger]")) {
+      if (
+        target.closest("[data-menu-trigger]") ||
+        target.closest("button") ||
+        target.closest("textarea") ||
+        target.closest("a")
+      ) {
         return;
       }
+      // Card click opens chat
       onToggleExpand(item.action_id);
     },
     [item.action_id, onToggleExpand]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Ignore if typing in input/textarea or contenteditable
+    const target = e.target as HTMLElement;
+    if (
+      target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.isContentEditable
+    ) {
+      return;
+    }
+
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onToggleExpand(item.action_id);
+    }
+
+    // Tab key cycles through action menus when expanded
+    if (e.key === "Tab" && expanded && !e.shiftKey) {
+      e.preventDefault();
+      const menuOrder: MenuType[] = [
+        "defer-expanded",
+        "schedule",
+        "add-to-today",
+      ];
+      const currentIndex = openMenu ? menuOrder.indexOf(openMenu) : -1;
+      const nextIndex = (currentIndex + 1) % menuOrder.length;
+      setOpenMenu(menuOrder[nextIndex]);
+    } else if (e.key === "Tab" && expanded && e.shiftKey) {
+      e.preventDefault();
+      const menuOrder: MenuType[] = [
+        "defer-expanded",
+        "schedule",
+        "add-to-today",
+      ];
+      const currentIndex = openMenu ? menuOrder.indexOf(openMenu) : -1;
+      const prevIndex =
+        currentIndex <= 0 ? menuOrder.length - 1 : currentIndex - 1;
+      setOpenMenu(menuOrder[prevIndex]);
     }
   };
 
@@ -230,26 +278,20 @@ export function ActionCard({
 
   const handleScheduleFromOverflowClick = useCallback(async () => {
     setOpenMenu(null);
-    // Expand card to show defer menu (Schedule uses defer menu now)
+    // Expand card if needed, then open schedule menu
     if (!expanded) {
       onToggleExpand(item.action_id);
-      // Open defer menu after expansion
+      // Wait for expansion, then open schedule menu
       setTimeout(() => {
-        setOpenMenu("defer-expanded");
+        setOpenMenu("schedule");
+        // Also trigger onOpenSchedule if provided
+        onOpenSchedule?.(item.action_id);
       }, 100);
     } else {
-      setOpenMenu("defer-expanded");
+      setOpenMenu("schedule");
+      onOpenSchedule?.(item.action_id);
     }
-  }, [expanded, item.action_id, onToggleExpand]);
-
-  const handleChatClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      // onOpenChat already handles expanding/collapsing the card
-      onOpenChat(item.action_id);
-    },
-    [item.action_id, onOpenChat]
-  );
+  }, [expanded, item.action_id, onToggleExpand, onOpenSchedule]);
 
   // Menu toggle handlers
   const handleToggleDeferCollapsed = useCallback(
@@ -307,8 +349,10 @@ export function ActionCard({
 
   return (
     <div
-      role="button"
-      tabIndex={0}
+      ref={cardRef}
+      role="option"
+      tabIndex={selected ? 0 : -1}
+      aria-selected={selected}
       aria-expanded={expanded}
       aria-label={`${item.action_label}: ${item.preview.substring(0, 50)}`}
       onClick={handleCardClick}
@@ -320,8 +364,12 @@ export function ActionCard({
         }
       }}
       onKeyDown={handleKeyDown}
-      data-selected={expanded}
-      className={`group bg-slate-50 border border-slate-200 rounded-xl shadow-sm transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 cursor-pointer ${
+      data-selected={selected}
+      className={`group bg-slate-50 border border-slate-200 rounded-xl shadow-sm transition-all duration-200 ease-in-out focus:outline-none cursor-pointer ${
+        selected
+          ? "outline outline-2 outline-blue-500/60 outline-offset-2"
+          : "focus:ring-2 focus:ring-slate-300 focus:ring-offset-2"
+      } ${
         expanded
           ? "shadow-md ring-1 ring-slate-200 hover:shadow-lg"
           : "hover:shadow-md hover:-translate-y-0.5"
@@ -355,19 +403,25 @@ export function ActionCard({
           </h3>
 
           {/* Subtext */}
-          <p className="text-sm text-slate-500 mb-3">{item.action_label}</p>
+          <p className={`text-sm text-slate-500 transition-all duration-200 ${
+            expanded ? "mb-0" : "mb-3"
+          }`}>{item.action_label}</p>
 
-          {/* Collapsed toolbar - Chat, Defer, Overflow */}
-          <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200 flex items-center gap-2 justify-end">
-            <button
-              onClick={handleChatClick}
-              onMouseDown={(e) => e.stopPropagation()}
-              aria-label="Chat"
-              className="text-slate-500 hover:text-slate-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded-md p-1.5"
-              title="Chat"
-            >
-              <Chat24Regular />
-            </button>
+          {/* Hover hint - left-aligned with text content, transitions with quick actions */}
+          {!expanded && (
+            <span className="text-xs text-slate-400 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200 pointer-events-none hidden md:block mt-0.5">
+              Open chat ↩︎
+            </span>
+          )}
+          {expanded && (
+            <span className="text-xs text-slate-400 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200 pointer-events-none hidden md:block mt-0.5">
+              Close chat ↩︎
+            </span>
+          )}
+
+          {/* Collapsed toolbar - Defer, Schedule, Add to Today, Overflow */}
+          {!expanded && (
+            <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200 flex items-center gap-2 justify-end relative mt-2">
             <div className="relative">
               <button
                 data-menu-trigger
@@ -380,7 +434,7 @@ export function ActionCard({
               >
                 <ArrowRight24Regular />
               </button>
-              {openMenu === "defer-collapsed" && (
+              {!expanded && openMenu === "defer-collapsed" && (
                 <div
                   key="defer-collapsed"
                   ref={deferMenuRefCollapsed}
@@ -419,6 +473,120 @@ export function ActionCard({
                 </div>
               )}
             </div>
+            {!expanded && (
+              <div className="relative">
+                <button
+                  data-menu-trigger
+                  data-schedule-button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenMenu(openMenu === "schedule" ? null : "schedule");
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  aria-label="Schedule"
+                  className="text-slate-500 hover:text-slate-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded-md p-1.5"
+                  title="Schedule"
+                >
+                  <Clock24Regular />
+                </button>
+                {openMenu === "schedule" && (
+                  <div
+                    key="schedule-collapsed"
+                    ref={scheduleMenuRefCollapsed}
+                    className="absolute right-0 top-full mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black/5 z-20"
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={() => handleDeferClick("afternoon")}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                    >
+                      Afternoon
+                    </button>
+                    <button
+                      onClick={() => handleDeferClick("tomorrow")}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                    >
+                      Tomorrow
+                    </button>
+                    <button
+                      onClick={() => handleDeferClick("this_week")}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                    >
+                      This Week
+                    </button>
+                    <button
+                      onClick={() => handleDeferClick("next_week")}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                    >
+                      Next Week
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="relative">
+              <button
+                data-menu-trigger
+                data-add-to-today-button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenMenu(
+                    openMenu === "add-to-today" ? null : "add-to-today"
+                  );
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                aria-label="Add to Today"
+                className="text-slate-500 hover:text-slate-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded-md p-1.5"
+                title="Add to Today"
+              >
+                <Pin24Regular />
+              </button>
+              {!expanded && openMenu === "add-to-today" && (
+                <div
+                  key="add-to-today-collapsed"
+                  ref={addToTodayMenuRef}
+                  className="absolute right-0 top-full mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black/5 z-20"
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => handleAddToTodayScheduleClick("focus_30m")}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                  >
+                    Focus 30m
+                  </button>
+                  <button
+                    onClick={() => handleAddToTodayScheduleClick("focus_60m")}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                  >
+                    Focus 60m
+                  </button>
+                  <button
+                    onClick={() =>
+                      handleAddToTodayScheduleClick("block_pm_admin")
+                    }
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                  >
+                    Block PM Admin
+                  </button>
+                  <button
+                    onClick={() => handleAddToTodayScheduleClick("pick_time")}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
+                  >
+                    Pick time…
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="relative">
               <button
                 data-menu-trigger
@@ -440,45 +608,22 @@ export function ActionCard({
                   onMouseDown={(e) => e.stopPropagation()}
                 >
                   <button
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
                       setOpenMenu(null);
-                      // Expand card and open Add to Today menu
-                      if (!expanded) {
-                        onToggleExpand(item.action_id);
-                        setTimeout(() => {
-                          setOpenMenu("add-to-today");
-                        }, 100);
-                      } else {
-                        setOpenMenu("add-to-today");
-                      }
+                      await handleCreateTaskClick();
                     }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50 flex items-center gap-2"
-                  >
-                    <Pin24Regular className="w-4 h-4" />
-                    Add to Today
-                  </button>
-                  <button
-                    onClick={handleCreateTaskClick}
                     onMouseDown={(e) => e.stopPropagation()}
                     className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50 flex items-center gap-2"
                   >
                     <Add24Regular className="w-4 h-4" />
                     Add as Task
                   </button>
-                  <button
-                    onClick={handleScheduleFromOverflowClick}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50 flex items-center gap-2"
-                  >
-                    <Clock24Regular className="w-4 h-4" />
-                    Schedule for later
-                  </button>
                 </div>
               )}
             </div>
           </div>
+          )}
         </div>
       </div>
 
@@ -491,14 +636,6 @@ export function ActionCard({
         <div className="px-4 pb-4 border-t border-slate-200">
           {/* Workspace Action Bar */}
           <div className="pt-4 pb-4 flex flex-wrap gap-2">
-            <button
-              onClick={handleChatClick}
-              onMouseDown={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium border border-transparent focus:outline-none focus:ring-2 focus:ring-slate-300 transition-colors bg-slate-50 text-slate-700 hover:bg-slate-100"
-            >
-              <Chat24Regular className="w-4 h-4" />
-              Chat
-            </button>
             <div className="relative">
               <button
                 data-menu-trigger
@@ -560,7 +697,7 @@ export function ActionCard({
                 <Clock24Regular className="w-4 h-4" />
                 Schedule for later
               </button>
-              {openMenu === "schedule" && (
+              {expanded && openMenu === "schedule" && (
                 <div
                   key="schedule-expanded"
                   ref={scheduleMenuRefExpanded}
@@ -610,7 +747,7 @@ export function ActionCard({
                 <Pin24Regular className="w-4 h-4" />
                 Add to Today
               </button>
-              {openMenu === "add-to-today" && (
+              {expanded && openMenu === "add-to-today" && (
                 <div
                   key="add-to-today-menu"
                   ref={addToTodayMenuRef}
@@ -680,6 +817,7 @@ export function ActionCard({
               }}
               onThreadCreated={handleThreadCreated}
               onOpenWorkroom={handleOpenInWorkroom}
+              shouldFocus={expanded}
             />
           </div>
         </div>

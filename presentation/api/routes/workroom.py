@@ -7,8 +7,45 @@ from pydantic import BaseModel, Field
 from presentation.api.repos import workroom as workroom_repo, audit_log
 from presentation.api.routes.queue import _get_user_id
 import uuid
+import os
 
 router = APIRouter()
+
+# Feature flag for seeding threads
+FEATURE_SEED_THREADS = os.getenv("FEATURE_SEED_THREADS", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+DEV_MODE = os.getenv("DEV_MODE", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+USE_MOCK_GRAPH = os.getenv("USE_MOCK_GRAPH", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+
+# Seed messages for demo threads
+SEED_MESSAGES = [
+    {
+        "role": "assistant",
+        "content": "I've read the email. Want me to draft a response summarizing your budget concerns?",
+    },
+    {
+        "role": "user",
+        "content": "Yes. Keep it concise and ask for the revised figures.",
+    },
+    {
+        "role": "assistant",
+        "content": "Draft ready. Would you like to send or edit?",
+    },
+]
 
 
 class CreateThreadRequest(BaseModel):
@@ -68,10 +105,14 @@ async def create_thread(
     body: CreateThreadRequest,
     request: Request,
     user_id: str = Depends(_get_user_id),
+    seed: bool = False,
 ) -> Dict[str, Any]:
     """Create a new thread.
 
     Creates a new thread under a task, or from an action if source_action_id is provided.
+    
+    If seed=true or FEATURE_SEED_THREADS is enabled and DEV_MODE/USE_MOCK_GRAPH are true,
+    seeds the thread with demo messages.
     """
     # If source_action_id is provided, we can create a thread without a task
     if body.source_action_id:
@@ -102,6 +143,22 @@ async def create_thread(
             prefs=body.prefs,
         )
 
+    # Seed messages if enabled
+    should_seed = seed or (
+        FEATURE_SEED_THREADS and DEV_MODE and USE_MOCK_GRAPH and body.source_action_id
+    )
+    if should_seed:
+        from datetime import datetime, timezone
+        import uuid
+        
+        for msg_data in SEED_MESSAGES:
+            workroom_repo.add_message(
+                user_id=user_id,
+                thread_id=thread["id"],
+                role=msg_data["role"],
+                content=msg_data["content"],
+            )
+
     # Audit log
     request_id = getattr(request.state, "request_id", None)
     audit_log.write_audit(
@@ -112,6 +169,7 @@ async def create_thread(
             "task_id": thread.get("task_id"),
             "source_action_id": body.source_action_id,
             "title": body.title,
+            "seeded": should_seed,
         },
         request_id=request_id,
     )

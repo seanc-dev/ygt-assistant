@@ -31,6 +31,7 @@ type InlineChatProps = {
   };
   onThreadCreated?: (threadId: string) => void;
   onOpenWorkroom?: (threadId?: string) => void;
+  shouldFocus?: boolean;
 };
 
 export function InlineChat({
@@ -40,6 +41,7 @@ export function InlineChat({
   meta,
   onThreadCreated,
   onOpenWorkroom,
+  shouldFocus = false,
 }: InlineChatProps) {
   const [threadId, setThreadId] = useState<string | null>(
     initialThreadId || null
@@ -119,6 +121,13 @@ export function InlineChat({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
+  // Focus textarea when shouldFocus is true
+  useEffect(() => {
+    if (shouldFocus && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [shouldFocus]);
+
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
@@ -187,10 +196,15 @@ export function InlineChat({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Stop propagation to prevent card handlers from catching these events
+      e.stopPropagation();
+
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         handleSend();
       }
+      // Shift+Enter naturally creates a new line, no need to handle
+      // Space works normally, no need to handle
       if (e.key === "Escape" && contextExpanded) {
         setContextExpanded(false);
       }
