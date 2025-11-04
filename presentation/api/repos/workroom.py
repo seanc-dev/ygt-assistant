@@ -1,4 +1,5 @@
 """Workroom stores (in-memory, interface for DB later)."""
+
 from __future__ import annotations
 from typing import Any, Dict, List
 from datetime import datetime, timezone
@@ -31,7 +32,9 @@ def get_threads(user_id: str, task_id: str = None) -> List[Dict[str, Any]]:
     return all_threads
 
 
-def create_project(user_id: str, name: str, description: str = None, priority: str = "medium") -> Dict[str, Any]:
+def create_project(
+    user_id: str, name: str, description: str = None, priority: str = "medium"
+) -> Dict[str, Any]:
     """Create a new project."""
     project = {
         "id": str(uuid.uuid4()),
@@ -45,11 +48,11 @@ def create_project(user_id: str, name: str, description: str = None, priority: s
         },
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    
+
     if user_id not in _projects_store:
         _projects_store[user_id] = []
     _projects_store[user_id].append(project)
-    
+
     return project
 
 
@@ -76,36 +79,51 @@ def create_task(
         },
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    
+
     if user_id not in _tasks_store:
         _tasks_store[user_id] = []
     _tasks_store[user_id].append(task)
-    
+
     return task
 
 
 def create_thread(
     user_id: str,
-    task_id: str,
-    title: str,
+    task_id: str = None,
+    title: str = None,
     prefs: Dict[str, Any] = None,
+    source_action_id: str = None,
 ) -> Dict[str, Any]:
-    """Create a new thread."""
+    """Create a new thread.
+
+    Either task_id or source_action_id must be provided.
+    When source_action_id is provided, a temporary task is created if needed.
+    """
+    # If source_action_id is provided, create or find a temporary task
+    if source_action_id:
+        # For now, create a thread without a task_id (or use a placeholder)
+        # In a real implementation, you might want to create a task from the action
+        task_id = task_id or f"action-{source_action_id}"
+
+    if not task_id:
+        raise ValueError("Either task_id or source_action_id must be provided")
+
     thread = {
         "id": str(uuid.uuid4()),
         "user_id": user_id,
         "task_id": task_id,
-        "title": title,
+        "title": title or "Untitled Thread",
         "messages": [],
         "context_refs": [],
         "prefs": prefs or {},
+        "source_action_id": source_action_id,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    
+
     if user_id not in _threads_store:
         _threads_store[user_id] = []
     _threads_store[user_id].append(thread)
-    
+
     return thread
 
 
@@ -128,3 +146,30 @@ def get_task(user_id: str, task_id: str) -> Dict[str, Any]:
             return task
     raise ValueError(f"Task {task_id} not found")
 
+
+def get_thread(user_id: str, thread_id: str) -> Dict[str, Any]:
+    """Get a single thread by ID."""
+    threads = _threads_store.get(user_id, [])
+    for thread in threads:
+        if thread["id"] == thread_id:
+            return thread
+    raise ValueError(f"Thread {thread_id} not found")
+
+
+def add_message(
+    user_id: str,
+    thread_id: str,
+    role: str,
+    content: str,
+) -> Dict[str, Any]:
+    """Add a message to a thread."""
+    thread = get_thread(user_id, thread_id)
+    message = {
+        "id": str(uuid.uuid4()),
+        "role": role,
+        "content": content,
+        "ts": datetime.now(timezone.utc).isoformat(),
+    }
+    thread["messages"].append(message)
+    thread["updated_at"] = datetime.now(timezone.utc).isoformat()
+    return message

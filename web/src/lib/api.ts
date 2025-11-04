@@ -67,7 +67,10 @@ export const api = {
   summaryQueue: (days?: number) =>
     req(`/api/summary/queue${days ? `?days=${days}` : ""}`),
   scheduleToday: () => req("/api/schedule/today"),
-  scheduleAlternatives: (body: { existing_events?: any[]; proposed_blocks?: any[] }) =>
+  scheduleAlternatives: (body: {
+    existing_events?: any[];
+    proposed_blocks?: any[];
+  }) =>
     req("/api/schedule/alternatives", {
       method: "POST",
       body: JSON.stringify(body),
@@ -79,13 +82,33 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  createThreadFromAction: (actionId: string, title: string) =>
+    req("/api/workroom/thread", {
+      method: "POST",
+      body: JSON.stringify({ source_action_id: actionId, title }),
+    }),
+  getThread: (threadId: string) =>
+    req(`/api/workroom/thread/${encodeURIComponent(threadId)}`),
+  sendMessage: (threadId: string, body: { role: string; content: string }) =>
+    req(`/api/workroom/thread/${encodeURIComponent(threadId)}/message`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   updateTaskStatus: (taskId: string, status: string) =>
     req(`/api/workroom/task/${encodeURIComponent(taskId)}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
     }),
   auditLog: (limit?: number, actionType?: string) =>
-    req(`/api/audit/log${limit || actionType ? `?${limit ? `limit=${limit}` : ""}${actionType ? `&action_type=${encodeURIComponent(actionType)}` : ""}` : ""}`),
+    req(
+      `/api/audit/log${
+        limit || actionType
+          ? `?${limit ? `limit=${limit}` : ""}${
+              actionType ? `&action_type=${encodeURIComponent(actionType)}` : ""
+            }`
+          : ""
+      }`
+    ),
   settings: () => req("/api/settings"),
   updateSettings: (data: any) =>
     req("/api/settings", { method: "PUT", body: JSON.stringify(data) }),
@@ -93,14 +116,18 @@ export const api = {
   // Profile
   profile: () => req("/api/profile"),
   // Summary (using brief endpoint which includes weather/news)
-  summaryRecent: () => req("/api/summary/recent").catch(() => ({ ok: true, items: [] })),
+  summaryRecent: () =>
+    req("/api/summary/recent").catch(() => ({ ok: true, items: [] })),
   // Queue actions
   deferAction: (actionId: string, body: { bucket: string }) =>
     req(`/api/queue/${encodeURIComponent(actionId)}/defer`, {
       method: "POST",
       body: JSON.stringify(body),
     }),
-  addToToday: (actionId: string, body: { kind: "admin" | "work"; tasks?: string[] }) =>
+  addToToday: (
+    actionId: string,
+    body: { kind: "admin" | "work"; tasks?: string[] }
+  ) =>
     req(`/api/queue/${encodeURIComponent(actionId)}/add-to-today`, {
       method: "POST",
       body: JSON.stringify(body),
