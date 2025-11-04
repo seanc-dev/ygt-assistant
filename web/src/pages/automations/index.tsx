@@ -112,7 +112,7 @@ export default function AutomationsPage() {
                 }
               >
                 <Stack direction="horizontal" gap="sm" wrap>
-                  <Button variant="secondary" onClick={() => setToast("Syncing automation now")}>Run now</Button>
+                  <Button variant="outline" onClick={() => setToast("Syncing automation now")}>Run now</Button>
                   <Button variant="ghost" onClick={() => setToast("Opening metrics")}>View metrics</Button>
                   <Button variant="ghost" onClick={() => setToast("Undo via history")}>Undo</Button>
                 </Stack>
