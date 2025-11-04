@@ -260,12 +260,12 @@ export default function TenantConfig() {
               <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="text-lg font-semibold text-slate-900">Actions</h2>
                 <div className="mt-4 space-y-3 text-sm">
-                  <Button type="button" variant="secondary" className="w-full" onClick={insertTemplate}>
+                  <Button type="button" variant="outline" className="w-full" onClick={insertTemplate}>
                     Insert template
                   </Button>
                   <Button
                     type="button"
-                    variant="secondary"
+                    variant="outline"
                     className="w-full"
                     onClick={validateConfig}
                     disabled={validating}
@@ -283,21 +283,21 @@ export default function TenantConfig() {
                   <div className="grid gap-2 pt-2">
                     <Button
                       type="button"
-                      variant="secondary"
+                      variant="outline"
                       onClick={() => replaceDbId("tasks")}
                     >
                       Parse Notion link → tasks.db_id
                     </Button>
                     <Button
                       type="button"
-                      variant="secondary"
+                      variant="outline"
                       onClick={() => replaceDbId("clients")}
                     >
                       Parse Notion link → clients.db_id
                     </Button>
                     <Button
                       type="button"
-                      variant="secondary"
+                      variant="outline"
                       onClick={() => replaceDbId("sessions")}
                     >
                       Parse Notion link → sessions.db_id
