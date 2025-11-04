@@ -274,7 +274,7 @@ export default function Home() {
                     "Reconnect to resume syncing approvals."}
                 </Text>
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   onClick={() => router.push("/connections")}
                 >
                   Reconnect
@@ -289,7 +289,7 @@ export default function Home() {
                     "Something went wrong retrieving status."}
                 </Text>
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   onClick={() => router.push("/connections")}
                 >
                   Troubleshoot
