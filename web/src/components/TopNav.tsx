@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { api } from "../lib/api";
 
 const items = [
   { href: "/hub", label: "Hub" },
@@ -14,6 +15,7 @@ export function TopNav() {
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "unknown">(
     "unknown"
   );
+  const [isSeeding, setIsSeeding] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -32,12 +34,40 @@ export function TopNav() {
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
+
+  const handleSeedDevData = async () => {
+    if (isSeeding) return;
+    setIsSeeding(true);
+    try {
+      const result = await api.seedDevData();
+      console.log("Seeded dev data:", result);
+      // Refresh the page to show new data
+      window.location.reload();
+    } catch (error) {
+      console.error("Failed to seed dev data:", error);
+      alert("Failed to seed dev data. Check console for details.");
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-10 border-b border-slate-200/60 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
       <nav
         className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3 sm:px-6 overflow-x-auto"
         aria-label="Primary"
       >
+        {/* Seed Dev Data Button (dev only) */}
+        {process.env.NODE_ENV === "development" && (
+          <button
+            onClick={handleSeedDevData}
+            disabled={isSeeding}
+            className="rounded px-3 py-1.5 text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Seed dev data (queue items, schedule blocks)"
+          >
+            {isSeeding ? "Seeding..." : "🌱 Seed"}
+          </button>
+        )}
         {items.map((it) => {
           const active =
             pathname === it.href || pathname.startsWith(it.href + "/");

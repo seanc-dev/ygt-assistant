@@ -110,4 +110,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  // Dev endpoints
+  seedDevData: () => req("/dev/all/seed", { method: "POST" }),
+  seedQueue: (count?: number) =>
+    req(`/dev/queue/seed${count ? `?count=${count}` : ""}`, { method: "POST" }),
+  seedSchedule: () => req("/dev/schedule/seed", { method: "POST" }),
 };
