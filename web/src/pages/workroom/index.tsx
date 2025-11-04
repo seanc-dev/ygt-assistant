@@ -104,13 +104,13 @@ export default function WorkroomPage() {
 
         <div className="flex gap-2">
           <Button
-            variant={viewMode === "chat" ? "primary" : "outline"}
+            variant={viewMode === "chat" ? "solid" : "outline"}
             onClick={() => setViewMode("chat")}
           >
             Chat
           </Button>
           <Button
-            variant={viewMode === "kanban" ? "primary" : "outline"}
+            variant={viewMode === "kanban" ? "solid" : "outline"}
             onClick={() => setViewMode("kanban")}
           >
             Kanban
