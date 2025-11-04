@@ -94,19 +94,27 @@ export default function ConnectionsPage() {
     setToast(data.ok ? "Graph test succeeded" : "Graph test failed");
     if (data && typeof data === "object") {
       setStatus(
-        (prev) =>
-          ({
-            ...(prev.connected ? prev : { connected: !!data.ok }),
-            ...(prev.connected ? {} : {}),
-            live: data.live,
-            live_flags: data.live_flags,
-            scopes: prev.connected ? prev.scopes : prev.scopes,
-            expires_at: prev.connected ? prev.expires_at : prev.expires_at,
-            tenant_id: prev.connected ? prev.tenant_id : prev.tenant_id,
-            sync_history: prev.connected
-              ? prev.sync_history
-              : prev.sync_history,
-          } as ConnectionStatus)
+        (prev) => {
+          if (prev.connected) {
+            // Preserve existing connected state properties
+            return {
+              ...prev,
+              live: data.live,
+              live_flags: data.live_flags,
+            } as ConnectionStatus;
+          } else {
+            // Create new connected state from test data
+            return {
+              connected: !!data.ok,
+              scopes: data.scopes,
+              expires_at: data.expires_at,
+              tenant_id: data.tenant_id,
+              sync_history: data.sync_history,
+              live: data.live,
+              live_flags: data.live_flags,
+            } as ConnectionStatus;
+          }
+        }
       );
     }
   };
