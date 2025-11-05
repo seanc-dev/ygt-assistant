@@ -341,6 +341,7 @@ app.add_middleware(
 @app.middleware("http")
 async def add_request_id(request: Request, call_next):
     import uuid
+
     rid = request.headers.get("x-request-id") or str(uuid.uuid4())
     # Store in request state for access by endpoints
     request.state.request_id = rid
@@ -468,8 +469,10 @@ try:
     from presentation.api.routes.queue import router as queue_router
 
     app.include_router(queue_router)
-except Exception:
-    pass
+except Exception as e:
+    logging.getLogger(__name__).warning(
+        "Failed to load queue router: %s", e, exc_info=True
+    )
 
 try:
     from presentation.api.routes.schedule import router as schedule_router
@@ -489,8 +492,10 @@ try:
     from presentation.api.routes.workroom import router as workroom_router
 
     app.include_router(workroom_router)
-except Exception:
-    pass
+except Exception as e:
+    logging.getLogger(__name__).warning(
+        "Failed to load workroom router: %s", e, exc_info=True
+    )
 
 try:
     from presentation.api.routes.settings import router as settings_router

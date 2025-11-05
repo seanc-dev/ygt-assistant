@@ -330,11 +330,11 @@ export function ActionQueue() {
   const handleSchedule = useCallback(
     async (
       actionId: string,
-      preset: "focus_30m" | "focus_60m" | "block_pm_admin" | "pick_time"
+      bucket: "afternoon" | "tomorrow" | "this_week" | "next_week"
     ) => {
       try {
         // TODO: Hook into real schedule endpoint when available
-        console.log("Schedule action:", actionId, preset);
+        console.log("Schedule action:", actionId, bucket);
         mutate(); // Refresh queue
         setOpenMenuFor(null);
         setMenuType(null);

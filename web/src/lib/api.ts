@@ -1,5 +1,10 @@
+// Default to production API; use localhost only in development
+// In production, NEXT_PUBLIC_ADMIN_API_BASE should always be set
 const BASE =
-  process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.coachflow.nz";
+  process.env.NEXT_PUBLIC_ADMIN_API_BASE ||
+  (process.env.NODE_ENV === "development"
+    ? "http://localhost:8000"
+    : "https://api.coachflow.nz");
 
 async function req(path: string, opts: RequestInit = {}) {
   const res = await fetch(`${BASE}${path}`, {
@@ -10,7 +15,12 @@ async function req(path: string, opts: RequestInit = {}) {
       ...(opts.headers || {}),
     },
   });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    const error = new Error(`${res.status} ${res.statusText}`);
+    // Store status code for easier error handling
+    (error as any).status = res.status;
+    throw error;
+  }
   return res.json();
 }
 
@@ -87,12 +97,68 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ source_action_id: actionId, title }),
     }),
-  getThread: (threadId: string) =>
-    req(`/api/workroom/thread/${encodeURIComponent(threadId)}`),
+  getThread: async (threadId: string) => {
+    // Use custom fetch to avoid console errors for expected 404s
+    try {
+      const res = await fetch(
+        `${BASE}/api/workroom/thread/${encodeURIComponent(threadId)}`,
+        {
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (res.status === 404) {
+        // Thread doesn't exist yet - return empty structure silently
+        return {
+          ok: true,
+          thread: {
+            id: threadId,
+            messages: [],
+          },
+        };
+      }
+      if (!res.ok) {
+        const error = new Error(`${res.status} ${res.statusText}`);
+        (error as any).status = res.status;
+        throw error;
+      }
+      return res.json();
+    } catch (err: any) {
+      // Handle any other errors
+      if (err?.status === 404 || err?.message?.includes("404")) {
+        return {
+          ok: true,
+          thread: {
+            id: threadId,
+            messages: [],
+          },
+        };
+      }
+      throw err;
+    }
+  },
   sendMessage: (threadId: string, body: { role: string; content: string }) =>
     req(`/api/workroom/thread/${encodeURIComponent(threadId)}/message`, {
       method: "POST",
       body: JSON.stringify(body),
+    }).catch((err) => {
+      // Gracefully handle 404s and other errors
+      if (err?.message?.includes("404")) {
+        console.warn(`Thread ${threadId} not found when sending message`);
+        return {
+          ok: false,
+          error: "404 Not Found",
+          message: "Thread not found",
+        };
+      }
+      // Return structured error response for other errors
+      return {
+        ok: false,
+        error: err?.message || "Unknown error",
+        message: err?.message || "Failed to send message",
+      };
     }),
   updateTaskStatus: (taskId: string, status: string) =>
     req(`/api/workroom/task/${encodeURIComponent(taskId)}/status`, {

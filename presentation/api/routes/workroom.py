@@ -48,6 +48,40 @@ SEED_MESSAGES = [
 ]
 
 
+def _generate_dev_response(user_message: str) -> str:
+    """Generate a dev-only automatic assistant response.
+
+    This is a simple pattern-based response generator for dev/testing.
+    In production, this would call an actual LLM API.
+    """
+    user_lower = user_message.lower()
+
+    # Pattern-based responses
+    if any(word in user_lower for word in ["hello", "hi", "hey"]):
+        return "Hello! How can I help you today?"
+    elif any(word in user_lower for word in ["thanks", "thank", "appreciate"]):
+        return "You're welcome! Is there anything else you'd like me to help with?"
+    elif any(
+        word in user_lower for word in ["yes", "yeah", "yep", "sure", "ok", "okay"]
+    ):
+        return "Great! I'll take care of that for you."
+    elif any(word in user_lower for word in ["no", "nope", "nah"]):
+        return "Understood. Let me know if you change your mind."
+    elif any(word in user_lower for word in ["draft", "write", "create", "make"]):
+        return "I've drafted that for you. Would you like to review it before sending?"
+    elif any(word in user_lower for word in ["schedule", "meeting", "calendar"]):
+        return "I can help you schedule that. What time works best for you?"
+    elif any(word in user_lower for word in ["follow up", "follow-up"]):
+        return "I'll follow up on that. Should I include any specific details?"
+    elif "?" in user_message:
+        return "That's a good question. Let me think about the best approach here."
+    else:
+        # Generic helpful response
+        return (
+            "I understand. I can help you with that. What would you like me to do next?"
+        )
+
+
 class CreateThreadRequest(BaseModel):
     task_id: Optional[str] = Field(None, description="Task ID to create thread under")
     title: str = Field(..., description="Thread title")
@@ -110,7 +144,7 @@ async def create_thread(
     """Create a new thread.
 
     Creates a new thread under a task, or from an action if source_action_id is provided.
-    
+
     If seed=true or FEATURE_SEED_THREADS is enabled and DEV_MODE/USE_MOCK_GRAPH are true,
     seeds the thread with demo messages.
     """
@@ -143,14 +177,11 @@ async def create_thread(
             prefs=body.prefs,
         )
 
-    # Seed messages if enabled
-    should_seed = seed or (
-        FEATURE_SEED_THREADS and DEV_MODE and USE_MOCK_GRAPH and body.source_action_id
-    )
+    # Seed messages if enabled - always seed in dev mode for action cards
+    should_seed = seed or (DEV_MODE and body.source_action_id)
     if should_seed:
-        from datetime import datetime, timezone
-        import uuid
-        
+        from datetime import timezone
+
         for msg_data in SEED_MESSAGES:
             workroom_repo.add_message(
                 user_id=user_id,
@@ -296,6 +327,31 @@ async def send_message(
         },
         request_id=request_id,
     )
+
+    # Dev-only: Automatically generate assistant response when user sends a message
+    if DEV_MODE and body.role == "user":
+        import asyncio
+
+        # Generate a contextual response based on user message
+        response_content = _generate_dev_response(body.content)
+
+        # Add slight delay to simulate LLM processing (1-2 seconds)
+        await asyncio.sleep(1.5)
+
+        # Create assistant response
+        assistant_message = workroom_repo.add_message(
+            user_id=user_id,
+            thread_id=thread_id,
+            role="assistant",
+            content=response_content,
+        )
+
+        # Return both messages
+        return {
+            "ok": True,
+            "message": message,
+            "assistant_message": assistant_message,
+        }
 
     return {
         "ok": True,
