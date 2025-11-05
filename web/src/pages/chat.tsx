@@ -9,7 +9,7 @@ import {
   Panel,
   Stack,
   Text,
-} from "@ygt-assistant/ui";
+} from "@lucid-work/ui";
 import { api } from "../lib/api";
 import { Layout } from "../components/Layout";
 import { Toast } from "../components/Toast";

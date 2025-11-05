@@ -59,7 +59,7 @@ defaults:
   session_value_round: 0            # 0 or 2 typical`;
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.ygt-assistant.com";
+  process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.lucid-work.com";
 
 type ValidationResult = {
   ok?: boolean;

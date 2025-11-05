@@ -1,4 +1,4 @@
-# YGT Assistant — Microsoft Pivot Inventory
+# LucidWork — Microsoft Pivot Inventory
 
 This document captures the current repo state before pivoting to Microsoft-first, web-only MVP.
 
@@ -20,7 +20,7 @@ This document captures the current repo state before pivoting to Microsoft-first
 
 ## Web (Next.js / React 19)
 - App: `web/` with pages: Home, Review, Drafts, Automations, Connections, History, Chat
-- Shared UI: `@ygt-assistant/ui` in `shared-ui/`
+- Shared UI: `@lucid-work/ui` in `shared-ui/`
 
 ## Database / Migrations (Supabase)
 - Migrations: `supabase/migrations/`

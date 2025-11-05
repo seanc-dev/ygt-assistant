@@ -1,5 +1,5 @@
 import Document, { Head, Html, Main, NextScript } from "next/document";
-import { ThemeScript } from "@ygt-assistant/ui";
+import { ThemeScript } from "@lucid-work/ui";
 
 export default class MyDocument extends Document {
   render() {

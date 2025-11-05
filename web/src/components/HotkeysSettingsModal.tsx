@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Button, Panel, Stack, Text, Heading } from "@ygt-assistant/ui";
+import { Button, Panel, Stack, Text, Heading } from "@lucid-work/ui";
 import { formatKeyCombo } from "../hooks/useHotkeys";
 
 interface HotkeysSettingsModalProps {

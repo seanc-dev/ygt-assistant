@@ -5,7 +5,7 @@ import { api } from "../lib/api";
 import { Label } from "../components/Form/Label";
 import { Field } from "../components/Form/Field";
 import { Button } from "../components/Button";
-import { ThemeToggle } from "@ygt-assistant/ui";
+import { ThemeToggle } from "@lucid-work/ui";
 
 export default function Login() {
   const [email, setEmail] = useState("");

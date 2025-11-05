@@ -50,7 +50,7 @@ The user should subconsciously experience clarity and control; nothing flashes, 
 ### Usage
 
 ```tsx
-import { Text, Heading } from "@ygt-assistant/ui";
+import { Text, Heading } from "@lucid-work/ui";
 
 // Body text
 <Text variant="body">Regular body text</Text>
@@ -244,7 +244,7 @@ Designed to be distinguishable for protanopia, deuteranopia, and tritanopia.
 - Calm transitions (180ms)
 
 ```tsx
-import { Button } from "@ygt-assistant/ui";
+import { Button } from "@lucid-work/ui";
 
 <Button variant="solid" size="md">Primary Action</Button>
 <Button variant="outline">Secondary</Button>
@@ -264,7 +264,7 @@ import { Button } from "@ygt-assistant/ui";
 - Radius: 6px
 
 ```tsx
-import { Panel } from "@ygt-assistant/ui";
+import { Panel } from "@lucid-work/ui";
 
 <Panel title="Card Title" hoverable expandable>
   Content here
@@ -280,7 +280,7 @@ import { Panel } from "@ygt-assistant/ui";
 - Close on Escape key (optional)
 
 ```tsx
-import { Modal } from "@ygt-assistant/ui";
+import { Modal } from "@lucid-work/ui";
 
 <Modal
   isOpen={isOpen}
@@ -301,7 +301,7 @@ import { Modal } from "@ygt-assistant/ui";
 - Positions: top, bottom, left, right
 
 ```tsx
-import { Tooltip } from "@ygt-assistant/ui";
+import { Tooltip } from "@lucid-work/ui";
 
 <Tooltip content="Helpful tip" position="top">
   <button>Hover me</button>
@@ -393,7 +393,7 @@ The design system supports four theme modes:
 ### Theme Provider
 
 ```tsx
-import { ThemeProvider, useTheme } from "@ygt-assistant/ui";
+import { ThemeProvider, useTheme } from "@lucid-work/ui";
 
 function App() {
   return (
@@ -489,13 +489,13 @@ import {
   Text,
   Heading,
   ThemeProvider,
-} from "@ygt-assistant/ui";
+} from "@lucid-work/ui";
 ```
 
 ### Using Design Tokens
 
 ```tsx
-import { tokens } from "@ygt-assistant/ui";
+import { tokens } from "@lucid-work/ui";
 
 const primaryColor = tokens.colors.light.primary;
 const spacing = tokens.spacing.xl;

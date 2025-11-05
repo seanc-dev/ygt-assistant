@@ -3,7 +3,7 @@ const path = require("path");
 
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["@ygt-assistant/ui"],
+  transpilePackages: ["@lucid-work/ui"],
   // Ensure Next.js treats this folder as the root to avoid mixed lockfile/module resolution
   outputFileTracingRoot: __dirname,
   webpack: (config) => {

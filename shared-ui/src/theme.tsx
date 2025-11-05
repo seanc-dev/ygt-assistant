@@ -13,7 +13,7 @@ import {
 import { cx } from "./cx";
 import { colors } from "./tokens/colors";
 
-const STORAGE_KEY = "ygt-assistant-theme";
+const STORAGE_KEY = "lucid-work-theme";
 
 export type ThemePreference = "light" | "dark" | "system" | "high-contrast" | "color-blind";
 export type Theme = "light" | "dark" | "high-contrast" | "color-blind";

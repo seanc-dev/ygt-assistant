@@ -1,4 +1,4 @@
-import { Panel, Stack, Text, Badge, Heading } from "@ygt-assistant/ui";
+import { Panel, Stack, Text, Badge, Heading } from "@lucid-work/ui";
 import { useProfile, useSettings, useSummary } from "../../hooks/useHubData";
 
 function getGreeting(): string {

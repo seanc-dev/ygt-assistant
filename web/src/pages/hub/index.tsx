@@ -1,4 +1,4 @@
-import { Stack } from "@ygt-assistant/ui";
+import { Stack } from "@lucid-work/ui";
 import { Layout } from "../../components/Layout";
 import { HubSummary } from "../../components/hub/HubSummary";
 import { TodayOverview } from "../../components/hub/TodayOverview";

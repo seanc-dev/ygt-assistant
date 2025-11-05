@@ -30,7 +30,7 @@ Repo layout
 - `core`: memory store/retrieval/writer/policy/glue.
 - `supabase/migrations`: idempotent SQL migrations (oauth_tokens, profiles, core tables).
 - `web`: Next.js app (pages). Chat stand‑in at `/chat`.
-- `shared-ui`: small UI kit published via workspace alias `@ygt-assistant/ui`.
+- `shared-ui`: small UI kit published via workspace alias `@lucid-work/ui`.
 - `docs`: reference docs and inventory/cutover plans.
 
 Prerequisites
@@ -173,7 +173,7 @@ Design principles
 Troubleshooting
 
 - Chat hangs in web: verify backend `/chat` returns 200; see terminal for dev server port (3001).
-- Module not found or hook errors: ensure `web/next.config.js` transpiles `@ygt-assistant/ui` and aliases React to `web/node_modules`.
+- Module not found or hook errors: ensure `web/next.config.js` transpiles `@lucid-work/ui` and aliases React to `web/node_modules`.
 - ADMIN_SECRET error on startup: `.env.local` or `DEV_MODE=true` (dev auto-generates safe values).
 
 Roadmap

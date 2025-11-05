@@ -42,7 +42,7 @@ export default function OAuthSuccess() {
               Close window
             </Button>
             <a
-              href={process.env.NEXT_PUBLIC_CLIENT_APP_URL || "https://app.ygt-assistant.com"}
+              href={process.env.NEXT_PUBLIC_CLIENT_APP_URL || "https://app.lucid-work.com"}
               className="focus-outline inline-flex min-w-[140px] items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-primary-300 hover:text-primary-700"
             >
               Go to app

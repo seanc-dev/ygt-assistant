@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ygt-assistant/contracts/core_memory.schema.json",
+  "$id": "https://lucid-work/contracts/core_memory.schema.json",
   "title": "CoreMemoryItem",
   "type": "object",
   "additionalProperties": false,

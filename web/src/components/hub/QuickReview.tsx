@@ -1,4 +1,4 @@
-import { Panel, Stack, Text, Heading, Button } from "@ygt-assistant/ui";
+import { Panel, Stack, Text, Heading, Button } from "@lucid-work/ui";
 import { useRecent } from "../../hooks/useHubData";
 import { useRouter } from "next/router";
 

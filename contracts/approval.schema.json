@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ygt-assistant/contracts/approval.schema.json",
+  "$id": "https://lucid-work/contracts/approval.schema.json",
   "title": "Approval",
   "type": "object",
   "additionalProperties": false,

@@ -9,7 +9,7 @@ import {
   Panel,
   Stack,
   Text,
-} from "@ygt-assistant/ui";
+} from "@lucid-work/ui";
 import { api } from "../lib/api";
 import { Layout } from "../components/Layout";
 
@@ -53,7 +53,7 @@ export default function Home() {
     fetch(
       `${
         process.env.NEXT_PUBLIC_ADMIN_API_BASE ||
-        "https://api.ygt-assistant.com"
+        "https://api.lucid-work.com"
       }/calendar/plan-today`,
       { credentials: "include" }
     )

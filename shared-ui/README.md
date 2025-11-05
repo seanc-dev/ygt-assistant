@@ -1,10 +1,10 @@
-# YGT Assistant Design System
+# LucidWork Design System
 
-The `@ygt-assistant/ui` package exposes the shared design language used across the product. It provides a typed set of design tokens along with primitive components that compose consistent surfaces inside the web app.
+The `@lucid-work/ui` package exposes the shared design language used across the product. It provides a typed set of design tokens along with primitive components that compose consistent surfaces inside the web app.
 
 ## Tokens
 
-Tokens live under `shared-ui/src/tokens` and mirror the primitives exposed at runtime. Every token is exported via `@ygt-assistant/ui`:
+Tokens live under `shared-ui/src/tokens` and mirror the primitives exposed at runtime. Every token is exported via `@lucid-work/ui`:
 
 - `colors` – semantic colors for surfaces, text, borders, brand accents, and status tones. The theme provider writes these into CSS custom properties for light/dark parity.
 - `spacing` – a compact spacing scale (`quark`, `nano`, `xs`, …) used by the layout primitives.
@@ -23,10 +23,10 @@ The primitives are designed to compose quickly without re-implementing Tailwind 
 - `ActionBar` – fixed bar with a single primary action and optional secondary affordances, built to keep the main call-to-action visually dominant.
 - `Button`, `Badge` – action and status primitives wired to the token palette.
 
-All primitives are exported via `@ygt-assistant/ui` so pages can import a consistent toolkit:
+All primitives are exported via `@lucid-work/ui` so pages can import a consistent toolkit:
 
 ```tsx
-import { Panel, ActionBar, Button } from "@ygt-assistant/ui";
+import { Panel, ActionBar, Button } from "@lucid-work/ui";
 ```
 
 ## Workflow surfaces

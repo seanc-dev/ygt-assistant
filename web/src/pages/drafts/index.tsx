@@ -7,7 +7,7 @@ import {
   Panel,
   Stack,
   Text,
-} from "@ygt-assistant/ui";
+} from "@lucid-work/ui";
 import { Layout } from "../../components/Layout";
 import { Field } from "../../components/Form/Field";
 import { Textarea } from "../../components/Form/Textarea";
@@ -30,7 +30,7 @@ export default function DraftsPage() {
   const [loading, setLoading] = useState(false);
 
   const apiBase =
-    process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.ygt-assistant.com";
+    process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.lucid-work.com";
 
   const load = useCallback(async () => {
     const res = await fetch(`${apiBase}/drafts`, { credentials: "include" });

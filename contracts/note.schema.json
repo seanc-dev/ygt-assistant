@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ygt-assistant/contracts/note.schema.json",
+  "$id": "https://lucid-work/contracts/note.schema.json",
   "title": "Note",
   "type": "object",
   "additionalProperties": false,

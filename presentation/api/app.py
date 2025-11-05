@@ -307,7 +307,7 @@ allowed_origins = {
     (CLIENT_UI_ORIGIN or "").strip(),
     os.getenv("WEB_ORIGIN", "").strip(),
     # Explicit prod admin domain kept for safety
-    "https://admin.ygt-assistant.com",
+    "https://admin.lucid-work.com",
     # Local dev hosts (admin-ui, client-ui, site)
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -941,7 +941,7 @@ async def whatsapp_send_plan_today(body: WhatsAppSendPlanIn) -> Dict[str, Any]:
     c = CalendarService()
     plan = c.list_today()
     text = "Plan for Today\n" + "\n".join(
-        [f"• {i.get('time','10:00')} {i.get('title','Focus block')}" for i in plan]
+        [f"? {i.get('time','10:00')} {i.get('title','Focus block')}" for i in plan]
     )
     try:
         res = _wa_send_text(body.to, text)
@@ -1019,16 +1019,16 @@ async def admin_issue_credentials(
     # Email the credentials
     html = f"""
     <p>You've been invited to YGT Assistant.</p>
-    <p>Login URL: <a href=\"{os.getenv('CLIENT_UI_ORIGIN', 'https://app.ygt-assistant.com')}/login\">{os.getenv('CLIENT_UI_ORIGIN', 'https://app.ygt-assistant.com')}/login</a></p>
+    <p>Login URL: <a href=\"{os.getenv('CLIENT_UI_ORIGIN', 'https://app.lucid-work.com')}/login\">{os.getenv('CLIENT_UI_ORIGIN', 'https://app.lucid-work.com')}/login</a></p>
     <p>Email: {body.email}<br/>Temporary password: <code>{pw_plain}</code></p>
     <p>You'll be asked to set a new password on first login.</p>
     """
     try:
         mailer().send(
             to=body.email,
-            subject="Your YGT Assistant login",
+            subject="Your LucidWork login",
             html=html,
-            text=f"Login: {os.getenv('CLIENT_UI_ORIGIN', 'https://app.ygt-assistant.com')}/login\nEmail: {body.email}\nPassword: {pw_plain}",
+            text=f"Login: {os.getenv('CLIENT_UI_ORIGIN', 'https://app.lucid-work.com')}/login\nEmail: {body.email}\nPassword: {pw_plain}",
         )
     except Exception:
         pass
