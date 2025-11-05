@@ -1,4 +1,7 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 0ef1628 (fix: Restore production-safe API base URL default)
 // Default to production API; use localhost only in development
 // In production, NEXT_PUBLIC_ADMIN_API_BASE should always be set
 const BASE =
@@ -6,9 +9,12 @@ const BASE =
   (process.env.NODE_ENV === "development"
     ? "http://localhost:8000"
     : "https://api.coachflow.nz");
+<<<<<<< HEAD
 =======
 const BASE = process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000";
 >>>>>>> 4c5d5bf (Fix chat UI: improve scrollbar, alignment, and bubble sizing)
+=======
+>>>>>>> 0ef1628 (fix: Restore production-safe API base URL default)
 
 async function req(path: string, opts: RequestInit = {}) {
   const res = await fetch(`${BASE}${path}`, {
