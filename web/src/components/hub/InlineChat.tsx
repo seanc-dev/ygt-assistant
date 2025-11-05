@@ -1029,7 +1029,7 @@ export function InlineChat({
         </div>
 
         {/* Input Wrapper - Sticky at bottom */}
-        <div className="sticky bottom-0 z-10 bg-white pt-4 pb-0 flex-shrink-0 border-t border-slate-200 -mx-4 px-4 mt-auto">
+        <div className="sticky bottom-0 z-10 bg-white pt-4 pb-0 flex-shrink-0 border-t border-slate-200 -mx-4 px-4">
           <div className="flex items-end gap-2">
             <textarea
               ref={textareaRef}
