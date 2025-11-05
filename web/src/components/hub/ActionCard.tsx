@@ -36,7 +36,7 @@ type ActionCardProps = {
   onCreateTask: (id: string) => Promise<void>;
   onSchedule: (
     id: string,
-    preset: "focus_30m" | "focus_60m" | "block_pm_admin" | "pick_time"
+    bucket: "afternoon" | "tomorrow" | "this_week" | "next_week"
   ) => Promise<void>;
   onOpenSchedule?: (id: string) => void;
   cardRef?: React.RefObject<HTMLDivElement | null>;
@@ -242,10 +242,8 @@ export function ActionCard({
   );
 
   const handleScheduleClick = useCallback(
-    async (
-      preset: "focus_30m" | "focus_60m" | "block_pm_admin" | "pick_time"
-    ) => {
-      await onSchedule(item.action_id, preset);
+    async (bucket: "afternoon" | "tomorrow" | "this_week" | "next_week") => {
+      await onSchedule(item.action_id, bucket);
       setOpenMenu(null);
     },
     [item.action_id, onSchedule]
@@ -507,32 +505,32 @@ export function ActionCard({
                     onMouseDown={(e) => e.stopPropagation()}
                   >
                     <button
-                      onClick={() => handleScheduleClick("focus_30m")}
+                      onClick={() => handleScheduleClick("afternoon")}
                       onMouseDown={(e) => e.stopPropagation()}
                       className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                     >
-                      Focus 30m
+                      Afternoon
                     </button>
                     <button
-                      onClick={() => handleScheduleClick("focus_60m")}
+                      onClick={() => handleScheduleClick("tomorrow")}
                       onMouseDown={(e) => e.stopPropagation()}
                       className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                     >
-                      Focus 60m
+                      Tomorrow
                     </button>
                     <button
-                      onClick={() => handleScheduleClick("block_pm_admin")}
+                      onClick={() => handleScheduleClick("this_week")}
                       onMouseDown={(e) => e.stopPropagation()}
                       className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                     >
-                      Block PM Admin
+                      This Week
                     </button>
                     <button
-                      onClick={() => handleScheduleClick("pick_time")}
+                      onClick={() => handleScheduleClick("next_week")}
                       onMouseDown={(e) => e.stopPropagation()}
                       className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                     >
-                      Pick time…
+                      Next Week
                     </button>
                   </div>
                 )}
@@ -641,9 +639,9 @@ export function ActionCard({
           expanded ? "max-h-[60vh] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="px-4 pb-4 border-t border-slate-200">
+        <div className="px-4 pb-4 border-t border-slate-200 flex flex-col" style={{ height: expanded ? "60vh" : "auto" }}>
           {/* Workspace Action Bar */}
-          <div className="pt-4 pb-4 flex flex-wrap gap-2">
+          <div className="pt-4 pb-4 flex flex-wrap gap-2 flex-shrink-0">
             <div className="relative">
               <button
                 data-menu-trigger
@@ -714,32 +712,32 @@ export function ActionCard({
                   onMouseDown={(e) => e.stopPropagation()}
                 >
                   <button
-                    onClick={() => handleScheduleClick("focus_30m")}
+                    onClick={() => handleScheduleClick("afternoon")}
                     onMouseDown={(e) => e.stopPropagation()}
                     className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                   >
-                    Focus 30m
+                    Afternoon
                   </button>
                   <button
-                    onClick={() => handleScheduleClick("focus_60m")}
+                    onClick={() => handleScheduleClick("tomorrow")}
                     onMouseDown={(e) => e.stopPropagation()}
                     className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                   >
-                    Focus 60m
+                    Tomorrow
                   </button>
                   <button
-                    onClick={() => handleScheduleClick("block_pm_admin")}
+                    onClick={() => handleScheduleClick("this_week")}
                     onMouseDown={(e) => e.stopPropagation()}
                     className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                   >
-                    Block PM Admin
+                    This Week
                   </button>
                   <button
-                    onClick={() => handleScheduleClick("pick_time")}
+                    onClick={() => handleScheduleClick("next_week")}
                     onMouseDown={(e) => e.stopPropagation()}
                     className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-md focus:outline-none focus:bg-slate-50"
                   >
-                    Pick time…
+                    Next Week
                   </button>
                 </div>
               )}
@@ -811,7 +809,7 @@ export function ActionCard({
 
           {/* Content area */}
           <div
-            className="space-y-4 max-h-[calc(60vh-180px)] overflow-y-auto"
+            className="flex-1 min-h-0"
             onClick={(e) => e.stopPropagation()}
           >
             <InlineChat
