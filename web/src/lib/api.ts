@@ -1,4 +1,10 @@
-const BASE = process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000";
+// Default to production API; use localhost only in development
+// In production, NEXT_PUBLIC_ADMIN_API_BASE should always be set
+const BASE =
+  process.env.NEXT_PUBLIC_ADMIN_API_BASE ||
+  (process.env.NODE_ENV === "development"
+    ? "http://localhost:8000"
+    : "https://api.coachflow.nz");
 
 async function req(path: string, opts: RequestInit = {}) {
   const res = await fetch(`${BASE}${path}`, {
