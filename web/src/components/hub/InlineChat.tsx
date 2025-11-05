@@ -820,7 +820,7 @@ export function InlineChat({
             )}
             <div
               className={`rounded-lg px-4 py-2.5 shadow-sm ${
-                msg.role === "user" ? "max-w-[65%]" : "max-w-[70%]"
+                msg.role === "user" ? "max-w-[80%]" : "max-w-[80%]"
               } ${
                 msg.role === "assistant"
                   ? "bg-slate-100 text-slate-900 border border-slate-200"
@@ -831,6 +831,7 @@ export function InlineChat({
               style={{
                 wordWrap: "break-word",
                 overflowWrap: "break-word",
+                minWidth: "fit-content",
               }}
             >
               <div
@@ -1009,7 +1010,7 @@ export function InlineChat({
           )}
           {isTyping && (
             <div className="flex items-start gap-2 mt-2">
-              <div className="bg-slate-100 text-slate-900 border border-slate-200 rounded-lg px-4 py-2.5 max-w-[70%] shadow-sm">
+              <div className="bg-slate-100 text-slate-900 border border-slate-200 rounded-lg px-4 py-2.5 max-w-[80%] shadow-sm">
                 <div className="flex gap-1">
                   <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
                   <div
@@ -1027,9 +1028,9 @@ export function InlineChat({
           <div ref={messagesEndRef} />
         </div>
 
-      {/* Input Wrapper - Sticky at bottom */}
-      <div className="sticky bottom-0 z-10 bg-white pt-4 pb-0 flex-shrink-0 border-t border-slate-200 -mx-4 px-4">
-        <div className="flex items-end gap-2 pb-2">
+        {/* Input Wrapper - Sticky at bottom */}
+        <div className="sticky bottom-0 z-10 bg-white pt-4 pb-0 flex-shrink-0 border-t border-slate-200 -mx-4 px-4 mt-auto">
+          <div className="flex items-end gap-2">
             <textarea
               ref={textareaRef}
               value={message}
