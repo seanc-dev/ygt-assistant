@@ -23,6 +23,7 @@ try:
         update_page_property,
         get_page_content,
         get_database_id,
+        create_task,
     )
     __all__ = [
         # CLI output functions
@@ -44,6 +45,7 @@ try:
         "update_page_property",
         "get_page_content",
         "get_database_id",
+        "create_task",
     ]
 except Exception:
     # Notion helpers not available (missing env vars or dependencies)

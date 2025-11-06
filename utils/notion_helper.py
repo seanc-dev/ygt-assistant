@@ -17,6 +17,7 @@ import httpx
 # Load environment variables
 try:
     from dotenv import load_dotenv
+
     try:
         load_dotenv(".env.local", override=True)
     except Exception:
@@ -54,22 +55,22 @@ def get_database_id(database_type: str) -> str:
     """Get database ID for a given type (tasks or projects)."""
     db_type = database_type.lower()
     if db_type not in DATABASES:
-        raise ValueError(f"Unknown database type: {database_type}. Must be 'tasks' or 'projects'")
+        raise ValueError(
+            f"Unknown database type: {database_type}. Must be 'tasks' or 'projects'"
+        )
     return DATABASES[db_type]
 
 
 def find_item_by_name(
-    database_id: str,
-    item_name: str,
-    name_property: str = "Name"
+    database_id: str, item_name: str, name_property: str = "Name"
 ) -> Optional[Dict[str, Any]]:
     """Find a Notion page by name in a database.
-    
+
     Args:
         database_id: The Notion database ID
         item_name: The name/title to search for (partial match)
         name_property: The property name that contains the title (default: "Name")
-    
+
     Returns:
         The first matching page dict, or None if not found
     """
@@ -78,10 +79,7 @@ def find_item_by_name(
             f"{NOTION_BASE}/databases/{database_id}/query",
             headers=_headers(),
             json={
-                "filter": {
-                    "property": name_property,
-                    "title": {"contains": item_name}
-                }
+                "filter": {"property": name_property, "title": {"contains": item_name}}
             },
         )
         resp.raise_for_status()
@@ -90,17 +88,15 @@ def find_item_by_name(
 
 
 def query_database(
-    database_id: str,
-    filter_dict: Optional[Dict[str, Any]] = None,
-    page_size: int = 100
+    database_id: str, filter_dict: Optional[Dict[str, Any]] = None, page_size: int = 100
 ) -> List[Dict[str, Any]]:
     """Query a Notion database with optional filters.
-    
+
     Args:
         database_id: The Notion database ID
         filter_dict: Optional filter dictionary (Notion filter format)
         page_size: Number of results to return (max 100)
-    
+
     Returns:
         List of page dictionaries
     """
@@ -108,7 +104,7 @@ def query_database(
         payload = {"page_size": min(page_size, 100)}
         if filter_dict:
             payload["filter"] = filter_dict
-        
+
         resp = client.post(
             f"{NOTION_BASE}/databases/{database_id}/query",
             headers=_headers(),
@@ -119,17 +115,15 @@ def query_database(
 
 
 def update_page_status(
-    page_id: str,
-    status_name: str,
-    status_property: str = "Status"
+    page_id: str, status_name: str, status_property: str = "Status"
 ) -> Dict[str, Any]:
     """Update a page's status property.
-    
+
     Args:
         page_id: The Notion page ID
         status_name: The status name (e.g., "In progress", "Done", "Not started")
         status_property: The property name for status (default: "Status")
-    
+
     Returns:
         Updated page dictionary
     """
@@ -137,33 +131,25 @@ def update_page_status(
         resp = client.patch(
             f"{NOTION_BASE}/pages/{page_id}",
             headers=_headers(),
-            json={
-                "properties": {
-                    status_property: {
-                        "status": {"name": status_name}
-                    }
-                }
-            },
+            json={"properties": {status_property: {"status": {"name": status_name}}}},
         )
         resp.raise_for_status()
         return resp.json()
 
 
 def update_page_property(
-    page_id: str,
-    property_name: str,
-    property_value: Dict[str, Any]
+    page_id: str, property_name: str, property_value: Dict[str, Any]
 ) -> Dict[str, Any]:
     """Update any property on a Notion page.
-    
+
     Args:
         page_id: The Notion page ID
         property_name: The property name to update
         property_value: The property value (must match Notion API format)
-    
+
     Returns:
         Updated page dictionary
-    
+
     Example:
         update_page_property(page_id, "Priority", {"select": {"name": "High"}})
     """
@@ -171,36 +157,27 @@ def update_page_property(
         resp = client.patch(
             f"{NOTION_BASE}/pages/{page_id}",
             headers=_headers(),
-            json={
-                "properties": {
-                    property_name: property_value
-                }
-            },
+            json={"properties": {property_name: property_value}},
         )
         resp.raise_for_status()
         return resp.json()
 
 
 def get_items_by_status(
-    database_type: str,
-    status_name: str,
-    status_property: str = "Status"
+    database_type: str, status_name: str, status_property: str = "Status"
 ) -> List[Dict[str, Any]]:
     """Get all items in a database with a specific status.
-    
+
     Args:
         database_type: "tasks" or "projects"
         status_name: Status name to filter by
         status_property: Property name for status (default: "Status")
-    
+
     Returns:
         List of page dictionaries
     """
     database_id = get_database_id(database_type)
-    filter_dict = {
-        "property": status_property,
-        "status": {"equals": status_name}
-    }
+    filter_dict = {"property": status_property, "status": {"equals": status_name}}
     return query_database(database_id, filter_dict)
 
 
@@ -209,72 +186,66 @@ def update_item_status(
     item_name: str,
     new_status: str,
     name_property: str = "Name",
-    status_property: str = "Status"
+    status_property: str = "Status",
 ) -> Dict[str, Any]:
     """Find an item by name and update its status.
-    
+
     Args:
         database_type: "tasks" or "projects"
         item_name: Name of the item to update
         new_status: New status value
         name_property: Property name for item name (default: "Name")
         status_property: Property name for status (default: "Status")
-    
+
     Returns:
         Updated page dictionary
-    
+
     Raises:
         ValueError: If item not found
     """
     database_id = get_database_id(database_type)
     item = find_item_by_name(database_id, item_name, name_property)
-    
+
     if not item:
         raise ValueError(f"Item '{item_name}' not found in {database_type} database")
-    
+
     page_id = item["id"]
     return update_page_status(page_id, new_status, status_property)
 
 
 def create_task(
-    title: str,
-    project_id: str,
-    notes: str = "",
-    database_type: str = "tasks"
+    title: str, project_id: str, notes: str = "", database_type: str = "tasks"
 ) -> Dict[str, Any]:
     """Create a new task in Notion.
-    
+
     Args:
         title: Task title/name
         project_id: Notion project page ID to link the task to
         notes: Optional notes/description for the task
         database_type: Database type to create in (default: "tasks")
-    
+
     Returns:
         Created page dictionary from Notion API
-    
+
     Raises:
         ValueError: If database_type is invalid or token not set
     """
     database_id = get_database_id(database_type)
-    
+
     properties = {
         "Name": {"title": [{"text": {"content": title}}]},
         "Status": {"status": {"name": "Not started"}},
         "Project": {"relation": [{"id": project_id}]},
     }
-    
+
     if notes:
         properties["Notes"] = {"rich_text": [{"text": {"content": notes}}]}
-    
+
     with httpx.Client(timeout=10.0) as client:
         resp = client.post(
             f"{NOTION_BASE}/pages",
             headers=_headers(),
-            json={
-                "parent": {"database_id": database_id},
-                "properties": properties
-            },
+            json={"parent": {"database_id": database_id}, "properties": properties},
         )
         resp.raise_for_status()
         return resp.json()
@@ -282,10 +253,10 @@ def create_task(
 
 def get_page_content(page_id: str) -> Dict[str, Any]:
     """Retrieve a Notion page with all its properties.
-    
+
     Args:
         page_id: The Notion page ID
-    
+
     Returns:
         Page dictionary with properties
     """
@@ -296,4 +267,3 @@ def get_page_content(page_id: str) -> Dict[str, Any]:
         )
         resp.raise_for_status()
         return resp.json()
-
