@@ -85,6 +85,21 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  updateEvent: (eventId: string, body: { start: string; end: string }) =>
+    req(`/api/schedule/event/${encodeURIComponent(eventId)}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  updateEventFull: (eventId: string, body: { start?: string; end?: string; title?: string; note?: string }) =>
+    req(`/api/schedule/event/${encodeURIComponent(eventId)}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  interpretScheduleCommand: (body: { eventId: string; text: string }) =>
+    req("/api/schedule/interpret", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   briefToday: () => req("/api/brief/today"),
   workroomTree: () => req("/api/workroom/tree"),
   createThread: (body: { task_id: string; title: string; prefs?: any }) =>
