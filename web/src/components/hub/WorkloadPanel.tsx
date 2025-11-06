@@ -1,9 +1,9 @@
 import { Panel, Stack, Heading, Text, Button } from "@ygt-assistant/ui";
 import { useWorkloadSummary } from "../../hooks/useWorkloadSummary";
-import { WorkloadProgress } from "./WorkloadProgress";
-import { WorkloadToday } from "./WorkloadToday";
-import { WorkloadStats } from "./WorkloadStats";
-import { WorkloadStatus } from "./WorkloadStatus";
+import { WorkloadProgress } from "./workload/WorkloadProgress";
+import { WorkloadToday } from "./workload/WorkloadToday";
+import { WorkloadStats } from "./workload/WorkloadStats";
+import { WorkloadStatus } from "./workload/WorkloadStatus";
 import { useRouter } from "next/router";
 import { useCallback, useState } from "react";
 import { Add24Regular, Sync24Regular } from "@fluentui/react-icons";

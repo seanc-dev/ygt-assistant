@@ -1,4 +1,4 @@
-import { segmentMinutes, formatMinutes } from "../../lib/workload";
+import { segmentMinutes, formatMinutes } from "../../lib/workload.js";
 
 interface WorkloadProgressProps {
   plannedMin: number;

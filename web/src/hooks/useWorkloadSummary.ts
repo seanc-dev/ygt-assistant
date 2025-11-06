@@ -1,6 +1,6 @@
 import useSWR from "swr";
 import { api } from "../lib/api";
-import type { WorkloadSummary } from "../lib/workload";
+import type { WorkloadSummary } from "../lib/workload.js";
 
 /**
  * Hook to fetch workload summary from /api/workload/summary.
