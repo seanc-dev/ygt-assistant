@@ -226,4 +226,12 @@ export const api = {
   seedQueue: (count?: number) =>
     req(`/dev/queue/seed${count ? `?count=${count}` : ""}`, { method: "POST" }),
   seedSchedule: () => req("/dev/schedule/seed", { method: "POST" }),
+  // Workload summary
+  getWorkloadSummary: () => req("/api/workload/summary"),
+  // Notion sync
+  notionSync: (body: any) =>
+    req("/api/notion/sync", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };

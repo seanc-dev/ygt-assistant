@@ -1,4 +1,4 @@
-import { Calendar24Regular, List24Regular } from "@fluentui/react-icons";
+import { Calendar24Regular, ClipboardTask24Regular } from "@fluentui/react-icons";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 
@@ -42,7 +42,7 @@ export function WorkloadToday({ items }: WorkloadTodayProps) {
   return (
     <div className="flex flex-wrap gap-2">
       {items.map((item) => {
-        const Icon = item.source === "calendar" ? Calendar24Regular : List24Regular;
+        const Icon = item.source === "calendar" ? Calendar24Regular : ClipboardTask24Regular;
         const priorityColors = {
           high: "bg-rose-100 text-rose-700 border-rose-200",
           med: "bg-amber-100 text-amber-700 border-amber-200",
