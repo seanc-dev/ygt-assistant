@@ -39,6 +39,32 @@ def _calculate_planned_minutes_today(events: List[Dict[str, Any]], blocks: List[
     return total_minutes
 
 
+def _get_triage_count_today(queue_items: List[Dict[str, Any]]) -> int:
+    """Count Action Queue items due/flagged for triage today."""
+    now = datetime.now(ZoneInfo("UTC"))
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = today_start + timedelta(days=1)
+    
+    count = 0
+    for item in queue_items:
+        # Check if item is due today or flagged for triage
+        defer_until = item.get("defer_until")
+        if defer_until:
+            try:
+                defer_date = datetime.fromisoformat(defer_until.replace("Z", "+00:00"))
+                if today_start <= defer_date < today_end:
+                    count += 1
+                    continue
+            except Exception:
+                pass
+        
+        # Check if item has no defer_until and is not archived (needs triage)
+        if not defer_until and not item.get("archived"):
+            count += 1
+    
+    return count
+
+
 def _get_active_minutes(blocks: List[Dict[str, Any]]) -> int:
     """Calculate active minutes from focus blocks that are in progress or started today.
     
@@ -120,30 +146,86 @@ def _get_today_items(
     return items[:5]  # Limit to 5 items
 
 
-def _get_weekly_stats(queue_items: List[Dict[str, Any]]) -> Dict[str, int]:
-    """Calculate weekly triaged and completed stats."""
+def _get_flow_week(queue_items: List[Dict[str, Any]]) -> Dict[str, int]:
+    """Calculate weekly action lifecycle counts.
+    
+    Returns counts for:
+    - deferred: Items deferred to later dates
+    - scheduled: Items assigned a specific time window
+    - planned: Items committed to upcoming capacity
+    - completed: Items done and archived
+    """
     now = datetime.now(ZoneInfo("UTC"))
     week_start = now - timedelta(days=7)
     
-    triaged = 0
+    deferred = 0
+    scheduled = 0
+    planned = 0
     completed = 0
     
-    # Count items created in last 7 days as triaged
     for item in queue_items:
+        # Check if item was created/modified in last 7 days
         created_at = item.get("created_at")
-        if created_at:
-            try:
-                created = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-                if created >= week_start:
-                    triaged += 1
-            except Exception:
+        modified_at = item.get("modified_at") or created_at
+        
+        if not modified_at:
+            continue
+            
+        try:
+            modified = datetime.fromisoformat(modified_at.replace("Z", "+00:00"))
+            if modified < week_start:
                 continue
+        except Exception:
+            continue
+        
+        # Categorize by status/bucket
+        if item.get("archived"):
+            completed += 1
+        elif item.get("added_to_today") or item.get("scheduled_at"):
+            scheduled += 1
+        elif item.get("defer_until"):
+            deferred += 1
+        elif item.get("planned"):
+            planned += 1
+        
+        # For items without explicit status, check defer_until
+        if not item.get("archived") and not item.get("added_to_today"):
+            if item.get("defer_until"):
+                deferred += 1
     
-    # TODO: Track completed items when that feature is implemented
-    # For now, use a placeholder
-    completed = 0
+    return {
+        "deferred": deferred,
+        "scheduled": scheduled,
+        "planned": planned,
+        "completed": completed,
+        "total": deferred + scheduled + planned + completed,
+    }
+
+
+def _get_triage_count_today(queue_items: List[Dict[str, Any]]) -> int:
+    """Count Action Queue items due/flagged for triage today."""
+    now = datetime.now(ZoneInfo("UTC"))
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = today_start + timedelta(days=1)
     
-    return {"triaged": triaged, "completed": completed}
+    count = 0
+    for item in queue_items:
+        # Check if item is due today or flagged for triage
+        defer_until = item.get("defer_until")
+        if defer_until:
+            try:
+                defer_date = datetime.fromisoformat(defer_until.replace("Z", "+00:00"))
+                if today_start <= defer_date < today_end:
+                    count += 1
+                    continue
+            except Exception:
+                pass
+        
+        # Check if item has no defer_until and is not archived (needs triage)
+        if not defer_until and not item.get("archived"):
+            count += 1
+    
+    return count
 
 
 @router.get("/api/workload/summary")
@@ -154,49 +236,55 @@ async def workload_summary(
     """Get workload summary with capacity, progress, and today's items.
     
     Returns:
+    - capacityMin: User-configured daily capacity (default 480 = 8 hours)
     - plannedMin: Total planned minutes for today
-    - activeMin: Focus blocks in progress or started today
-    - overrunMin: Planned exceeded by actual (>=0)
+    - focusedMin: Focus blocks logged/started today
+    - overbookedMin: plannedMin - capacityMin, clamped >=0
+    - triageCountToday: Action Queue items due/flagged for triage today
     - today.items: Focus items for today (up to 5)
     - weekly: Weekly triaged and completed counts
     - rating: "manageable" | "rising" | "overloaded"
     """
     
+    # Default capacity: 8 hours (480 minutes)
+    capacity_min = 480
+    
     # DEV_MODE: Return deterministic mock data
     if _is_dev():
         return {
+            "capacityMin": 480,
             "plannedMin": 420,  # 7 hours
-            "activeMin": 180,  # 3 hours
-            "overrunMin": 0,
+            "focusedMin": 180,  # 3 hours
+            "overbookedMin": 0,
+            "triageCountToday": 6,
             "today": {
-                "items": [
+                "focus": [
                     {
                         "id": "mock-1",
                         "title": "Review Q4 planning doc",
-                        "due": None,
-                        "source": "queue",
-                        "priority": "high",
+                        "source": "task",
+                        "urgent": True,
                     },
                     {
                         "id": "mock-2",
                         "title": "Team standup",
-                        "due": datetime.now().isoformat(),
                         "source": "calendar",
-                        "priority": "med",
                     },
                     {
                         "id": "mock-3",
                         "title": "Finish sprint retrospective",
-                        "due": None,
-                        "source": "queue",
-                        "priority": "med",
+                        "source": "ai",
                     },
                 ],
             },
-            "weekly": {
-                "triaged": 12,
+            "flowWeek": {
+                "deferred": 3,
+                "scheduled": 5,
+                "planned": 4,
                 "completed": 9,
+                "total": 21,
             },
+            "lastSyncIso": datetime.now().isoformat(),
             "rating": "manageable",
         }
     
@@ -208,11 +296,11 @@ async def workload_summary(
     # Calculate planned minutes
     planned_minutes = _calculate_planned_minutes_today(events, blocks)
     
-    # Calculate active minutes
-    active_minutes = _get_active_minutes(blocks)
+    # Calculate focused minutes (renamed from active)
+    focused_minutes = _get_active_minutes(blocks)
     
-    # Calculate overrun (planned exceeded by actual)
-    overrun_minutes = max(0, active_minutes - planned_minutes)
+    # Calculate overbooked (planned exceeded capacity)
+    overbooked_minutes = max(0, planned_minutes - capacity_min)
     
     # Get queue items
     queue_items = list(queue_store.values())
@@ -220,30 +308,43 @@ async def workload_summary(
     # Filter for user's queue items
     user_queue_items = [item for item in queue_items]
     
-    # Get today's items
-    today_items = _get_today_items(events, blocks, user_queue_items)
+    # Get triage count for today
+    triage_count = _get_triage_count_today(user_queue_items)
     
-    # Get weekly stats
-    weekly_stats = _get_weekly_stats(user_queue_items)
+    # Get today's items (map to new structure)
+    today_items_raw = _get_today_items(events, blocks, user_queue_items)
+    today_focus = [
+        {
+            "id": item.get("id", ""),
+            "title": item.get("title", ""),
+            "source": "calendar" if item.get("source") == "calendar" else "task",
+            "urgent": item.get("priority") == "high",
+        }
+        for item in today_items_raw
+    ]
     
-    # Calculate rating
-    # Simple heuristic: manageable if planned < 8 hours, rising if 8-10 hours, overloaded if > 10 hours
-    planned_hours = planned_minutes / 60
-    if planned_hours < 8:
-        rating = "manageable"
-    elif planned_hours < 10:
+    # Get flow week stats
+    flow_week = _get_flow_week(user_queue_items)
+    
+    # Calculate rating based on utilization and overbooked
+    utilization_pct = planned_minutes / capacity_min if capacity_min > 0 else 0
+    if overbooked_minutes > 0 or utilization_pct > 0.95:
+        rating = "overloaded"
+    elif utilization_pct >= 0.75:
         rating = "rising"
     else:
-        rating = "overloaded"
+        rating = "manageable"
     
     return {
+        "capacityMin": capacity_min,
         "plannedMin": planned_minutes,
-        "activeMin": active_minutes,
-        "overrunMin": overrun_minutes,
+        "focusedMin": focused_minutes,
+        "overbookedMin": overbooked_minutes,
         "today": {
-            "items": today_items,
+            "focus": today_focus,
         },
-        "weekly": weekly_stats,
+        "flowWeek": flow_week,
+        "lastSyncIso": datetime.now().isoformat(),
         "rating": rating,
     }
 

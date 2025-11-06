@@ -1,13 +1,24 @@
-import { Panel, Stack, Heading, Text, Button } from "@ygt-assistant/ui";
+import { Panel, Stack, Heading } from "@ygt-assistant/ui";
 import { useWorkloadSummary } from "../../hooks/useWorkloadSummary";
-import { WorkloadProgress } from "./workload/WorkloadProgress";
-import { WorkloadToday } from "./workload/WorkloadToday";
-import { WorkloadStats } from "./workload/WorkloadStats";
+import { CapacityBar } from "./workload/CapacityBar";
+import { ActiveFocus } from "./workload/ActiveFocus";
+import { ActionFlow } from "./workload/ActionFlow";
 import { WorkloadStatus } from "./workload/WorkloadStatus";
 import { useRouter } from "next/router";
-import { useCallback, useState } from "react";
-import { Add24Regular, Sync24Regular } from "@fluentui/react-icons";
-import { isNotionSyncEnabled, pushWorkloadWeeklyDigest } from "../../lib/notionSync";
+import { useCallback, useState, useRef } from "react";
+import { formatRelativeTime } from "../../lib/workload";
+import { CommandBarButton } from "../ui/CommandBarButton";
+import { OverflowMenu, OverflowMenuItem } from "./OverflowMenu";
+import {
+  Add24Regular,
+  Calendar24Regular,
+  CalendarAdd24Regular,
+  Box24Regular,
+  Chat24Regular,
+  Board24Regular,
+  ClipboardTask24Regular,
+  MoreHorizontal24Regular,
+} from "@fluentui/react-icons";
 
 interface WorkloadPanelProps {
   onAddFocusBlock?: () => void;
@@ -15,56 +26,39 @@ interface WorkloadPanelProps {
 
 /**
  * Workload Intelligence Panel - orchestrator component.
- * Displays capacity, progress, today's items, weekly stats, and rating.
+ * Semantic mirror of LucidWork with sections: Capacity, Active Focus, Action Flow, Summary.
  */
 export function WorkloadPanel({ onAddFocusBlock }: WorkloadPanelProps) {
   const { data: workload, isLoading } = useWorkloadSummary();
   const router = useRouter();
-  const [isSyncing, setIsSyncing] = useState(false);
-  const notionSyncEnabled = isNotionSyncEnabled();
-  
+  const [showOverflow, setShowOverflow] = useState(false);
+  const overflowTriggerRef = useRef<HTMLButtonElement>(null);
+
   const handleReviewQueue = useCallback(() => {
     router.push("/hub#action-queue");
   }, [router]);
-  
+
   const handlePlanTomorrow = useCallback(() => {
     router.push("/hub");
     // TODO: Open planning interface
   }, [router]);
-  
-  const handleSyncToNotion = useCallback(async () => {
-    if (!workload || isSyncing) return;
-    
-    setIsSyncing(true);
-    try {
-      // Calculate week start (Monday of current week)
-      const now = new Date();
-      const day = now.getDay();
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
-      const weekStart = new Date(now.setDate(diff));
-      weekStart.setHours(0, 0, 0, 0);
-      
-      const utilizationPct = workload.weekly.triaged > 0
-        ? Math.round((workload.weekly.completed / workload.weekly.triaged) * 100)
-        : 0;
-      
-      await pushWorkloadWeeklyDigest({
-        weekStart: weekStart.toISOString(),
-        triaged: workload.weekly.triaged,
-        completed: workload.weekly.completed,
-        utilizationPct,
-      });
-      
-      // Show success feedback
-      alert("Synced to Notion successfully");
-    } catch (error) {
-      console.error("Failed to sync to Notion:", error);
-      alert("Failed to sync to Notion. Check console for details.");
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [workload, isSyncing]);
-  
+
+  const handleOpenSchedule = useCallback(() => {
+    router.push("/hub#schedule");
+  }, [router]);
+
+  const handleOpenQueueToday = useCallback(() => {
+    router.push("/hub#action-queue?filter=today");
+  }, [router]);
+
+  const handleOpenWorkroom = useCallback(() => {
+    router.push("/workroom");
+  }, [router]);
+
+  const handleOpenProjects = useCallback(() => {
+    router.push("/projects");
+  }, [router]);
+
   if (isLoading && !workload) {
     return (
       <Panel>
@@ -72,12 +66,12 @@ export function WorkloadPanel({ onAddFocusBlock }: WorkloadPanelProps) {
           <Heading as="h2" variant="title">
             Workload
           </Heading>
-          <Text variant="muted">Loading workload data...</Text>
+          <p className="text-sm text-slate-500">Loading workload data...</p>
         </Stack>
       </Panel>
     );
   }
-  
+
   if (!workload) {
     return (
       <Panel>
@@ -85,92 +79,237 @@ export function WorkloadPanel({ onAddFocusBlock }: WorkloadPanelProps) {
           <Heading as="h2" variant="title">
             Workload
           </Heading>
-          <Text variant="muted">Unable to load workload data</Text>
+          <p className="text-sm text-slate-500">Unable to load workload data</p>
         </Stack>
       </Panel>
     );
   }
-  
+
   return (
     <Panel>
       <Stack gap="md">
-        <div className="flex justify-between items-center">
+        {/* Header */}
+        <div>
           <Heading as="h2" variant="title">
             Workload
           </Heading>
-          
-          {/* Quick actions */}
-          <div className="flex items-center gap-2">
+
+          {/* CommandBar - single quiet row */}
+          <div className="flex flex-wrap items-center gap-1.5 text-sm text-slate-600 mt-1 mb-3">
+            {/* Primary (only one subtle) */}
             {onAddFocusBlock && (
-              <button
+              <CommandBarButton
+                size="xs"
+                variant="subtle"
                 onClick={onAddFocusBlock}
-                className="text-xs text-sky-600 hover:text-sky-700 font-medium flex items-center gap-1"
                 aria-label="Add focus block"
               >
-                <Add24Regular className="w-4 h-4" />
+                <Add24Regular
+                  className="h-3.5 w-3.5 md:h-4 md:w-4 text-slate-600"
+                  aria-hidden="true"
+                />
                 <span>Add focus block</span>
-              </button>
+              </CommandBarButton>
             )}
-            <button
+
+            {/* Divider dot */}
+            <span className="mx-1 text-slate-300">•</span>
+
+            {/* Ghost text links (no pills) */}
+            <CommandBarButton
+              size="xs"
+              variant="ghost"
               onClick={handleReviewQueue}
-              className="text-xs text-slate-600 hover:text-slate-700 font-medium"
-              aria-label="Review Action Queue"
+              aria-label="Review Queue"
+              className="hidden sm:inline-flex"
             >
-              Review Queue
-            </button>
-            <button
+              <Box24Regular
+                className="h-3.5 w-3.5 md:h-4 md:w-4 text-slate-500"
+                aria-hidden="true"
+              />
+              <span className="hidden sm:inline">Review Queue</span>
+            </CommandBarButton>
+            <span className="hidden sm:inline text-slate-300">•</span>
+            <CommandBarButton
+              size="xs"
+              variant="ghost"
               onClick={handlePlanTomorrow}
-              className="text-xs text-slate-600 hover:text-slate-700 font-medium"
               aria-label="Plan tomorrow"
+              className="hidden sm:inline-flex"
             >
-              Plan tomorrow
-            </button>
-            {notionSyncEnabled && (
+              <CalendarAdd24Regular
+                className="h-3.5 w-3.5 md:h-4 md:w-4 text-slate-500"
+                aria-hidden="true"
+              />
+              <span className="hidden sm:inline">Plan tomorrow</span>
+            </CommandBarButton>
+
+            <span className="hidden sm:inline mx-1 text-slate-300">•</span>
+
+            {/* Navigation as ghost links */}
+            <CommandBarButton
+              size="xs"
+              variant="ghost"
+              onClick={handleOpenSchedule}
+              aria-label="Open Schedule"
+              className="hidden sm:inline-flex"
+            >
+              <Calendar24Regular
+                className="h-3.5 w-3.5 md:h-4 md:w-4 text-slate-500"
+                aria-hidden="true"
+              />
+              <span className="hidden md:inline">Schedule</span>
+            </CommandBarButton>
+            <span className="hidden sm:inline text-slate-300">•</span>
+            <CommandBarButton
+              size="xs"
+              variant="ghost"
+              onClick={handleOpenQueueToday}
+              aria-label="Open Action Queue (Today)"
+              className="hidden sm:inline-flex"
+            >
+              <ClipboardTask24Regular
+                className="h-3.5 w-3.5 md:h-4 md:w-4 text-slate-500"
+                aria-hidden="true"
+              />
+              <span className="hidden md:inline">Action Queue (Today)</span>
+            </CommandBarButton>
+            <span className="hidden sm:inline text-slate-300">•</span>
+            <CommandBarButton
+              size="xs"
+              variant="ghost"
+              onClick={handleOpenWorkroom}
+              aria-label="Open Workroom"
+              className="hidden sm:inline-flex"
+            >
+              <Chat24Regular
+                className="h-3.5 w-3.5 md:h-4 md:w-4 text-slate-500"
+                aria-hidden="true"
+              />
+              <span className="hidden md:inline">Workroom</span>
+            </CommandBarButton>
+            <span className="hidden sm:inline text-slate-300">•</span>
+            <CommandBarButton
+              size="xs"
+              variant="ghost"
+              onClick={handleOpenProjects}
+              aria-label="Open Projects/Kanban"
+              className="hidden sm:inline-flex"
+            >
+              <Board24Regular
+                className="h-3.5 w-3.5 md:h-4 md:w-4 text-slate-500"
+                aria-hidden="true"
+              />
+              <span className="hidden md:inline">Projects</span>
+            </CommandBarButton>
+
+            {/* Overflow on xs screens */}
+            <div className="sm:hidden">
               <button
-                onClick={handleSyncToNotion}
-                disabled={isSyncing}
-                className="text-xs text-sky-600 hover:text-sky-700 font-medium flex items-center gap-1 disabled:opacity-50"
-                aria-label="Sync to Notion"
+                ref={overflowTriggerRef}
+                onClick={() => setShowOverflow(!showOverflow)}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-sky-300"
+                aria-label="More"
+                aria-expanded={showOverflow}
               >
-                <Sync24Regular className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
-                <span>Sync to Notion</span>
+                <MoreHorizontal24Regular
+                  className="h-4 w-4 text-slate-600"
+                  aria-hidden="true"
+                />
               </button>
-            )}
+              <OverflowMenu
+                open={showOverflow}
+                onClose={() => setShowOverflow(false)}
+                triggerRef={overflowTriggerRef as React.RefObject<HTMLElement>}
+              >
+                <OverflowMenuItem
+                  onClick={() => {
+                    handleReviewQueue();
+                    setShowOverflow(false);
+                  }}
+                >
+                  Review Queue
+                </OverflowMenuItem>
+                <OverflowMenuItem
+                  onClick={() => {
+                    handlePlanTomorrow();
+                    setShowOverflow(false);
+                  }}
+                >
+                  Plan tomorrow
+                </OverflowMenuItem>
+                <OverflowMenuItem
+                  onClick={() => {
+                    handleOpenSchedule();
+                    setShowOverflow(false);
+                  }}
+                >
+                  Schedule
+                </OverflowMenuItem>
+                <OverflowMenuItem
+                  onClick={() => {
+                    handleOpenQueueToday();
+                    setShowOverflow(false);
+                  }}
+                >
+                  Action Queue (Today)
+                </OverflowMenuItem>
+                <OverflowMenuItem
+                  onClick={() => {
+                    handleOpenWorkroom();
+                    setShowOverflow(false);
+                  }}
+                >
+                  Workroom
+                </OverflowMenuItem>
+                <OverflowMenuItem
+                  onClick={() => {
+                    handleOpenProjects();
+                    setShowOverflow(false);
+                  }}
+                >
+                  Projects
+                </OverflowMenuItem>
+              </OverflowMenu>
+            </div>
           </div>
         </div>
-        
-        {/* Progress bar */}
-        <WorkloadProgress
-          plannedMin={workload.plannedMin}
-          activeMin={workload.activeMin}
-          overrunMin={workload.overrunMin}
-        />
-        
-        {/* Today's items */}
+
+        {/* Today's Capacity */}
         <div className="space-y-2">
-          <Text variant="caption" className="text-xs font-medium text-slate-600">
-            Today&apos;s focus
-          </Text>
-          <WorkloadToday items={workload.today.items} />
-        </div>
-        
-        {/* Weekly stats */}
-        <div className="space-y-2">
-          <Text variant="caption" className="text-xs font-medium text-slate-600">
-            This week
-          </Text>
-          <WorkloadStats
-            triaged={workload.weekly.triaged}
-            completed={workload.weekly.completed}
+          <p className="text-sm text-slate-600 font-medium">Capacity today</p>
+          <CapacityBar
+            capacityMin={workload.capacityMin}
+            plannedMin={workload.plannedMin}
+            focusedMin={workload.focusedMin}
+            overbookedMin={workload.overbookedMin}
           />
         </div>
-        
-        {/* Status badge */}
-        <div className="pt-2 border-t border-slate-200">
+
+        {/* Active Focus */}
+        <div className="space-y-2">
+          <p className="text-sm text-slate-600 font-medium">
+            Active focus ({workload.today.focus.length})
+          </p>
+          <ActiveFocus items={workload.today.focus} />
+        </div>
+
+        {/* Action Flow */}
+        <div className="space-y-2">
+          <p className="text-sm text-slate-600 font-medium">Action flow</p>
+          <ActionFlow flowWeek={workload.flowWeek} />
+        </div>
+
+        {/* Summary */}
+        <div className="pt-2 border-t border-slate-200 space-y-1">
           <WorkloadStatus rating={workload.rating} />
+          {workload.lastSyncIso && (
+            <p className="text-xs text-slate-500">
+              Last sync {formatRelativeTime(workload.lastSyncIso)}
+            </p>
+          )}
         </div>
       </Stack>
     </Panel>
   );
 }
-

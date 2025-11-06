@@ -4,106 +4,85 @@
 
 export type WorkloadRating = "manageable" | "rising" | "overloaded";
 
-export interface WorkloadSegments {
-  planned: number; // Planned minutes as percentage of total
-  active: number; // Active minutes as percentage of total
-  overrun: number; // Overrun minutes as percentage of total
+export interface FlowWeek {
+  deferred: number;
+  scheduled: number;
+  planned: number;
+  completed: number;
+  total: number;
+}
+
+export interface FocusItem {
+  id: string;
+  title: string;
+  source: "calendar" | "task" | "ai";
+  urgent?: boolean;
 }
 
 export interface WorkloadSummary {
-  plannedMin: number;
-  activeMin: number;
-  overrunMin: number;
+  capacityMin: number; // User-configured daily capacity
+  plannedMin: number; // Scheduled today
+  focusedMin: number; // Logged/started focus
+  overbookedMin: number; // plannedMin - capacityMin, clamped >=0
   today: {
-    items: Array<{
-      id: string;
-      title: string;
-      due: string | null;
-      source: "queue" | "calendar";
-      priority: "low" | "med" | "high";
-    }>;
+    focus: FocusItem[];
   };
-  weekly: {
-    triaged: number;
-    completed: number;
-  };
+  flowWeek: FlowWeek;
+  lastSyncIso: string;
   rating: WorkloadRating;
 }
 
 /**
- * Calculate segmented minutes distribution for progress bar.
- * Returns percentages for planned, active, and overrun segments.
+ * Calculate free minutes (capacity - planned).
  */
-export function segmentMinutes(
-  plannedMin: number,
-  activeMin: number,
-  totalCapacityMin: number = 480 // Default 8 hours
-): WorkloadSegments {
-  const total = Math.max(plannedMin + activeMin, totalCapacityMin);
-  
-  const planned = total > 0 ? (plannedMin / total) * 100 : 0;
-  const active = total > 0 ? (Math.min(activeMin, plannedMin) / total) * 100 : 0;
-  const overrun = total > 0 ? (Math.max(0, activeMin - plannedMin) / total) * 100 : 0;
-  
-  return {
-    planned: Math.min(planned, 100),
-    active: Math.min(active, 100),
-    overrun: Math.min(overrun, 100),
-  };
+export function freeMin(capacityMin: number, plannedMin: number): number {
+  return Math.max(capacityMin - plannedMin, 0);
 }
 
 /**
- * Rate workload based on metrics.
+ * Calculate overbooked minutes (planned - capacity).
+ */
+export function overbookedMin(capacityMin: number, plannedMin: number): number {
+  return Math.max(plannedMin - capacityMin, 0);
+}
+
+/**
+ * Calculate utilization percentage.
+ */
+export function utilizationPct(capacityMin: number, plannedMin: number): number {
+  return capacityMin > 0 ? plannedMin / capacityMin : 0;
+}
+
+/**
+ * Calculate focus ratio (focused / planned).
+ */
+export function focusRatio(plannedMin: number, focusedMin: number): number {
+  return plannedMin > 0 ? focusedMin / plannedMin : 0;
+}
+
+/**
+ * Rate workload based on capacity thresholds.
  * Returns "manageable" | "rising" | "overloaded"
  */
 export function rateWorkload(
-  plannedMin: number,
-  activeMin: number,
-  openItems: number = 0,
-  completed: number = 0,
-  triaged: number = 0
+  capacityMin: number,
+  plannedMin: number
 ): WorkloadRating {
-  const plannedHours = plannedMin / 60;
+  const overbooked = overbookedMin(capacityMin, plannedMin);
+  const utilization = utilizationPct(capacityMin, plannedMin);
   
-  // Base rating on planned hours
-  if (plannedHours < 8) {
-    return "manageable";
-  } else if (plannedHours < 10) {
-    return "rising";
-  } else {
+  // Overloaded if overbooked OR utilization > 95%
+  if (overbooked > 0 || utilization > 0.95) {
     return "overloaded";
   }
-}
-
-/**
- * Pick top N items for today's display.
- * Limited to specified count, prioritized by due date and priority.
- */
-export function pickToday<T extends { due?: string | null; priority?: string }>(
-  items: T[],
-  limit: number = 5
-): T[] {
-  // Sort by: high priority first, then by due date, then original order
-  const sorted = [...items].sort((a, b) => {
-    const priorityOrder = { high: 0, med: 1, low: 2 };
-    const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 1;
-    const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 1;
-    
-    if (aPriority !== bPriority) {
-      return aPriority - bPriority;
-    }
-    
-    // Compare due dates
-    if (a.due && b.due) {
-      return a.due.localeCompare(b.due);
-    }
-    if (a.due) return -1;
-    if (b.due) return 1;
-    
-    return 0;
-  });
   
-  return sorted.slice(0, limit);
+  // Rising if utilization 75-95%
+  if (utilization >= 0.75) {
+    return "rising";
+  }
+  
+  // Manageable otherwise
+  return "manageable";
 }
 
 /**
@@ -121,3 +100,34 @@ export function formatMinutes(minutes: number): string {
   }
 }
 
+/**
+ * Format hours only (for display).
+ */
+export function formatHours(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h`;
+}
+
+/**
+ * Format relative time from ISO string.
+ */
+export function formatRelativeTime(isoString: string): string {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  
+  if (diffMins < 1) {
+    return "just now";
+  } else if (diffMins < 60) {
+    return `${diffMins}m ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  } else if (diffDays === 1) {
+    return "yesterday";
+  } else {
+    return `${diffDays}d ago`;
+  }
+}
