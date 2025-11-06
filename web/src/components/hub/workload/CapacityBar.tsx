@@ -1,7 +1,4 @@
-import {
-  formatHours,
-  freeMin,
-} from "../../../lib/workload";
+import { formatHours, freeMin } from "../../../lib/workload";
 import { Tooltip } from "../../ui/Tooltip";
 
 interface CapacityBarProps {
@@ -23,29 +20,33 @@ export function CapacityBar({
 }: CapacityBarProps) {
   const free = freeMin(capacityMin, plannedMin);
   const isOverbooked = overbookedMin > 0;
-  
+
   // Calculate percentages for segments
   const plannedPercent = capacityMin > 0 ? (plannedMin / capacityMin) * 100 : 0;
-  const focusedPercent = capacityMin > 0 ? (Math.min(focusedMin, plannedMin) / capacityMin) * 100 : 0;
+  const focusedPercent =
+    capacityMin > 0
+      ? (Math.min(focusedMin, plannedMin) / capacityMin) * 100
+      : 0;
   const freePercent = capacityMin > 0 ? (free / capacityMin) * 100 : 0;
-  const overbookedPercent = capacityMin > 0 ? (overbookedMin / capacityMin) * 100 : 0;
-  
+  const overbookedPercent =
+    capacityMin > 0 ? (overbookedMin / capacityMin) * 100 : 0;
+
   // Format display values
   const plannedH = formatHours(plannedMin);
   const focusedH = formatHours(focusedMin);
   const freeH = formatHours(free);
   const overbookedH = formatHours(overbookedMin);
-  
+
   // Build aria label
   const ariaLabel = isOverbooked
     ? `Planned ${plannedH}, Focused ${focusedH}, Overbooked ${overbookedH}`
     : `Planned ${plannedH}, Focused ${focusedH}, Free ${freeH}`;
-  
+
   // Caption text
   const captionText = isOverbooked
     ? `${plannedH} planned • ${focusedH} focused • +${overbookedH} overbooked`
     : `${plannedH} planned • ${focusedH} focused • ${freeH} free`;
-  
+
   return (
     <div className="space-y-2">
       {/* Progress bar container */}
@@ -64,7 +65,7 @@ export function CapacityBar({
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-sky-300/20 to-transparent" />
             </div>
           )}
-          
+
           {/* Focused overlay */}
           {focusedPercent > 0 && (
             <div
@@ -72,7 +73,7 @@ export function CapacityBar({
               style={{ width: `${focusedPercent}%` }}
             />
           )}
-          
+
           {/* Free segment (right side) */}
           {freePercent > 0 && (
             <div
@@ -81,7 +82,7 @@ export function CapacityBar({
             />
           )}
         </div>
-        
+
         {/* Overbooked segment (extends beyond capacity) */}
         {overbookedPercent > 0 && (
           <div
@@ -94,11 +95,9 @@ export function CapacityBar({
           />
         )}
       </div>
-      
+
       {/* Caption with legend */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <p className="text-sm text-slate-600">{captionText}</p>
-        
         {/* Legend with hours */}
         <div className="flex items-center gap-3 text-xs text-slate-500">
           <Tooltip label="Time already scheduled today.">
@@ -134,4 +133,3 @@ export function CapacityBar({
     </div>
   );
 }
-

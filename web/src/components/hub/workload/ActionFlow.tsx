@@ -1,5 +1,8 @@
 import { useState, useCallback } from "react";
-import { ChevronDown24Regular, ChevronUp24Regular } from "@fluentui/react-icons";
+import {
+  ChevronDown24Regular,
+  ChevronUp24Regular,
+} from "@fluentui/react-icons";
 import type { FlowWeek } from "../../../lib/workload";
 
 interface ActionFlowProps {
@@ -12,19 +15,19 @@ interface ActionFlowProps {
  */
 export function ActionFlow({ flowWeek }: ActionFlowProps) {
   const [expanded, setExpanded] = useState(false);
-  
+
   const toggleExpanded = useCallback(() => {
     setExpanded(!expanded);
   }, [expanded]);
-  
+
   const { deferred, scheduled, planned, completed, total } = flowWeek;
-  
+
   // Calculate percentages for segments (normalize by total to prevent overflow)
   const deferredPercent = total > 0 ? (deferred / total) * 100 : 0;
   const scheduledPercent = total > 0 ? (scheduled / total) * 100 : 0;
   const plannedPercent = total > 0 ? (planned / total) * 100 : 0;
   const completedPercent = total > 0 ? (completed / total) * 100 : 0;
-  
+
   return (
     <div className="space-y-2">
       {/* Segmented bar */}
@@ -41,7 +44,7 @@ export function ActionFlow({ flowWeek }: ActionFlowProps) {
             title="Moved out of today or to later."
           />
         )}
-        
+
         {/* Scheduled */}
         {scheduled > 0 && (
           <div
@@ -50,7 +53,7 @@ export function ActionFlow({ flowWeek }: ActionFlowProps) {
             title="Assigned a specific time window."
           />
         )}
-        
+
         {/* Planned */}
         {planned > 0 && (
           <div
@@ -59,7 +62,7 @@ export function ActionFlow({ flowWeek }: ActionFlowProps) {
             title="Committed to upcoming capacity."
           />
         )}
-        
+
         {/* Completed */}
         {completed > 0 && (
           <div
@@ -69,12 +72,10 @@ export function ActionFlow({ flowWeek }: ActionFlowProps) {
           />
         )}
       </div>
-      
+
       {/* Caption */}
-      <p className="text-sm text-slate-600">
-        {total} actions this week
-      </p>
-      
+      <p className="text-sm text-slate-600">{total} actions this week</p>
+
       {/* Accordion (md+ only) */}
       <div className="hidden md:block">
         <button
@@ -90,7 +91,7 @@ export function ActionFlow({ flowWeek }: ActionFlowProps) {
           )}
           <span>Details</span>
         </button>
-        
+
         {expanded && (
           <div className="mt-2 space-y-1 text-xs text-slate-600">
             <div className="flex items-center justify-between">
@@ -115,4 +116,3 @@ export function ActionFlow({ flowWeek }: ActionFlowProps) {
     </div>
   );
 }
-
