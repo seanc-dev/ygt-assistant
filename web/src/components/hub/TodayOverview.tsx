@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Panel, Stack, Text, Button, Heading } from "@ygt-assistant/ui";
 import { useToday, useSettings } from "../../hooks/useHubData";
-import { ScheduleDayView } from "../ScheduleDayView";
+import { Schedule } from "./Schedule";
 import { AltPlansPanel } from "../AltPlansPanel";
 import { Toast } from "../Toast";
 import { api } from "../../lib/api";
@@ -11,7 +11,7 @@ interface TodayOverviewProps {
 }
 
 export function TodayOverview({ onEditInChat }: TodayOverviewProps) {
-  const { data: schedule, isLoading } = useToday();
+  const { data: schedule, isLoading, mutate } = useToday();
   const { data: settings } = useSettings();
   const [alternatives, setAlternatives] = useState<any>(null);
   const [showAlternatives, setShowAlternatives] = useState(false);
@@ -41,6 +41,31 @@ export function TodayOverview({ onEditInChat }: TodayOverviewProps) {
     setExpandedBlockId(expandedBlockId === blockId ? null : blockId);
     onEditInChat?.(blockId);
   }, [expandedBlockId, onEditInChat]);
+
+  const handleUpdateEvent = useCallback(async (id: string, updates: { start?: string; end?: string; title?: string; note?: string }) => {
+    try {
+      if (updates.start || updates.end) {
+        await api.updateEventFull(id, updates);
+      } else if (updates.title || updates.note) {
+        await api.updateEventFull(id, updates);
+      }
+      // Refresh schedule data
+      mutate();
+    } catch (err) {
+      console.error("Failed to update event:", err);
+      setToast("Failed to update event. Please try again.");
+    }
+  }, [mutate]);
+
+  const handleDuplicateEvent = useCallback(async (id: string) => {
+    // TODO: Implement duplicate logic
+    setToast("Duplicate functionality coming soon");
+  }, []);
+
+  const handleDeleteEvent = useCallback(async (id: string) => {
+    // TODO: Implement delete logic
+    setToast("Delete functionality coming soon");
+  }, []);
 
   // Calculate workload gauge
   const workHours = settings?.work_hours;
@@ -88,11 +113,13 @@ export function TodayOverview({ onEditInChat }: TodayOverviewProps) {
           {isLoading && !schedule ? (
             <Text variant="muted">Loading schedule...</Text>
           ) : schedule ? (
-            <ScheduleDayView
+            <Schedule
               events={schedule.events || []}
               blocks={schedule.blocks || []}
               onEditInChat={handleEditInChat}
-              expandedBlockId={expandedBlockId}
+              onUpdateEvent={handleUpdateEvent}
+              onDuplicateEvent={handleDuplicateEvent}
+              onDeleteEvent={handleDeleteEvent}
             />
           ) : (
             <Text variant="muted">No schedule data available.</Text>
