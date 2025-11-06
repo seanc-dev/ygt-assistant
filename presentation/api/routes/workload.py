@@ -178,20 +178,16 @@ def _get_flow_week(queue_items: List[Dict[str, Any]]) -> Dict[str, int]:
         except Exception:
             continue
         
-        # Categorize by status/bucket
+        # Categorize by status/bucket (mutually exclusive)
         if item.get("archived"):
             completed += 1
         elif item.get("added_to_today") or item.get("scheduled_at"):
             scheduled += 1
-        elif item.get("defer_until"):
-            deferred += 1
         elif item.get("planned"):
             planned += 1
-        
-        # For items without explicit status, check defer_until
-        if not item.get("archived") and not item.get("added_to_today"):
-            if item.get("defer_until"):
-                deferred += 1
+        elif item.get("defer_until"):
+            deferred += 1
+        # Items without explicit status are not counted in any category
     
     return {
         "deferred": deferred,

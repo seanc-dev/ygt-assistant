@@ -19,12 +19,11 @@ export function ActionFlow({ flowWeek }: ActionFlowProps) {
   
   const { deferred, scheduled, planned, completed, total } = flowWeek;
   
-  // Calculate percentages for segments
-  const maxValue = Math.max(deferred, scheduled, planned, completed, 1);
-  const deferredPercent = (deferred / maxValue) * 100;
-  const scheduledPercent = (scheduled / maxValue) * 100;
-  const plannedPercent = (planned / maxValue) * 100;
-  const completedPercent = (completed / maxValue) * 100;
+  // Calculate percentages for segments (normalize by total to prevent overflow)
+  const deferredPercent = total > 0 ? (deferred / total) * 100 : 0;
+  const scheduledPercent = total > 0 ? (scheduled / total) * 100 : 0;
+  const plannedPercent = total > 0 ? (planned / total) * 100 : 0;
+  const completedPercent = total > 0 ? (completed / total) * 100 : 0;
   
   return (
     <div className="space-y-2">
