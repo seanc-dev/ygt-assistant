@@ -1,11 +1,11 @@
-import type { WorkloadRating } from "../../lib/workload";
+import type { WorkloadRating } from "../../../lib/workload";
 
 interface WorkloadStatusProps {
   rating: WorkloadRating;
 }
 
 /**
- * Display workload rating as a badge.
+ * Display workload rating as a small, calm badge.
  */
 export function WorkloadStatus({ rating }: WorkloadStatusProps) {
   const labels: Record<WorkloadRating, string> = {
@@ -14,17 +14,17 @@ export function WorkloadStatus({ rating }: WorkloadStatusProps) {
     overloaded: "Overloaded workload",
   };
   
-  const colors: Record<WorkloadRating, string> = {
-    manageable: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    rising: "bg-amber-100 text-amber-700 border-amber-200",
-    overloaded: "bg-rose-100 text-rose-700 border-rose-200",
+  const styles: Record<WorkloadRating, string> = {
+    manageable: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+    rising: "bg-amber-50 text-amber-700 ring-amber-100",
+    overloaded: "bg-rose-50 text-rose-700 ring-rose-100",
   };
   
   return (
     <span
       className={`
-        inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border
-        ${colors[rating]}
+        inline-flex items-center rounded-full px-2.5 py-1 text-xs ring-1
+        ${styles[rating]}
       `}
       aria-label={`Workload status: ${labels[rating]}`}
     >
@@ -32,4 +32,3 @@ export function WorkloadStatus({ rating }: WorkloadStatusProps) {
     </span>
   );
 }
-
