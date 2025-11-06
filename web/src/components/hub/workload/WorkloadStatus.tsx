@@ -1,4 +1,4 @@
-import type { WorkloadRating } from "../../lib/workload.js";
+import type { WorkloadRating } from "../../../lib/workload";
 
 interface WorkloadStatusProps {
   rating: WorkloadRating;
