@@ -2,6 +2,7 @@
 
 This module provides functions to:
 - Query Notion databases (via MCP server or direct API)
+- Create, update, and find items in Notion databases
 - Update page status and properties
 - Find items by name or other criteria
 
@@ -233,6 +234,50 @@ def update_item_status(
     
     page_id = item["id"]
     return update_page_status(page_id, new_status, status_property)
+
+
+def create_task(
+    title: str,
+    project_id: str,
+    notes: str = "",
+    database_type: str = "tasks"
+) -> Dict[str, Any]:
+    """Create a new task in Notion.
+    
+    Args:
+        title: Task title/name
+        project_id: Notion project page ID to link the task to
+        notes: Optional notes/description for the task
+        database_type: Database type to create in (default: "tasks")
+    
+    Returns:
+        Created page dictionary from Notion API
+    
+    Raises:
+        ValueError: If database_type is invalid or token not set
+    """
+    database_id = get_database_id(database_type)
+    
+    properties = {
+        "Name": {"title": [{"text": {"content": title}}]},
+        "Status": {"status": {"name": "Not started"}},
+        "Project": {"relation": [{"id": project_id}]},
+    }
+    
+    if notes:
+        properties["Notes"] = {"rich_text": [{"text": {"content": notes}}]}
+    
+    with httpx.Client(timeout=10.0) as client:
+        resp = client.post(
+            f"{NOTION_BASE}/pages",
+            headers=_headers(),
+            json={
+                "parent": {"database_id": database_id},
+                "properties": properties
+            },
+        )
+        resp.raise_for_status()
+        return resp.json()
 
 
 def get_page_content(page_id: str) -> Dict[str, Any]:
