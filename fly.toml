@@ -1,4 +1,4 @@
-app = "coach-flow-app"
+app = "lucid-work"
 primary_region = "syd"
 
 [build]
