@@ -90,7 +90,10 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(body),
     }),
-  updateEventFull: (eventId: string, body: { start?: string; end?: string; title?: string; note?: string }) =>
+  updateEventFull: (
+    eventId: string,
+    body: { start?: string; end?: string; title?: string; note?: string }
+  ) =>
     req(`/api/schedule/event/${encodeURIComponent(eventId)}`, {
       method: "PATCH",
       body: JSON.stringify(body),
@@ -223,4 +226,12 @@ export const api = {
   seedQueue: (count?: number) =>
     req(`/dev/queue/seed${count ? `?count=${count}` : ""}`, { method: "POST" }),
   seedSchedule: () => req("/dev/schedule/seed", { method: "POST" }),
+  // Workload summary
+  getWorkloadSummary: () => req("/api/workload/summary"),
+  // Notion sync
+  notionSync: (body: any) =>
+    req("/api/notion/sync", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };

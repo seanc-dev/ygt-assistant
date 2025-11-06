@@ -482,6 +482,20 @@ except Exception:
     pass
 
 try:
+    from presentation.api.routes.workload import router as workload_router
+
+    app.include_router(workload_router)
+except Exception:
+    pass
+
+try:
+    from presentation.api.routes.notion import router as notion_router
+
+    app.include_router(notion_router)
+except Exception:
+    pass
+
+try:
     from presentation.api.routes.brief import router as brief_router
 
     app.include_router(brief_router)

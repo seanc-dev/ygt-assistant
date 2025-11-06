@@ -6,17 +6,16 @@ Usage:
     # Create tasks from Python list (for programmatic use)
     python scripts/create_notion_tasks.py
 
-    # Or use as a module:
-    from scripts.create_notion_tasks import create_task
-
+    # Import and use in code (preferred):
+    from utils.notion_helper import create_task
     create_task("Task title", "project_id", "Optional notes")
 
 Examples:
     # Create a single task programmatically
     python scripts/create_notion_tasks.py
 
-    # Import and use in code
-    from scripts.create_notion_tasks import create_task
+    # Import and use in code (preferred):
+    from utils.notion_helper import create_task
     create_task("My task", "project-id-here", "Task description")
 """
 
@@ -26,24 +25,7 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.notion_helper import create_task as create_task_helper
-
-
-def create_task(title, project_id, notes=""):
-    """Create a task in Notion.
-
-    Convenience wrapper around utils.notion_helper.create_task.
-    Kept for backward compatibility and simpler import path.
-
-    Args:
-        title: Task title/name
-        project_id: Notion project page ID to link the task to
-        notes: Optional notes/description for the task
-
-    Returns:
-        Created page dictionary from Notion API
-    """
-    return create_task_helper(title, project_id, notes)
+from utils.notion_helper import create_task
 
 
 def main():
