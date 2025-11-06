@@ -22,7 +22,11 @@ export function ActionFlow({ flowWeek }: ActionFlowProps) {
 
   const { deferred, scheduled, planned, completed, total } = flowWeek;
 
-  // Calculate percentages for segments (normalize by total to prevent overflow)
+  // Calculate percentages for segments
+  // IMPORTANT: Normalize by total (sum of all categories), not maxValue.
+  // This ensures segments always add up to 100% and prevents bar overflow.
+  // Using maxValue would cause segments to exceed 100% when one category
+  // is larger than others (e.g., 10 deferred + 5 scheduled = 200% width).
   const deferredPercent = total > 0 ? (deferred / total) * 100 : 0;
   const scheduledPercent = total > 0 ? (scheduled / total) * 100 : 0;
   const plannedPercent = total > 0 ? (planned / total) * 100 : 0;

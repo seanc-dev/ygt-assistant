@@ -194,6 +194,13 @@ def _get_flow_week(queue_items: List[Dict[str, Any]]) -> Dict[str, int]:
             continue
 
         # Categorize by status/bucket (mutually exclusive)
+        # IMPORTANT: Use elif chain to prevent double-counting. Each item
+        # should be counted in exactly one category based on priority:
+        # 1. Completed (archived) takes precedence
+        # 2. Scheduled (added_to_today or scheduled_at) next
+        # 3. Planned (explicitly planned) next
+        # 4. Deferred (defer_until set) last
+        # Items without any of these statuses are not counted
         if item.get("archived"):
             completed += 1
         elif item.get("added_to_today") or item.get("scheduled_at"):

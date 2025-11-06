@@ -15,7 +15,6 @@ except Exception:
 from fastapi import FastAPI, HTTPException, Request, Query, Depends, Response
 from pydantic import BaseModel, Field
 
-from utils.command_dispatcher import dispatch
 from core.services.triage_engine import EmailEnvelope, triage_email
 from dotenv import load_dotenv
 
@@ -619,21 +618,30 @@ class CalendarAction(BaseModel):
 
 @app.post("/calendar/actions")
 async def calendar_actions(payload: CalendarAction) -> Dict[str, Any]:
-    """Execute or plan a calendar action via the existing dispatcher.
+    """Execute or plan a calendar action.
 
-    When ``dry_run`` is true, returns a plan without invoking the dispatcher.
+    Legacy calendar actions are no longer supported. This endpoint returns
+    an error directing users to use modern calendar API endpoints instead.
+    
+    For calendar operations, use:
+    - POST /calendar/plan-today - Get today's calendar plan
+    - POST /calendar/reschedule - Reschedule calendar events
     """
 
     if payload.dry_run:
         return {
             "dry_run": True,
             "plan": {"action": payload.action, "details": payload.details},
+            "deprecated": True,
+            "message": "Legacy calendar actions are deprecated. Use /calendar/plan-today or /calendar/reschedule instead.",
         }
-    try:
-        result = dispatch(payload.action, payload.details)
-        return {"ok": True, "result": result}
-    except Exception as exc:  # pragma: no cover - behavior is surfaced via HTTP status
-        raise HTTPException(status_code=400, detail=str(exc))
+    raise HTTPException(
+        status_code=410,  # 410 Gone - resource is no longer available
+        detail=(
+            f"Legacy calendar action '{payload.action}' is no longer supported. "
+            "Please use the modern calendar API endpoints: /calendar/plan-today or /calendar/reschedule"
+        ),
+    )
 
 
 def _valid_nylas_sig(raw_body: bytes, provided_sig: str, secret: str) -> bool:
