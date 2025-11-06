@@ -15,7 +15,14 @@ async function req(path: string, opts: RequestInit = {}) {
     },
   });
   if (!res.ok) {
-    const error = new Error(`${res.status} ${res.statusText}`);
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      errorMessage = errorBody.detail || errorBody.message || errorMessage;
+    } catch {
+      // If response is not JSON, use status text
+    }
+    const error = new Error(errorMessage);
     (error as any).status = res.status;
     throw error;
   }

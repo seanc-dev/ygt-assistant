@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
-import { Layout } from "../Layout";
-import { Workspace } from "./Workspace";
-import { KanbanBoard } from "./KanbanBoard";
-import { Toolbar } from "./Toolbar";
-import { SlashMenu, type SlashCommand } from "../ui/SlashMenu";
+import { Layout } from "../../components/Layout";
+import { Workspace } from "../../components/workroom/Workspace";
+import { KanbanBoard } from "../../components/workroom/KanbanBoard";
+import { Toolbar } from "../../components/workroom/Toolbar";
+import { SlashMenu, type SlashCommand } from "../../components/ui/SlashMenu";
 import { useWorkroomStore } from "../../hooks/useWorkroomStore";
 import { workroomApi } from "../../lib/workroomApi";
 import type { Task, Project } from "../../hooks/useWorkroomStore";
@@ -19,12 +19,15 @@ export default function WorkroomPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [slashMenuOpen, setSlashMenuOpen] = useState(false);
   const [slashMenuPosition, setSlashMenuPosition] = useState({ top: 0, left: 0 });
   const slashMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    console.log("WorkroomPage mounted");
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -47,12 +50,61 @@ export default function WorkroomPage() {
 
   const loadData = async () => {
     try {
+      console.log("Loading projects...");
+      setError(null); // Clear any previous errors
       const response = await workroomApi.getProjects();
-      if (response.ok) {
-        setProjects(response.projects);
+      console.log("Projects response:", JSON.stringify(response, null, 2));
+      if (response && response.ok) {
+        setProjects(response.projects || []);
+        // Auto-load tasks for first project if no projectId in URL
+        if (response.projects && response.projects.length > 0 && !projectId) {
+          const firstProject = response.projects[0];
+          console.log("Loading tasks for project:", firstProject.id);
+          await loadTasks(firstProject.id);
+          // Update URL with first project
+          router.replace({
+            pathname: router.pathname,
+            query: { ...router.query, projectId: firstProject.id },
+          });
+        } else if (response.projects && response.projects.length === 0) {
+          // Auto-seed if no projects
+          console.log("No projects found, seeding...");
+          try {
+            const seedResponse = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000"}/dev/workroom/seed`, {
+              method: "POST",
+              credentials: "include",
+            });
+            console.log("Seed response status:", seedResponse.status);
+            if (seedResponse.ok) {
+              // Reload after seeding
+              const reloadResponse = await workroomApi.getProjects();
+              console.log("Reload after seed:", JSON.stringify(reloadResponse, null, 2));
+              if (reloadResponse.ok && reloadResponse.projects && reloadResponse.projects.length > 0) {
+                setProjects(reloadResponse.projects);
+                const firstProject = reloadResponse.projects[0];
+                await loadTasks(firstProject.id);
+                router.replace({
+                  pathname: router.pathname,
+                  query: { ...router.query, projectId: firstProject.id },
+                });
+              }
+            } else {
+              const errorText = await seedResponse.text();
+              console.error("Seed failed:", seedResponse.status, errorText);
+            }
+          } catch (seedErr: any) {
+            console.error("Failed to seed workroom:", seedErr);
+            setError(`Failed to seed: ${seedErr.message}`);
+          }
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to load projects:", err);
+      setError(err.message || "Failed to load projects");
+      // Show error to user
+      if (err.status === 500) {
+        console.error("Server error - check backend logs");
+      }
     } finally {
       setLoading(false);
     }
@@ -187,11 +239,28 @@ export default function WorkroomPage() {
     );
   }
 
+  if (error) {
+    return (
+      <Layout>
+        <div className="p-4">
+          <Text variant="body" className="text-red-600 mb-2">
+            Error: {error}
+          </Text>
+          <Button onClick={() => { setError(null); loadData(); }}>
+            Retry
+          </Button>
+        </div>
+      </Layout>
+    );
+  }
+
   const activeView = (view as string) || currentView || "kanban";
+  
+  console.log("Render state:", { loading, error, projects: projects.length, tasks: tasks.length, activeView });
 
   return (
     <Layout>
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col">
         <div className="p-4 border-b">
           <Heading as="h1" variant="display">
             Workroom
@@ -199,15 +268,33 @@ export default function WorkroomPage() {
           <Text variant="muted">
             Focused workspace with Task Docs, Chats, and Kanban
           </Text>
+          {/* Debug info */}
+          <div className="text-xs text-gray-500 mt-2">
+            Debug: loading={loading ? "true" : "false"}, projects={projects.length}, tasks={tasks.length}, error={error || "none"}
+          </div>
         </div>
 
         {activeView === "kanban" ? (
-          <div className="flex-1 overflow-hidden">
-            <KanbanBoard
-              tasks={tasks}
-              onUpdateTaskStatus={handleStatusChange}
-              onSelectTask={handleTaskSelect}
-            />
+          <div className="flex-1 overflow-hidden min-h-[600px]">
+            {tasks.length === 0 && projects.length === 0 ? (
+              <div className="p-8 text-center">
+                <Text variant="muted" className="mb-4">
+                  Loading...
+                </Text>
+              </div>
+            ) : tasks.length === 0 ? (
+              <div className="p-8 text-center">
+                <Text variant="muted" className="mb-4">
+                  No tasks yet. Create a task to get started.
+                </Text>
+              </div>
+            ) : (
+              <KanbanBoard
+                tasks={tasks}
+                onUpdateTaskStatus={handleStatusChange}
+                onSelectTask={handleTaskSelect}
+              />
+            )}
           </div>
         ) : selectedTask ? (
           <div className="flex flex-col flex-1 overflow-hidden">
