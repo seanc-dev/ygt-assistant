@@ -9,8 +9,8 @@ import {
   Calendar24Regular,
   Play24Regular,
 } from "@fluentui/react-icons";
-import type { ActionEmbed, ActionEmbedKind } from "../../lib/actionEmbeds";
-import { workroomApi } from "../../lib/workroomApi";
+import type { ActionEmbed, ActionEmbedKind } from "../lib/actionEmbeds";
+import { workroomApi } from "../lib/workroomApi";
 import { Button } from "@ygt-assistant/ui";
 
 interface ActionEmbedProps {

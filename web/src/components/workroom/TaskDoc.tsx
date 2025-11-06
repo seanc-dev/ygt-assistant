@@ -126,7 +126,7 @@ export function TaskDoc({
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           className={editor.isActive("blockquote") ? "bg-slate-100" : ""}
         >
-          &ldquo;
+          "
         </Button>
       </div>
 
