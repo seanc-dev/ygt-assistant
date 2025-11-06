@@ -40,7 +40,12 @@ def _calculate_planned_minutes_today(events: List[Dict[str, Any]], blocks: List[
 
 
 def _get_active_minutes(blocks: List[Dict[str, Any]]) -> int:
-    """Calculate active minutes from focus blocks that are in progress or started today."""
+    """Calculate active minutes from focus blocks that are in progress or started today.
+    
+    Only counts elapsed time, not future time. For blocks in progress, calculates
+    the time elapsed from today_start (or block start if later) to now.
+    For completed blocks that started today, counts full duration.
+    """
     now = datetime.now(ZoneInfo("UTC"))
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     active_minutes = 0
@@ -50,9 +55,22 @@ def _get_active_minutes(blocks: List[Dict[str, Any]]) -> int:
             start = datetime.fromisoformat(block.get("start", "").replace("Z", "+00:00"))
             end = datetime.fromisoformat(block.get("end", "").replace("Z", "+00:00"))
             
-            # Check if block started today or is in progress
-            if start >= today_start or (start <= now <= end):
-                delta = end - start
+            # Only count blocks that started today or are currently in progress
+            if start >= today_start:
+                # Block started today
+                if now >= end:
+                    # Block completed: count full duration
+                    delta = end - start
+                    active_minutes += int(delta.total_seconds() / 60)
+                elif now >= start:
+                    # Block in progress: count elapsed time only
+                    elapsed_start = max(start, today_start)
+                    delta = now - elapsed_start
+                    active_minutes += int(delta.total_seconds() / 60)
+                # else: block hasn't started yet, count 0
+            elif start <= now <= end:
+                # Block started before today but is currently in progress: count elapsed time from today_start
+                delta = now - today_start
                 active_minutes += int(delta.total_seconds() / 60)
         except Exception:
             continue
