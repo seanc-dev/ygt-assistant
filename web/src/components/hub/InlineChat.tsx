@@ -6,6 +6,7 @@ import {
 } from "@fluentui/react-icons";
 import { api } from "../../lib/api";
 import useSWR from "swr";
+import { ActionEmbedComponent } from "../workroom/ActionEmbed";
 
 // Custom scrollbar styles
 const scrollbarStyles = `
@@ -34,6 +35,7 @@ type Message = {
   error?: boolean;
   retryable?: boolean;
   errorMessage?: string;
+  embeds?: any[]; // ActionEmbed[]
 };
 
 type ThreadResponse = {
@@ -56,6 +58,8 @@ type InlineChatProps = {
   onThreadCreated?: (threadId: string) => void;
   onOpenWorkroom?: (threadId?: string) => void;
   shouldFocus?: boolean;
+  mode?: "workroom" | "default";
+  onAddReference?: (ref: any) => void;
 };
 
 export function InlineChat({
@@ -66,6 +70,8 @@ export function InlineChat({
   onThreadCreated,
   onOpenWorkroom,
   shouldFocus = false,
+  mode = "default",
+  onAddReference,
 }: InlineChatProps) {
   const [threadId, setThreadId] = useState<string | null>(
     initialThreadId || null
@@ -855,6 +861,32 @@ export function InlineChat({
               )}
             </div>
           </div>
+          {/* Render ActionEmbeds after message content */}
+          {msg.embeds && msg.embeds.length > 0 && (
+            <div className="mt-2 space-y-2">
+              {msg.embeds.map((embed: any) => (
+                <ActionEmbedComponent
+                  key={embed.id}
+                  embed={embed}
+                  messageId={msg.id}
+                  onUpdate={(updatedEmbed) => {
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.id === msg.id
+                          ? {
+                              ...m,
+                              embeds: m.embeds?.map((e: any) =>
+                                e.id === embed.id ? updatedEmbed : e
+                              ),
+                            }
+                          : m
+                      )
+                    );
+                  }}
+                />
+              ))}
+            </div>
+          )}
           {showTimestamp && (
             <span className="text-xs text-slate-500 mt-1">
               {formatTimestamp(msg.ts)}
@@ -895,7 +927,8 @@ export function InlineChat({
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        {/* Context Accordion - Sticky at top, always visible */}
+        {/* Context Accordion - Sticky at top, always visible (hidden in workroom mode) */}
+        {mode !== "workroom" && (
         <div className="flex-shrink-0 mb-4 sticky top-0 bg-white z-10 -mx-4 px-4 pt-0">
           <div className="rounded-lg border border-slate-200 overflow-hidden">
             <button
@@ -955,6 +988,7 @@ export function InlineChat({
             </div>
           </div>
         </div>
+        )}
 
         {/* Messages List - Scrollable */}
         <div
