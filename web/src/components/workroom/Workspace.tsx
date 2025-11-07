@@ -32,13 +32,9 @@ export function Workspace({ taskId, projectId }: WorkspaceProps) {
     openChatIds: [],
   };
 
-  useEffect(() => {
-    loadTask();
-    loadChats();
-  }, [taskId]);
-
   const loadTask = async () => {
     try {
+      setLoading(true);
       const response = await workroomApi.getTask(taskId);
       if (response.ok) {
         setTask(response.task);
@@ -61,6 +57,14 @@ export function Workspace({ taskId, projectId }: WorkspaceProps) {
       console.error("Failed to load chats:", err);
     }
   };
+
+  useEffect(() => {
+    if (taskId) {
+      loadTask();
+      loadChats();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskId]);
 
   const handleViewChange = (view: "doc" | "chats" | "activity") => {
     setTaskViewState(taskId, {

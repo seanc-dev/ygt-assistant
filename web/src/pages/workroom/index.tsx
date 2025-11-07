@@ -114,7 +114,7 @@ export default function WorkroomPage() {
     try {
       const response = await workroomApi.getTasks(projectId);
       if (response.ok) {
-        setTasks(response.tasks);
+        setTasks(response.tasks || []);
       }
     } catch (err) {
       console.error("Failed to load tasks:", err);
@@ -254,13 +254,14 @@ export default function WorkroomPage() {
     );
   }
 
-  const activeView = (view as string) || currentView || "kanban";
-  
-  console.log("Render state:", { loading, error, projects: projects.length, tasks: tasks.length, activeView });
+  // Default to kanban if no taskId, otherwise use view from URL or store
+  const activeView = taskId && typeof taskId === "string" 
+    ? ((view as string) || currentView || "doc")
+    : "kanban";
 
   return (
     <Layout>
-      <div className="flex flex-col">
+      <div className="flex flex-col" style={{ minHeight: "calc(100vh - 100px)" }}>
         <div className="p-4 border-b">
           <Heading as="h1" variant="display">
             Workroom
@@ -275,7 +276,7 @@ export default function WorkroomPage() {
         </div>
 
         {activeView === "kanban" ? (
-          <div className="flex-1 overflow-hidden min-h-[600px]">
+          <div className="flex-1 overflow-hidden" style={{ minHeight: "600px", height: "calc(100vh - 200px)" }}>
             {tasks.length === 0 && projects.length === 0 ? (
               <div className="p-8 text-center">
                 <Text variant="muted" className="mb-4">
@@ -296,20 +297,28 @@ export default function WorkroomPage() {
               />
             )}
           </div>
-        ) : selectedTask ? (
+        ) : taskId && typeof taskId === "string" ? (
           <div className="flex flex-col flex-1 overflow-hidden">
-            <Toolbar
-              taskId={selectedTask.id}
-              status={selectedTask.status}
-              onStatusChange={(status) =>
-                handleStatusChange(selectedTask.id, status)
-              }
-              onSlashMenuOpen={handleSlashMenuOpen}
-            />
+            {selectedTask ? (
+              <Toolbar
+                taskId={selectedTask.id}
+                status={selectedTask.status}
+                onStatusChange={(status) =>
+                  handleStatusChange(selectedTask.id, status)
+                }
+                onSlashMenuOpen={handleSlashMenuOpen}
+              />
+            ) : (
+              <div className="p-2 border-b bg-slate-50">
+                <Text variant="caption" className="text-slate-600">
+                  Loading task...
+                </Text>
+              </div>
+            )}
             <div className="flex-1 overflow-hidden">
               <Workspace
-                taskId={selectedTask.id}
-                projectId={selectedTask.projectId}
+                taskId={taskId}
+                projectId={projectId as string || projects[0]?.id || ""}
               />
             </div>
           </div>
