@@ -931,39 +931,41 @@ export function InlineChat({
         {mode !== "workroom" && (
         <div className="flex-shrink-0 mb-4 sticky top-0 bg-white z-10 -mx-4 px-4 pt-0">
           <div className="rounded-lg border border-slate-200 overflow-hidden">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleContextToggle();
-              }}
-              className="w-full flex items-center justify-between gap-1.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded-md transition-colors"
-              aria-expanded={contextExpanded}
-            >
-              <div className="flex items-center gap-1.5">
-                <ChevronDown24Regular
-                  className={`w-4 h-4 transition-transform duration-200 ${
-                    contextExpanded ? "rotate-180" : ""
-                  }`}
-                />
-                <span>Context</span>
-              </div>
-              <div className="flex items-center gap-2 flex-1 ml-2">
-                <span className="text-xs text-slate-500 font-normal truncate">
-                  {contextSummary}
-                </span>
-                {threadId && onOpenWorkroom && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenWorkroom(threadId);
-                    }}
-                    className="text-xs text-blue-600 hover:text-blue-700 underline focus:outline-none focus:ring-2 focus:ring-blue-300 rounded ml-auto"
-                  >
-                    Open in Workroom
-                  </button>
-                )}
-              </div>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleContextToggle();
+                }}
+                className="flex-1 flex items-center justify-between gap-1.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded-md transition-colors"
+                aria-expanded={contextExpanded}
+              >
+                <div className="flex items-center gap-1.5">
+                  <ChevronDown24Regular
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      contextExpanded ? "rotate-180" : ""
+                    }`}
+                  />
+                  <span>Context</span>
+                </div>
+                <div className="flex items-center gap-2 flex-1 ml-2">
+                  <span className="text-xs text-slate-500 font-normal truncate">
+                    {contextSummary}
+                  </span>
+                </div>
+              </button>
+              {threadId && onOpenWorkroom && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenWorkroom(threadId);
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-700 underline focus:outline-none focus:ring-2 focus:ring-blue-300 rounded px-2 py-2 whitespace-nowrap"
+                >
+                  Open in Workroom
+                </button>
+              )}
+            </div>
             <div
               className={`overflow-hidden transition-all duration-200 ease-in-out ${
                 contextExpanded ? "max-h-64 opacity-100" : "max-h-0 opacity-0"
