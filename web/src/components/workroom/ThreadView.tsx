@@ -24,6 +24,10 @@ export function ThreadView({
   mode = "workroom",
   onAddReference,
 }: ThreadViewProps) {
+  const handleInputFocus = () => {
+    window.dispatchEvent(new CustomEvent("workspace:focus-input"));
+  };
+
   return (
     <div className="h-full flex flex-col">
       <InlineChat
@@ -33,6 +37,7 @@ export function ThreadView({
         onOpenWorkroom={undefined}
         mode={mode}
         onAddReference={onAddReference}
+        onInputFocus={handleInputFocus}
       />
     </div>
   );

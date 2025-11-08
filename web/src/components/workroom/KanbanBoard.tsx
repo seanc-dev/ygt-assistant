@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Text } from "@ygt-assistant/ui";
+import { useWorkroomStore } from "../../hooks/useWorkroomStore";
 import type { Task, TaskStatus } from "../../hooks/useWorkroomStore";
 
 interface KanbanBoardProps {
   tasks: Task[];
   onUpdateTaskStatus: (taskId: string, status: TaskStatus) => void;
-  onSelectTask: (taskId: string) => void;
 }
 
 const statusColumns: { id: TaskStatus; label: string }[] = [
@@ -19,9 +19,16 @@ const statusColumns: { id: TaskStatus; label: string }[] = [
 export function KanbanBoard({
   tasks,
   onUpdateTaskStatus,
-  onSelectTask,
 }: KanbanBoardProps) {
+  const { setTask, setView, projectId } = useWorkroomStore();
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+
+  const handleTaskClick = (taskId: string) => {
+    if (projectId) {
+      setTask(taskId);
+      setView("chats");
+    }
+  };
 
   const tasksByStatus = {
     backlog: tasks.filter((t) => t.status === "backlog"),
@@ -72,18 +79,28 @@ export function KanbanBoard({
   };
 
   return (
-    <div className="h-full overflow-x-auto">
-      <div className="flex gap-4 min-w-max p-4">
+    <div className="h-full overflow-x-auto px-4 md:px-6">
+      <div
+        className="h-full"
+        style={{
+          display: "grid",
+          gridAutoFlow: "column",
+          gridAutoColumns: "minmax(280px, 320px)",
+          gap: "16px",
+          paddingTop: "24px",
+          paddingBottom: "24px",
+        }}
+      >
         {statusColumns.map((column) => {
           const columnTasks = tasksByStatus[column.id];
           return (
             <div
               key={column.id}
-              className="flex-shrink-0 w-64 border rounded-lg bg-slate-50"
+              className="flex-shrink-0 flex flex-col border rounded-lg bg-slate-50 overflow-hidden"
               onDragOver={(e) => handleDragOver(e, column.id)}
               onDrop={(e) => handleDrop(e, column.id)}
             >
-              <div className="p-3 border-b bg-white rounded-t-lg">
+              <div className="p-3 border-b bg-white">
                 <div className="text-sm font-medium text-slate-900">
                   {column.label}
                 </div>
@@ -91,7 +108,7 @@ export function KanbanBoard({
                   {columnTasks.length} task{columnTasks.length !== 1 ? "s" : ""}
                 </div>
               </div>
-              <div className="p-2 space-y-2 min-h-[200px]">
+              <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-[200px]">
                 {columnTasks.map((task) => {
                   const excerpt = getDocExcerpt(task);
                   const embedStatus = getLastEmbedStatus(task);
@@ -100,18 +117,23 @@ export function KanbanBoard({
                       key={task.id}
                       draggable
                       onDragStart={() => handleDragStart(task.id)}
-                      onClick={() => onSelectTask(task.id)}
-                      className="bg-white border rounded p-3 cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => handleTaskClick(task.id)}
+                      className="bg-white border rounded p-3 cursor-pointer hover:shadow-md transition-shadow group relative"
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <Text variant="body" className="text-sm font-medium">
                           {task.title}
                         </Text>
-                        {task.unreadCount && task.unreadCount > 0 && (
-                          <span className="flex-shrink-0 bg-blue-500 text-white text-xs rounded-full px-2 py-0.5">
-                            {task.unreadCount}
+                        <div className="flex items-center gap-1">
+                          {task.unreadCount && task.unreadCount > 0 && (
+                            <span className="flex-shrink-0 bg-blue-500 text-white text-xs rounded-full px-2 py-0.5">
+                              {task.unreadCount}
+                            </span>
+                          )}
+                          <span className="opacity-0 group-hover:opacity-100 text-xs text-slate-400 transition-opacity">
+                            Open in Workroom ▸
                           </span>
-                        )}
+                        </div>
                       </div>
                       {excerpt && (
                         <Text variant="caption" className="text-xs text-slate-600 line-clamp-2">

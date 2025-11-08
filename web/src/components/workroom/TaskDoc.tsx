@@ -1,15 +1,16 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { workroomApi } from "../../lib/workroomApi";
-import { Button } from "@ygt-assistant/ui";
+import { Button } from "@ygt-assistant/ui/primitives/Button";
 import {
-  Heading124Regular,
-  Heading224Regular,
-  List24Regular,
+  TextHeader124Regular,
+  TextHeader224Regular,
+  TextBulletList24Regular,
+  TextNumberListLtr24Regular,
   Code24Regular,
-  Link24Regular,
+  TextQuote24Regular,
 } from "@fluentui/react-icons";
 
 interface TaskDocProps {
@@ -23,6 +24,25 @@ export function TaskDoc({
   initialContent,
   onContentChange,
 }: TaskDocProps) {
+  // Debounced save function using useRef to persist timeout across renders
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const debouncedSave = useCallback(
+    (json: any) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(async () => {
+        try {
+          await workroomApi.updateTaskDoc(taskId, json);
+        } catch (err) {
+          console.error("Failed to save task doc:", err);
+        }
+      }, 1000);
+    },
+    [taskId]
+  );
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -38,6 +58,7 @@ export function TaskDoc({
       type: "doc",
       content: [],
     },
+    immediatelyRender: false,
     onUpdate: ({ editor }) => {
       const json = editor.getJSON();
       onContentChange?.(json);
@@ -46,29 +67,20 @@ export function TaskDoc({
     },
   });
 
-  // Debounced save function
-  const debouncedSave = useCallback(
-    (() => {
-      let timeoutId: NodeJS.Timeout | null = null;
-      return (json: any) => {
-        if (timeoutId) clearTimeout(timeoutId);
-        timeoutId = setTimeout(async () => {
-          try {
-            await workroomApi.updateTaskDoc(taskId, json);
-          } catch (err) {
-            console.error("Failed to save task doc:", err);
-          }
-        }, 1000);
-      };
-    })(),
-    [taskId]
-  );
-
   useEffect(() => {
     if (editor && initialContent) {
       editor.commands.setContent(initialContent);
     }
   }, [editor, initialContent]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   if (!editor) {
     return <div className="p-4">Loading editor...</div>;
@@ -81,18 +93,26 @@ export function TaskDoc({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={editor.isActive("heading", { level: 1 }) ? "bg-slate-100" : ""}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 1 }).run()
+          }
+          className={
+            editor.isActive("heading", { level: 1 }) ? "bg-slate-100" : ""
+          }
         >
-          <Heading124Regular className="w-4 h-4" />
+          <TextHeader124Regular className="w-4 h-4" />
         </Button>
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={editor.isActive("heading", { level: 2 }) ? "bg-slate-100" : ""}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 2 }).run()
+          }
+          className={
+            editor.isActive("heading", { level: 2 }) ? "bg-slate-100" : ""
+          }
         >
-          <Heading224Regular className="w-4 h-4" />
+          <TextHeader224Regular className="w-4 h-4" />
         </Button>
         <div className="w-px h-6 bg-slate-200 mx-1" />
         <Button
@@ -101,7 +121,7 @@ export function TaskDoc({
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           className={editor.isActive("bulletList") ? "bg-slate-100" : ""}
         >
-          <List24Regular className="w-4 h-4" />
+          <TextBulletList24Regular className="w-4 h-4" />
         </Button>
         <Button
           variant="ghost"
@@ -109,7 +129,7 @@ export function TaskDoc({
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           className={editor.isActive("orderedList") ? "bg-slate-100" : ""}
         >
-          <List24Regular className="w-4 h-4" />
+          <TextNumberListLtr24Regular className="w-4 h-4" />
         </Button>
         <div className="w-px h-6 bg-slate-200 mx-1" />
         <Button
@@ -126,7 +146,7 @@ export function TaskDoc({
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           className={editor.isActive("blockquote") ? "bg-slate-100" : ""}
         >
-          &ldquo;
+          <TextQuote24Regular className="w-4 h-4" />
         </Button>
       </div>
 
@@ -140,4 +160,3 @@ export function TaskDoc({
     </div>
   );
 }
-

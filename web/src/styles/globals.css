@@ -62,3 +62,23 @@ select:focus {
 .fade-in {
   animation: fadeIn 0.2s ease;
 }
+
+/* Workroom grid transitions */
+.workroom-grid {
+  transition: grid-template-columns 180ms ease-in-out;
+}
+
+/* Kanban enter animation */
+.kanban-container {
+  opacity: 0;
+  animation: kanbanFade 120ms ease-in-out forwards;
+}
+
+@keyframes kanbanFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
