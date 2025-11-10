@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
-import { Layout } from "../Layout";
+import { Layout } from "../../components/Layout";
 import { Workspace } from "./Workspace";
 import { KanbanBoard } from "./KanbanBoard";
 import { Toolbar } from "./Toolbar";
