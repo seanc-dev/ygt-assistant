@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
 import { Layout } from "../../components/Layout";
-import { Workspace } from "./Workspace";
-import { KanbanBoard } from "./KanbanBoard";
-import { Toolbar } from "./Toolbar";
+import { Workspace } from "../../components/workroom/Workspace";
+import { KanbanBoard } from "../../components/workroom/KanbanBoard";
+import { Toolbar } from "../../components/workroom/Toolbar";
 import { SlashMenu, type SlashCommand } from "../ui/SlashMenu";
 import { useWorkroomStore } from "../../hooks/useWorkroomStore";
 import { workroomApi } from "../../lib/workroomApi";
