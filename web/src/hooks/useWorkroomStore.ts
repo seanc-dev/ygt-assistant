@@ -291,8 +291,9 @@ export const useWorkroomStore = create<WorkroomState>()(
       storage: isClient ? createJSONStorage(() => localStorage) : undefined,
       onRehydrateStorage: () => {
         return (state, error) => {
-          if (!error && state) {
-            // Set hydrated flag after rehydration
+          if (!error) {
+            // Set hydrated flag after rehydration completes, regardless of whether
+            // state exists (first-time load will have undefined state)
             setTimeout(() => {
               useWorkroomStore.setState({ hydrated: true });
             }, 0);
