@@ -4,9 +4,11 @@ Legacy CLI handlers have been removed. This module now provides a minimal stub
 for API compatibility.
 """
 
+from typing import Callable
+
 # Empty HANDLERS dict for backward compatibility with existing imports
 # Legacy handlers are no longer supported - use modern API endpoints instead
-HANDLERS: dict[str, callable] = {}
+HANDLERS: dict[str, Callable] = {}
 
 
 def dispatch(action: str, details: dict):
