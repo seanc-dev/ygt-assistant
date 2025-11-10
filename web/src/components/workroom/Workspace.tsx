@@ -28,35 +28,19 @@ export function Workspace({ taskId }: WorkspaceProps) {
   const [loading, setLoading] = useState(true);
   const [chats, setChats] = useState<ChatMeta[]>([]);
 
-  if (!hydrated) {
-    return <div className="p-4" />;
-  }
-
-  if (!taskId) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <Text variant="muted" className="text-sm mb-2">
-            Select a task to view
-          </Text>
-          <Text variant="caption" className="text-xs text-slate-500">
-            Use Navigator or press ⌘K to search
-          </Text>
-        </div>
-      </div>
-    );
-  }
-
-  const taskState = taskViewState[taskId] || {
-    view: "chats",
-    activeChatId: null,
-    openChatIds: [],
-  };
+  const taskState = taskId
+    ? taskViewState[taskId] || {
+        view: "chats",
+        activeChatId: null,
+        openChatIds: [],
+      }
+    : null;
 
   // Use global view (never render kanban inside Workspace center pane)
   const activeView: View = view === "kanban" ? "chats" : view;
 
   const loadTask = async () => {
+    if (!taskId) return;
     try {
       setLoading(true);
       const response = await workroomApi.getTask(taskId);
@@ -72,6 +56,7 @@ export function Workspace({ taskId }: WorkspaceProps) {
   };
 
   const loadChats = async () => {
+    if (!taskId) return;
     try {
       const response = await workroomApi.getChats(taskId);
       if (response.ok) {
@@ -95,12 +80,13 @@ export function Workspace({ taskId }: WorkspaceProps) {
       setView("kanban");
       return;
     }
+    if (!taskId || !taskState) return;
     setTaskViewState(taskId, { ...taskState, view: newView });
     setView(newView);
   };
 
   const handleChatSelect = (chatId: string) => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !taskId || !taskState) return;
 
     setTaskViewState(taskId, {
       ...taskState,
@@ -118,6 +104,33 @@ export function Workspace({ taskId }: WorkspaceProps) {
     // TODO: Focus Search tab in ContextPane
   };
 
+  const tabs: Array<{ id: View; label: string }> = [
+    { id: "doc", label: "Task" },
+    { id: "chats", label: "Chats" },
+    { id: "activity", label: "Activity" },
+  ];
+
+  // Conditional rendering moved inside JSX to maintain hook order
+  // All hooks must be called before any conditional returns
+  if (!hydrated) {
+    return <div className="p-4" />;
+  }
+
+  if (!taskId) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <Text variant="muted" className="text-sm mb-2">
+            Select a task to view
+          </Text>
+          <Text variant="caption" className="text-xs text-slate-500">
+            Use Navigator or press ⌘K to search
+          </Text>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return <div className="p-4">Loading...</div>;
   }
@@ -125,12 +138,6 @@ export function Workspace({ taskId }: WorkspaceProps) {
   if (!task) {
     return <div className="p-4">Task not found</div>;
   }
-
-  const tabs: Array<{ id: View; label: string }> = [
-    { id: "doc", label: "Task" },
-    { id: "chats", label: "Chats" },
-    { id: "activity", label: "Activity" },
-  ];
 
   return (
     <div className="flex flex-col flex-1 min-w-0 min-h-0">
@@ -214,9 +221,10 @@ export function Workspace({ taskId }: WorkspaceProps) {
           <div className="flex-1 flex flex-col min-h-0">
             <ChatTabs
               chats={chats}
-              activeChatId={taskState.activeChatId}
+              activeChatId={taskState?.activeChatId || null}
               onSelectChat={handleChatSelect}
               onCloseChat={(chatId) => {
+                if (!taskId || !taskState) return;
                 const newOpenChats = taskState.openChatIds.filter(
                   (id) => id !== chatId
                 );
@@ -243,7 +251,7 @@ export function Workspace({ taskId }: WorkspaceProps) {
                 }
               }}
             />
-            {taskState.activeChatId ? (
+            {taskState?.activeChatId ? (
               <ThreadView
                 threadId={taskState.activeChatId}
                 taskId={taskId}
