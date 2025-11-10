@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 from pydantic import BaseModel, Field
 from presentation.api.repos import workroom as workroom_repo, audit_log
 from presentation.api.routes.queue import _get_user_id
+from datetime import datetime, timezone
 import uuid
 import os
 
@@ -211,7 +212,195 @@ async def create_thread(
     }
 
 
-@router.patch("/api/workroom/task/{task_id}/status")
+@router.get("/api/workroom/projects")
+async def get_projects(
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Get all projects for the user."""
+    try:
+        projects = workroom_repo.get_projects(user_id)
+        # Transform to match frontend schema
+        transformed = [
+            {
+                "id": p["id"],
+                "title": p["name"],
+                "brief": p.get("description"),
+                "createdAt": p.get("created_at", datetime.now(timezone.utc).isoformat()),
+                "updatedAt": p.get("updated_at", p.get("created_at", datetime.now(timezone.utc).isoformat())),
+            }
+            for p in projects
+        ]
+        return {"ok": True, "projects": transformed}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error loading projects: {str(e)}")
+
+
+@router.get("/api/workroom/projects/{project_id}")
+async def get_project(
+    project_id: str,
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Get a single project."""
+    projects = workroom_repo.get_projects(user_id)
+    project = next((p for p in projects if p["id"] == project_id), None)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    return {
+        "ok": True,
+        "project": {
+            "id": project["id"],
+            "title": project["name"],
+            "brief": project.get("description"),
+            "createdAt": project.get("created_at", datetime.now(timezone.utc).isoformat()),
+            "updatedAt": project.get("updated_at", project.get("created_at", datetime.now(timezone.utc).isoformat())),
+        },
+    }
+
+
+@router.post("/api/workroom/projects")
+async def create_project(
+    body: Dict[str, Any],
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Create a new project."""
+    project = workroom_repo.create_project(
+        user_id=user_id,
+        name=body.get("title", "Untitled Project"),
+        description=body.get("brief"),
+    )
+    return {
+        "ok": True,
+        "project": {
+            "id": project["id"],
+            "title": project["name"],
+            "brief": project.get("description"),
+            "createdAt": project.get("created_at"),
+            "updatedAt": project.get("updated_at", project.get("created_at")),
+        },
+    }
+
+
+@router.get("/api/workroom/projects/{project_id}/tasks")
+async def get_tasks(
+    project_id: str,
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Get all tasks for a project."""
+    tasks = workroom_repo.get_tasks(user_id, project_id=project_id)
+    # Transform to match frontend schema
+    threads = workroom_repo.get_threads(user_id)
+    transformed = []
+    for task in tasks:
+        task_threads = [t for t in threads if t.get("task_id") == task["id"]]
+        transformed.append({
+            "id": task["id"],
+            "projectId": task["project_id"],
+            "title": task["title"],
+            "status": task["status"],
+            "priority": task.get("importance"),
+            "due": task.get("due"),
+            "tags": [],
+            "doc": None,  # TODO: Add doc support
+            "chats": [
+                {
+                    "id": t["id"],
+                    "title": t["title"],
+                    "pinned": False,
+                    "lastMessageAt": t.get("updated_at"),
+                }
+                for t in task_threads
+            ],
+            "unreadCount": 0,
+            "createdAt": task.get("created_at", datetime.now(timezone.utc).isoformat()),
+            "updatedAt": task.get("updated_at", task.get("created_at", datetime.now(timezone.utc).isoformat())),
+        })
+    return {"ok": True, "tasks": transformed}
+
+
+@router.get("/api/workroom/tasks/{task_id}")
+async def get_task(
+    task_id: str,
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Get a single task."""
+    from datetime import timezone
+    try:
+        task = workroom_repo.get_task(user_id, task_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    threads = workroom_repo.get_threads(user_id, task_id=task_id)
+    return {
+        "ok": True,
+        "task": {
+            "id": task["id"],
+            "projectId": task["project_id"],
+            "title": task["title"],
+            "status": task["status"],
+            "priority": task.get("importance"),
+            "due": task.get("due"),
+            "tags": [],
+            "doc": None,
+            "chats": [
+                {
+                    "id": t["id"],
+                    "title": t["title"],
+                    "pinned": False,
+                    "lastMessageAt": t.get("updated_at"),
+                }
+                for t in threads
+            ],
+            "unreadCount": 0,
+            "createdAt": task.get("created_at", datetime.now(timezone.utc).isoformat()),
+            "updatedAt": task.get("updated_at", task.get("created_at", datetime.now(timezone.utc).isoformat())),
+        },
+    }
+
+
+@router.post("/api/workroom/tasks")
+async def create_task(
+    body: Dict[str, Any],
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Create a new task."""
+    from datetime import timezone
+    task = workroom_repo.create_task(
+        user_id=user_id,
+        project_id=body["projectId"],
+        title=body["title"],
+        status=body.get("status", "backlog"),
+        importance=body.get("priority", "medium"),
+        due=body.get("due"),
+    )
+    return {
+        "ok": True,
+        "task": {
+            "id": task["id"],
+            "projectId": task["project_id"],
+            "title": task["title"],
+            "status": task["status"],
+            "priority": task.get("importance"),
+            "due": task.get("due"),
+            "tags": [],
+            "doc": None,
+            "chats": [],
+            "unreadCount": 0,
+            "createdAt": task.get("created_at"),
+            "updatedAt": task.get("updated_at", task.get("created_at")),
+        },
+    }
+
+
+@router.patch("/api/workroom/tasks/{task_id}/status")
 async def update_task_status(
     task_id: str,
     body: UpdateTaskStatusRequest,
@@ -220,9 +409,9 @@ async def update_task_status(
 ) -> Dict[str, Any]:
     """Update task status.
 
-    Valid statuses: todo, doing, done, blocked
+    Valid statuses: backlog, ready, doing, blocked, done
     """
-    valid_statuses = ["todo", "doing", "done", "blocked"]
+    valid_statuses = ["backlog", "ready", "doing", "blocked", "done", "todo"]
     if body.status not in valid_statuses:
         raise HTTPException(
             status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}"
@@ -248,6 +437,80 @@ async def update_task_status(
     return {
         "ok": True,
         "task": task,
+    }
+
+
+@router.get("/api/workroom/tasks/{task_id}/doc")
+async def get_task_doc(
+    task_id: str,
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Get task doc."""
+    # TODO: Implement doc storage
+    return {"ok": True, "doc": None}
+
+
+@router.put("/api/workroom/tasks/{task_id}/doc")
+async def update_task_doc(
+    task_id: str,
+    body: Dict[str, Any],
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Update task doc."""
+    # TODO: Implement doc storage
+    return {
+        "ok": True,
+        "doc": {
+            "id": str(uuid.uuid4()),
+            "contentJSON": body.get("contentJSON", {}),
+            "updatedAt": datetime.now(timezone.utc).isoformat(),
+        },
+    }
+
+
+@router.get("/api/workroom/tasks/{task_id}/chats")
+async def get_task_chats(
+    task_id: str,
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Get chats for a task."""
+    threads = workroom_repo.get_threads(user_id, task_id=task_id)
+    chats = [
+        {
+            "id": t["id"],
+            "title": t["title"],
+            "pinned": False,
+            "lastMessageAt": t.get("updated_at"),
+        }
+        for t in threads
+    ]
+    return {"ok": True, "chats": chats}
+
+
+@router.post("/api/workroom/tasks/{task_id}/chats")
+async def create_task_chat(
+    task_id: str,
+    body: Dict[str, Any],
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Create a new chat for a task."""
+    thread = workroom_repo.create_thread(
+        user_id=user_id,
+        task_id=task_id,
+        title=body.get("title", "New Chat"),
+    )
+    return {
+        "ok": True,
+        "chat": {
+            "id": thread["id"],
+            "title": thread["title"],
+            "pinned": False,
+            "lastMessageAt": thread.get("created_at"),
+        },
     }
 
 
@@ -356,4 +619,96 @@ async def send_message(
     return {
         "ok": True,
         "message": message,
+    }
+
+
+@router.post("/dev/workroom/seed")
+async def seed_workroom(
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Seed workroom with test data (dev only)."""
+    if not DEV_MODE:
+        raise HTTPException(status_code=403, detail="Seed endpoint only available in dev mode")
+    
+    # Create projects
+    project1 = workroom_repo.create_project(
+        user_id=user_id,
+        name="Product Launch",
+        description="Q4 product launch planning and execution",
+    )
+    project2 = workroom_repo.create_project(
+        user_id=user_id,
+        name="Marketing Campaign",
+        description="Social media and email marketing campaign",
+    )
+    
+    # Create tasks
+    task1 = workroom_repo.create_task(
+        user_id=user_id,
+        project_id=project1["id"],
+        title="Design landing page",
+        status="doing",
+        importance="high",
+    )
+    task2 = workroom_repo.create_task(
+        user_id=user_id,
+        project_id=project1["id"],
+        title="Write product copy",
+        status="ready",
+        importance="medium",
+    )
+    task3 = workroom_repo.create_task(
+        user_id=user_id,
+        project_id=project1["id"],
+        title="Set up analytics",
+        status="backlog",
+        importance="low",
+    )
+    task4 = workroom_repo.create_task(
+        user_id=user_id,
+        project_id=project2["id"],
+        title="Create email templates",
+        status="doing",
+        importance="high",
+    )
+    task5 = workroom_repo.create_task(
+        user_id=user_id,
+        project_id=project2["id"],
+        title="Schedule social posts",
+        status="blocked",
+        importance="medium",
+    )
+    
+    # Create threads/chats
+    thread1 = workroom_repo.create_thread(
+        user_id=user_id,
+        task_id=task1["id"],
+        title="Design discussion",
+    )
+    thread2 = workroom_repo.create_thread(
+        user_id=user_id,
+        task_id=task2["id"],
+        title="Copy review",
+    )
+    
+    # Add some seed messages
+    workroom_repo.add_message(
+        user_id=user_id,
+        thread_id=thread1["id"],
+        role="user",
+        content="What do you think about the color scheme?",
+    )
+    workroom_repo.add_message(
+        user_id=user_id,
+        thread_id=thread1["id"],
+        role="assistant",
+        content="The color scheme looks good! I'd suggest making the CTA button more prominent. Should I draft some alternatives?",
+    )
+    
+    return {
+        "ok": True,
+        "projects": 2,
+        "tasks": 5,
+        "threads": 2,
     }

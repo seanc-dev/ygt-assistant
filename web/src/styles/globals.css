@@ -62,3 +62,68 @@ select:focus {
 .fade-in {
   animation: fadeIn 0.2s ease;
 }
+
+/* Workroom grid transitions */
+.workroom-grid {
+  transition: grid-template-columns 180ms ease-in-out;
+  height: 100%; /* ensures it fills the flex-1 area */
+  min-height: 0; /* prevents children from forcing extra height */
+  grid-template-rows: minmax(
+    0,
+    1fr
+  ); /* establish definite row height and ignore min-content */
+  align-items: stretch; /* stretch items along the block axis */
+  align-content: stretch; /* ensure track fills container */
+}
+
+/* Any direct child pane of the grid is a flex column with its own scroll area */
+.workroom-grid > .pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* allows inner scroller */
+  height: 100%;
+  position: relative; /* for absolute positioning of EdgeToggle */
+}
+
+/* The inner content area that should scroll */
+.pane .scroll-area {
+  min-height: 0;
+  overflow: auto; /* independent scrolling */
+  flex: 1 1 auto;
+}
+
+/* Kanban enter animation */
+.kanban-container {
+  opacity: 0;
+  animation: kanbanFade 120ms ease-in-out forwards;
+}
+
+@keyframes kanbanFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Workroom min-height sizing */
+:root {
+  --top-nav-h: 56px;
+  --page-vpad: 16px;
+}
+
+.workroom-grid {
+  /* Ensure the grid stretches to viewport minus TopNav and page vertical padding */
+  min-height: calc(
+    100svh - var(--top-nav-h, 56px) - (2 * var(--page-vpad, 16px))
+  );
+}
+
+.workroom-grid > .pane {
+  /* Provide a usable floor while still tracking available viewport height */
+  min-height: max(
+    50vh,
+    calc(100svh - var(--top-nav-h, 56px) - (2 * var(--page-vpad, 16px)))
+  );
+}

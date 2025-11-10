@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
-import { Panel, Stack, Text, Button, Heading } from "@ygt-assistant/ui";
+import { Panel, Stack, Text, Heading } from "@ygt-assistant/ui";
+import { Button } from "@ygt-assistant/ui/primitives/Button";
 import { useToday, useSettings } from "../../hooks/useHubData";
 import { Schedule } from "./Schedule";
 import { AltPlansPanel } from "../AltPlansPanel";

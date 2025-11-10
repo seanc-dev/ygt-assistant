@@ -213,32 +213,6 @@ def _get_flow_week(queue_items: List[Dict[str, Any]]) -> Dict[str, int]:
     }
 
 
-def _get_triage_count_today(queue_items: List[Dict[str, Any]]) -> int:
-    """Count Action Queue items due/flagged for triage today."""
-    now = datetime.now(ZoneInfo("UTC"))
-    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    today_end = today_start + timedelta(days=1)
-
-    count = 0
-    for item in queue_items:
-        # Check if item is due today or flagged for triage
-        defer_until = item.get("defer_until")
-        if defer_until:
-            try:
-                defer_date = datetime.fromisoformat(defer_until.replace("Z", "+00:00"))
-                if today_start <= defer_date < today_end:
-                    count += 1
-                    continue
-            except Exception:
-                pass
-
-        # Check if item has no defer_until and is not archived (needs triage)
-        if not defer_until and not item.get("archived"):
-            count += 1
-
-    return count
-
-
 @router.get("/api/workload/summary")
 async def workload_summary(
     request: Request,

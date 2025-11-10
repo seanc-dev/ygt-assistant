@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { api } from "../lib/api";
 
@@ -13,10 +13,26 @@ const items = [
 export function TopNav() {
   const router = useRouter();
   const { pathname } = router;
-  const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "unknown">(
-    "unknown"
-  );
+  const [connectionStatus, setConnectionStatus] = useState<
+    "connected" | "disconnected" | "unknown"
+  >("unknown");
   const [isSeeding, setIsSeeding] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
+
+  // Keep --top-nav-h in sync with actual header height
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    const setTopNavVar = () => {
+      const h = headerRef.current?.offsetHeight ?? 0;
+      document.documentElement.style.setProperty("--top-nav-h", `${h}px`);
+    };
+    setTopNavVar();
+    window.addEventListener("resize", setTopNavVar, {
+      passive: true,
+    } as AddEventListenerOptions);
+    return () =>
+      window.removeEventListener("resize", setTopNavVar as EventListener);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -58,7 +74,10 @@ export function TopNav() {
   };
 
   return (
-    <header className="sticky top-0 z-10 border-b border-slate-200/60 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+    <header
+      ref={headerRef}
+      className="sticky top-0 z-10 border-b border-slate-200/60 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80"
+    >
       <nav
         className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3 sm:px-6 overflow-x-auto"
         aria-label="Primary"

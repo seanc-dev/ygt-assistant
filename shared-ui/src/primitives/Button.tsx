@@ -1,4 +1,5 @@
 import { ButtonHTMLAttributes, forwardRef } from "react";
+import type React from "react";
 import clsx from "clsx";
 import { radius } from "../tokens/radius";
 import { motion } from "../tokens/motion";
@@ -57,7 +58,7 @@ const sizeStyles: Record<ButtonSize, string> = {
   lg: "text-base px-6 py-3",
 };
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+const ButtonComponent = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { variant = "solid", size = "md", className, block, style, ...props },
   ref
 ) {
@@ -81,3 +82,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     />
   );
 });
+
+ButtonComponent.displayName = "Button";
+
+// Export as both named export and ensure it's a valid React component
+export const Button = ButtonComponent as React.ForwardRefExoticComponent<
+  ButtonProps & React.RefAttributes<HTMLButtonElement>
+>;
