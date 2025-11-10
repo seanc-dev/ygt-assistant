@@ -4,7 +4,7 @@ import { Layout } from "../../components/Layout";
 import { Workspace } from "../../components/workroom/Workspace";
 import { KanbanBoard } from "../../components/workroom/KanbanBoard";
 import { Toolbar } from "../../components/workroom/Toolbar";
-import { SlashMenu, type SlashCommand } from "../ui/SlashMenu";
+import { SlashMenu, type SlashCommand } from "../../components/ui/SlashMenu";
 import { useWorkroomStore } from "../../hooks/useWorkroomStore";
 import { workroomApi } from "../../lib/workroomApi";
 import type { Task, Project } from "../../hooks/useWorkroomStore";
