@@ -53,7 +53,7 @@ if __name__ == "__main__":
         # Dispatch action to handler
         try:
             result = dispatch(action, details)
-        except KeyError:
+        except (KeyError, NotImplementedError):
             print("[Not implemented yet]")
             result = {"error": "not_implemented"}
 

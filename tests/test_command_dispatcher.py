@@ -3,24 +3,17 @@ from utils.command_dispatcher import HANDLERS, dispatch
 
 
 class TestHandlerRegistration:
-    def test_all_expected_actions_present(self):
-        expected = [
-            "list_todays_events",
-            "list_all",
-            "list_events_only",
-            "list_reminders_only",
-            "create_event",
-            "delete_event",
-            "move_event",
-            "add_notification",
-        ]
-        for action in expected:
-            assert action in HANDLERS, f"Handler for '{action}' not registered"
+    def test_handlers_dict_exists(self):
+        """HANDLERS dict exists for backward compatibility."""
+        assert isinstance(HANDLERS, dict)
+        # Legacy handlers have been removed - HANDLERS is now empty
+        assert len(HANDLERS) == 0
 
 
 class TestDispatchFunction:
-    def test_dispatch_unknown_raises(self):
-        with pytest.raises(KeyError):
+    def test_dispatch_raises_not_implemented(self):
+        """All dispatch calls now raise NotImplementedError since legacy handlers are removed."""
+        with pytest.raises(NotImplementedError):
             dispatch("nonexistent_action", {})
 
     @pytest.mark.parametrize(
@@ -30,6 +23,7 @@ class TestDispatchFunction:
             ("list_todays_events", {}),
         ],
     )
-    def test_dispatch_calls_handler(self, action, details):
-        # Should not raise for registered handlers
-        assert dispatch(action, details) is None
+    def test_dispatch_legacy_actions_raise_not_implemented(self, action, details):
+        """Legacy actions raise NotImplementedError."""
+        with pytest.raises(NotImplementedError):
+            dispatch(action, details)
