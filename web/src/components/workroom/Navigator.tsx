@@ -123,7 +123,7 @@ export function Navigator({
   return (
     <div
       ref={navRef}
-      className="h-full flex flex-col border-r border-slate-200 bg-white flex-shrink-0 min-h-0"
+      className="flex-1 flex flex-col border-r border-slate-200 bg-white flex-shrink-0 min-h-0"
       style={{ width: "260px" }}
     >
       {/* Search */}

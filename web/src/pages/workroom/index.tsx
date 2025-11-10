@@ -85,8 +85,7 @@ export default function WorkroomPage() {
     const pId = typeof urlProjectId === "string" ? urlProjectId : undefined;
     const tId = typeof urlTaskId === "string" ? urlTaskId : undefined;
     const pv =
-      typeof urlView === "string" &&
-      ["workroom", "kanban"].includes(urlView)
+      typeof urlView === "string" && ["workroom", "kanban"].includes(urlView)
         ? (urlView as PrimaryView)
         : undefined;
     const v =
@@ -157,12 +156,12 @@ export default function WorkroomPage() {
 
     if (needsUpdate) {
       syncingRef.current = true;
-      
+
       // Clear any pending sync
       if (syncTimeoutRef.current) {
         clearTimeout(syncTimeoutRef.current);
       }
-      
+
       // Debounce router.replace to coalesce rapid updates
       syncTimeoutRef.current = setTimeout(() => {
         router.replace(
@@ -179,7 +178,16 @@ export default function WorkroomPage() {
         }, 0);
       }, 50);
     }
-  }, [hydrated, level, projectId, taskId, view, primaryView, router, router.isReady]);
+  }, [
+    hydrated,
+    level,
+    projectId,
+    taskId,
+    view,
+    primaryView,
+    router,
+    router.isReady,
+  ]);
 
   // Cleanup sync timeout on unmount
   useEffect(() => {
@@ -428,7 +436,15 @@ export default function WorkroomPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navOpen, contextOpen, taskId, toggleNav, toggleContext, setView, setPrimaryView]);
+  }, [
+    navOpen,
+    contextOpen,
+    taskId,
+    toggleNav,
+    toggleContext,
+    setView,
+    setPrimaryView,
+  ]);
 
   // Responsive Navigator: default open on ≥1280px
   useEffect(() => {
@@ -487,22 +503,22 @@ export default function WorkroomPage() {
   }
 
   // Calculate grid template columns with named areas and persistent gutters
-  const gridTemplate = navOpen && contextOpen && level === "task"
-    ? "[nav] 260px [gut] 16px [main] 1fr [gut2] 16px [ctx] 260px"
-    : navOpen && !(contextOpen && level === "task")
-    ? "[nav] 260px [gut] 16px [main] 1fr [gut2] 0px [ctx] 0px"
-    : !navOpen && contextOpen && level === "task"
-    ? "[nav] 0px [gut] 0px [main] 1fr [gut2] 16px [ctx] 260px"
-    : "[nav] 0px [gut] 0px [main] 1fr [gut2] 0px [ctx] 0px";
+  const gridTemplate =
+    navOpen && contextOpen && level === "task"
+      ? "[nav] 260px [gut] 16px [main] 1fr [gut2] 16px [ctx] 260px"
+      : navOpen && !(contextOpen && level === "task")
+      ? "[nav] 260px [gut] 16px [main] 1fr [gut2] 0px [ctx] 0px"
+      : !navOpen && contextOpen && level === "task"
+      ? "[nav] 0px [gut] 0px [main] 1fr [gut2] 16px [ctx] 260px"
+      : "[nav] 0px [gut] 0px [main] 1fr [gut2] 0px [ctx] 0px";
 
   return (
-    <Layout>
-      <div className="max-w-[1400px] mx-auto px-4 md:px-6 h-[calc(100vh-100px)] flex flex-col">
-        {/* Main Layout */}
-        <div className="h-full flex flex-col">
+    <Layout variant="tight">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-6 pt-4 flex flex-col flex-1 min-h-0">
+        <div className="flex-1 min-h-0 flex flex-col">
           {isKanban ? (
             <>
-              <div className="flex-1 kanban-container">
+              <div className="flex-1 min-h-0 kanban-container pb-4">
                 <KanbanBoard
                   tasks={tasks}
                   onUpdateTaskStatus={handleStatusChange}
@@ -511,17 +527,18 @@ export default function WorkroomPage() {
             </>
           ) : (
             <div
-              className="relative flex-1 overflow-hidden workroom-grid"
+              className="relative flex-1 min-h-0 overflow-hidden workroom-grid pb-4"
               style={{
                 display: "grid",
                 gridTemplateColumns: gridTemplate,
+                gridTemplateRows: "minmax(0, 1fr)",
                 gap: 0,
               }}
             >
               {/* Left: Navigator */}
               {navOpen ? (
                 <div
-                  className="relative min-h-0 overflow-hidden"
+                  className="pane"
                   style={{ gridArea: "nav" }}
                   aria-expanded={navOpen}
                   aria-label="Navigator"
@@ -529,7 +546,7 @@ export default function WorkroomPage() {
                 >
                   <Navigator
                     open={navOpen}
-                    onClose={() => setNavOpen(false)}
+                    onClose={() => closeNav()}
                     projects={projects}
                     tasks={tasks}
                     selectedProjectId={projectId}
@@ -539,10 +556,10 @@ export default function WorkroomPage() {
                   <EdgeToggle
                     side="left"
                     label="Hide navigator"
-                    onToggle={() => setNavOpen(false)}
+                    onToggle={() => closeNav()}
                     visible={true}
-                  />
-                </div>
+              />
+            </div>
               ) : null}
 
               {/* Gutter 1 */}
@@ -550,46 +567,55 @@ export default function WorkroomPage() {
 
               {/* Center: Workspace */}
               <div
-                className="relative min-h-0 overflow-hidden bg-white"
+                className="pane bg-white"
                 style={{ gridArea: "main", minWidth: "640px" }}
               >
                 {taskId ? (
-                  <Workspace taskId={taskId} projectId={projectId || ""} projectTitle={selectedProject?.title} />
+                  <Workspace
+                    taskId={taskId}
+                    projectId={projectId || ""}
+                    projectTitle={selectedProject?.title}
+                  />
                 ) : (
-                  <div className="flex items-center justify-center h-full">
+                  <div className="flex-1 flex items-center justify-center">
                     <div className="text-center">
                       <Text variant="muted" className="text-sm mb-2">
                         Select a task to view
                       </Text>
-                      <Text variant="caption" className="text-xs text-slate-500">
+                      <Text
+                        variant="caption"
+                        className="text-xs text-slate-500"
+                      >
                         Use Navigator or press ⌘K to search
                       </Text>
                     </div>
-            </div>
+                  </div>
                 )}
                 {/* Show nav opener when nav is closed (left edge of center) */}
                 <EdgeToggle
                   side="right"
                   label="Show navigator"
-                  onToggle={() => setNavOpen(true)}
+                  onToggle={() => openNav()}
                   visible={!navOpen}
                 />
                 {/* Show context opener when context is closed (right edge of center) */}
                 <EdgeToggle
                   side="left"
                   label="Show context"
-                  onToggle={() => setContextOpen(true)}
+                  onToggle={() => openContext()}
                   visible={!contextOpen && level === "task"}
                 />
               </div>
 
               {/* Gutter 2 */}
-              {contextOpen && level === "task" && <div style={{ gridArea: "gut2" }} />}
+              {contextOpen && level === "task" && (
+                <div style={{ gridArea: "gut2" }} />
+              )}
 
               {/* Right: Context */}
               {contextOpen && level === "task" ? (
                 <div
-                  className="relative min-h-0 overflow-hidden"
+                  className="pane"
                   style={{ gridArea: "ctx" }}
                   aria-expanded={contextOpen}
                   aria-label="Context"
@@ -607,7 +633,7 @@ export default function WorkroomPage() {
                   <EdgeToggle
                     side="right"
                     label="Hide context"
-                    onToggle={() => setContextOpen(false)}
+                    onToggle={() => closeContext()}
                     visible={true}
                   />
                 </div>

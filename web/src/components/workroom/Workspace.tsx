@@ -15,9 +15,15 @@ interface WorkspaceProps {
   projectTitle?: string;
 }
 
-export function Workspace({ taskId, projectId, projectTitle }: WorkspaceProps) {
-  const { view, setView, taskViewState, setTaskViewState, hydrated, openContext } =
-    useWorkroomStore();
+export function Workspace({ taskId }: WorkspaceProps) {
+  const {
+    view,
+    setView,
+    taskViewState,
+    setTaskViewState,
+    hydrated,
+    openContext,
+  } = useWorkroomStore();
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [chats, setChats] = useState<ChatMeta[]>([]);
@@ -127,7 +133,7 @@ export function Workspace({ taskId, projectId, projectTitle }: WorkspaceProps) {
   ];
 
   return (
-    <div className="flex flex-col h-full min-w-0">
+    <div className="flex flex-col flex-1 min-w-0 min-h-0">
       {/* Tabs Row */}
       <div className="px-4 pt-3 pb-0 border-b border-slate-200">
         <div className="flex items-center gap-1">
@@ -205,7 +211,7 @@ export function Workspace({ taskId, projectId, projectTitle }: WorkspaceProps) {
         )}
 
         {activeView === "chats" && (
-          <div className="h-full flex flex-col">
+          <div className="flex-1 flex flex-col min-h-0">
             <ChatTabs
               chats={chats}
               activeChatId={taskState.activeChatId}

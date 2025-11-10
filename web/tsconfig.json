@@ -19,7 +19,11 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "paths": {
+      "@ygt-assistant/ui": ["../shared-ui/src"],
+      "@ygt-assistant/ui/*": ["../shared-ui/src/*"]
+    }
   },
   "include": [
     "src",

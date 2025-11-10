@@ -43,11 +43,12 @@ export function ContextPane({
   const [pinned, setPinned] = useState<Reference[]>([]);
 
   // Determine scope label
-  const scopeLabel = taskId && taskTitle
-    ? `Context — Task: ${taskTitle}`
-    : projectId && projectTitle
-    ? `Context — Project: ${projectTitle}`
-    : "Context";
+  const scopeLabel =
+    taskId && taskTitle
+      ? `Context — Task: ${taskTitle}`
+      : projectId && projectTitle
+      ? `Context — Project: ${projectTitle}`
+      : "Context";
 
   if (!open) {
     return null;
@@ -74,7 +75,10 @@ export function ContextPane({
   };
 
   return (
-    <div className="h-full flex flex-col border-l border-slate-200 bg-slate-50 min-h-0" style={{ width: "260px" }}>
+    <div
+      className="flex-1 flex flex-col border-l border-slate-200 bg-slate-50 min-h-0"
+      style={{ width: "260px" }}
+    >
       {/* Header */}
       <div className="p-3 border-b border-slate-200 flex items-center">
         <Text variant="label" className="text-sm font-medium">
@@ -92,9 +96,7 @@ export function ContextPane({
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() =>
-              setActiveSection(tab.id as typeof activeSection)
-            }
+            onClick={() => setActiveSection(tab.id as typeof activeSection)}
             className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors ${
               activeSection === tab.id
                 ? "border-blue-500 text-blue-600"
@@ -133,116 +135,127 @@ export function ContextPane({
                     </Text>
                   </div>
                 ) : (
-              references.map((ref) => {
-                const Icon = getIcon(ref.type);
-                return (
-                  <div
-                    key={ref.id}
-                    draggable
-                    onDragStart={() => handleDragStart(ref)}
-                    onClick={() => onInsertReference?.(ref)}
-                    className="p-2 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-move"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4 text-slate-600" />
-                      <div className="flex-1 min-w-0">
-                        <Text variant="body" className="text-xs font-medium">
-                          {ref.title}
-                        </Text>
-                        {ref.preview && (
-                          <Text variant="caption" className="text-xs text-slate-500">
-                            {ref.preview}
-                          </Text>
-                        )}
+                  references.map((ref) => {
+                    const Icon = getIcon(ref.type);
+                    return (
+                      <div
+                        key={ref.id}
+                        draggable
+                        onDragStart={() => handleDragStart(ref)}
+                        onClick={() => onInsertReference?.(ref)}
+                        className="p-2 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-move"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4 text-slate-600" />
+                          <div className="flex-1 min-w-0">
+                            <Text
+                              variant="body"
+                              className="text-xs font-medium"
+                            >
+                              {ref.title}
+                            </Text>
+                            {ref.preview && (
+                              <Text
+                                variant="caption"
+                                className="text-xs text-slate-500"
+                              >
+                                {ref.preview}
+                              </Text>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })
+                    );
+                  })
+                )}
+              </div>
             )}
-          </div>
-        )}
 
-        {activeSection === "suggested" && (
-          <div className="space-y-2">
-            {suggested.length === 0 ? (
-              <Text variant="muted" className="text-xs">
-                No suggestions available.
-              </Text>
-            ) : (
-              suggested.map((ref) => {
-                const Icon = getIcon(ref.type);
-                return (
-                  <div
-                    key={ref.id}
-                    draggable
-                    onDragStart={() => handleDragStart(ref)}
-                    onClick={() => onInsertReference?.(ref)}
-                    className="p-2 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-move"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4 text-slate-600" />
-                      <div className="flex-1 min-w-0">
-                        <Text variant="body" className="text-xs font-medium">
-                          {ref.title}
-                        </Text>
+            {activeSection === "suggested" && (
+              <div className="space-y-2">
+                {suggested.length === 0 ? (
+                  <Text variant="muted" className="text-xs">
+                    No suggestions available.
+                  </Text>
+                ) : (
+                  suggested.map((ref) => {
+                    const Icon = getIcon(ref.type);
+                    return (
+                      <div
+                        key={ref.id}
+                        draggable
+                        onDragStart={() => handleDragStart(ref)}
+                        onClick={() => onInsertReference?.(ref)}
+                        className="p-2 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-move"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4 text-slate-600" />
+                          <div className="flex-1 min-w-0">
+                            <Text
+                              variant="body"
+                              className="text-xs font-medium"
+                            >
+                              {ref.title}
+                            </Text>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })
+                    );
+                  })
+                )}
+              </div>
             )}
-          </div>
-        )}
 
-        {activeSection === "pinned" && (
-          <div className="space-y-2">
-            {pinned.length === 0 ? (
-              <Text variant="muted" className="text-xs">
-                No pinned items.
-              </Text>
-            ) : (
-              pinned.map((ref) => {
-                const Icon = getIcon(ref.type);
-                return (
-                  <div
-                    key={ref.id}
-                    draggable
-                    onDragStart={() => handleDragStart(ref)}
-                    onClick={() => onInsertReference?.(ref)}
-                    className="p-2 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-move"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4 text-slate-600" />
-                      <div className="flex-1 min-w-0">
-                        <Text variant="body" className="text-xs font-medium">
-                          {ref.title}
-                        </Text>
+            {activeSection === "pinned" && (
+              <div className="space-y-2">
+                {pinned.length === 0 ? (
+                  <Text variant="muted" className="text-xs">
+                    No pinned items.
+                  </Text>
+                ) : (
+                  pinned.map((ref) => {
+                    const Icon = getIcon(ref.type);
+                    return (
+                      <div
+                        key={ref.id}
+                        draggable
+                        onDragStart={() => handleDragStart(ref)}
+                        onClick={() => onInsertReference?.(ref)}
+                        className="p-2 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-move"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4 text-slate-600" />
+                          <div className="flex-1 min-w-0">
+                            <Text
+                              variant="body"
+                              className="text-xs font-medium"
+                            >
+                              {ref.title}
+                            </Text>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })
+                    );
+                  })
+                )}
+              </div>
             )}
-          </div>
-        )}
 
-        {activeSection === "search" && (
-          <div>
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full px-2 py-1 text-xs border border-slate-300 rounded"
-            />
-            <Text variant="muted" className="text-xs mt-2 block">
-              Search functionality coming soon.
-            </Text>
-          </div>
-        )}
+            {activeSection === "search" && (
+              <div>
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className="w-full px-2 py-1 text-xs border border-slate-300 rounded"
+                />
+                <Text variant="muted" className="text-xs mt-2 block">
+                  Search functionality coming soon.
+                </Text>
+              </div>
+            )}
           </>
         )}
       </div>
     </div>
   );
 }
-

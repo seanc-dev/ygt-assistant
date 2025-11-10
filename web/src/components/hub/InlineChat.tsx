@@ -60,6 +60,7 @@ type InlineChatProps = {
   shouldFocus?: boolean;
   mode?: "workroom" | "default";
   onAddReference?: (ref: any) => void;
+  onInputFocus?: () => void;
 };
 
 export function InlineChat({
@@ -72,6 +73,7 @@ export function InlineChat({
   shouldFocus = false,
   mode = "default",
   onAddReference,
+  onInputFocus,
 }: InlineChatProps) {
   const [threadId, setThreadId] = useState<string | null>(
     initialThreadId || null
@@ -167,21 +169,24 @@ export function InlineChat({
         );
 
         // Ensure roles are correct - fix any role mismatches
-        const correctedBackendMessages = backendMessages.map((msg) => {
+        const correctedBackendMessages = backendMessages.map((msg: any) => {
+          // Normalize message structure - ensure it has content, role, id, ts
+          const normalizedMsg = {
+            id: msg.id || String(Math.random()),
+            role: (msg.role === "user" ? "user" : "assistant") as "user" | "assistant",
+            content: msg.content || msg.text || "",
+            ts: msg.ts || msg.created_at || new Date().toISOString(),
+            embeds: msg.embeds || [],
+          };
+          
           // If message was sent by user (check by matching content with optimistic), ensure role is user
           const matchingOptimistic = optimisticMessages.find(
-            (opt) => opt.content === msg.content && opt.role === "user"
+            (opt) => opt.content === normalizedMsg.content && opt.role === "user"
           );
           if (matchingOptimistic) {
-            return { ...msg, role: "user" as const };
+            return { ...normalizedMsg, role: "user" as const };
           }
-          // Ensure role is either user or assistant
-          return {
-            ...msg,
-            role: (msg.role === "user" ? "user" : "assistant") as
-              | "user"
-              | "assistant",
-          };
+          return normalizedMsg;
         });
 
         // Combine backend messages with still-optimistic ones
@@ -469,7 +474,15 @@ export function InlineChat({
         lastError?.error === "404 Not Found" ||
         lastError?.message?.includes("404")
       ) {
-        // Recreate thread before retry
+        // In workroom mode, don't try to recreate threads - they're managed by tasks
+        if (mode === "workroom") {
+          console.warn(
+            `[Retry ${retryCount}/${MAX_RETRIES}] Thread ${currentThreadId} not found in workroom mode - skipping recreation`
+          );
+          break; // Exit retry loop - thread should be created via task chat creation
+        }
+        
+        // Recreate thread before retry (only in non-workroom mode)
         try {
           console.log(
             `[Retry ${retryCount}/${MAX_RETRIES}] Recreating thread ${currentThreadId} before retry`
@@ -932,40 +945,40 @@ export function InlineChat({
         <div className="flex-shrink-0 mb-4 sticky top-0 bg-white z-10 -mx-4 px-4 pt-0">
           <div className="rounded-lg border border-slate-200 overflow-hidden">
             <div className="flex items-center gap-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleContextToggle();
-                }}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleContextToggle();
+              }}
                 className="flex-1 flex items-center justify-between gap-1.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded-md transition-colors"
-                aria-expanded={contextExpanded}
-              >
-                <div className="flex items-center gap-1.5">
-                  <ChevronDown24Regular
-                    className={`w-4 h-4 transition-transform duration-200 ${
-                      contextExpanded ? "rotate-180" : ""
-                    }`}
-                  />
-                  <span>Context</span>
-                </div>
-                <div className="flex items-center gap-2 flex-1 ml-2">
-                  <span className="text-xs text-slate-500 font-normal truncate">
-                    {contextSummary}
-                  </span>
+              aria-expanded={contextExpanded}
+            >
+              <div className="flex items-center gap-1.5">
+                <ChevronDown24Regular
+                  className={`w-4 h-4 transition-transform duration-200 ${
+                    contextExpanded ? "rotate-180" : ""
+                  }`}
+                />
+                <span>Context</span>
+              </div>
+              <div className="flex items-center gap-2 flex-1 ml-2">
+                <span className="text-xs text-slate-500 font-normal truncate">
+                  {contextSummary}
+                </span>
                 </div>
               </button>
-              {threadId && onOpenWorkroom && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenWorkroom(threadId);
-                  }}
+                {threadId && onOpenWorkroom && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenWorkroom(threadId);
+                    }}
                   className="text-xs text-blue-600 hover:text-blue-700 underline focus:outline-none focus:ring-2 focus:ring-blue-300 rounded px-2 py-2 whitespace-nowrap"
-                >
-                  Open in Workroom
-                </button>
-              )}
-            </div>
+                  >
+                    Open in Workroom
+                  </button>
+                )}
+              </div>
             <div
               className={`overflow-hidden transition-all duration-200 ease-in-out ${
                 contextExpanded ? "max-h-64 opacity-100" : "max-h-0 opacity-0"
@@ -1076,6 +1089,9 @@ export function InlineChat({
                   ...prev,
                   [actionId]: e.target.value,
                 }));
+              }}
+              onFocus={() => {
+                onInputFocus?.();
               }}
               onMouseDown={(e) => e.stopPropagation()}
               onKeyDown={handleKeyDown}
