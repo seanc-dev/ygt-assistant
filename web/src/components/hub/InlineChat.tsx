@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, memo } from "react";
+import { useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
 import {
   Send24Regular,
   ChevronDown24Regular,
@@ -38,6 +38,21 @@ type Message = {
   embeds?: any[]; // ActionEmbed[]
 };
 
+type MessageView = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  embeds?: any[];
+  marginTop: string;
+  timestampLabel: string;
+  showTimestamp: boolean;
+  shouldAnimate: boolean;
+  startDelayMs?: number;
+  error?: boolean;
+  retryable?: boolean;
+  errorMessage?: string;
+};
+
 type ThreadResponse = {
   ok: boolean;
   thread: {
@@ -63,6 +78,297 @@ type InlineChatProps = {
   onInputFocus?: () => void;
 };
 
+// MessageItem component - only accepts data props, no functions
+const MessageItem = memo(
+  ({
+    view,
+    onRetry,
+    onEmbedUpdate,
+    animatedRef,
+  }: {
+    view: MessageView;
+    onRetry: (id: string) => void;
+    onEmbedUpdate: (messageId: string, embed: any) => void;
+    animatedRef: React.MutableRefObject<Set<string>>;
+  }) => {
+    return (
+      <div
+        className={`flex flex-col gap-0.5 transition-all duration-300 w-full ${
+          view.role === "user" ? "items-end" : "items-start"
+        } ${view.marginTop}`}
+      >
+        <div
+          className={`flex items-end gap-2 ${
+            view.role === "user"
+              ? "justify-end flex-row-reverse"
+              : "justify-start"
+          }`}
+        >
+          {view.error && view.retryable && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRetry(view.id);
+              }}
+              className="flex-shrink-0 text-red-600 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 rounded p-1 transition-colors"
+              aria-label="Retry sending message"
+              title="Retry sending"
+            >
+              <ArrowClockwise24Regular className="w-4 h-4" />
+            </button>
+          )}
+          <div
+            className={`rounded-lg px-4 py-2.5 shadow-sm ${
+              view.role === "user" ? "max-w-[80%]" : "max-w-[80%]"
+            } ${
+              view.role === "assistant"
+                ? "bg-slate-100 text-slate-900 border border-slate-200"
+                : view.error
+                ? "bg-red-50 text-red-900 border border-red-200"
+                : "bg-blue-500 text-white"
+            }`}
+            style={{
+              wordWrap: "break-word",
+              overflowWrap: "break-word",
+              minWidth: "fit-content",
+            }}
+          >
+            <div
+              className="text-sm leading-relaxed"
+              style={{ wordBreak: "normal" }}
+            >
+              {view.role === "assistant" ? (
+                <TypingMessageContent
+                  content={view.content}
+                  id={view.id}
+                  shouldAnimate={view.shouldAnimate}
+                  animatedRef={animatedRef}
+                  startDelayMs={view.startDelayMs}
+                />
+              ) : (
+                view.content
+              )}
+            </div>
+            {view.error && view.errorMessage && (
+              <div className="text-xs text-red-600 mt-1 opacity-75">
+                {view.errorMessage}
+              </div>
+            )}
+          </div>
+        </div>
+        {/* Render ActionEmbeds after message content */}
+        {view.embeds && view.embeds.length > 0 && (
+          <div className="mt-2 space-y-2">
+            {view.embeds.map((embed: any) => (
+              <ActionEmbedComponent
+                key={embed.id}
+                embed={embed}
+                messageId={view.id}
+                onUpdate={(updatedEmbed) => {
+                  onEmbedUpdate(view.id, updatedEmbed);
+                }}
+              />
+            ))}
+          </div>
+        )}
+        {view.showTimestamp && (
+          <span className="text-xs text-slate-500 mt-1">
+            {view.timestampLabel}
+          </span>
+        )}
+      </div>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Only re-render if view data changes (functions are stable)
+    const prev = prevProps.view;
+    const next = nextProps.view;
+    return (
+      prev.id === next.id &&
+      prev.content === next.content &&
+      prev.role === next.role &&
+      prev.error === next.error &&
+      prev.retryable === next.retryable &&
+      prev.errorMessage === next.errorMessage &&
+      prev.marginTop === next.marginTop &&
+      prev.timestampLabel === next.timestampLabel &&
+      prev.showTimestamp === next.showTimestamp &&
+      prev.shouldAnimate === next.shouldAnimate &&
+      prevProps.onRetry === nextProps.onRetry &&
+      prevProps.onEmbedUpdate === nextProps.onEmbedUpdate &&
+      prevProps.animatedRef === nextProps.animatedRef
+    );
+  }
+);
+MessageItem.displayName = "MessageItem";
+
+// TypingMessageContent - extracted for use in MessageItem
+const TypingMessageContent = memo(
+  ({
+    content,
+    id,
+    shouldAnimate,
+    animatedRef,
+    startDelayMs = 0,
+  }: {
+    content: string;
+    id: string;
+    shouldAnimate: boolean;
+    animatedRef: React.MutableRefObject<Set<string>>;
+    startDelayMs?: number;
+  }) => {
+    const markAsSeen = useCallback(() => {
+      animatedRef.current.add(id);
+    }, [id, animatedRef]);
+
+    const displayedText = useTypingEffect(
+      content,
+      30,
+      shouldAnimate,
+      markAsSeen,
+      startDelayMs
+    );
+    return <>{displayedText}</>;
+  }
+);
+TypingMessageContent.displayName = "TypingMessageContent";
+
+// Typing effect hook for assistant messages
+function useTypingEffect(
+  text: string,
+  speed: number = 30,
+  enabled: boolean = true,
+  onComplete?: () => void,
+  startDelayMs: number = 0
+) {
+  const [displayedText, setDisplayedText] = useState("");
+  const [hasStarted, setHasStarted] = useState(false);
+
+  useEffect(() => {
+    if (!enabled) {
+      setDisplayedText(text);
+      setHasStarted(true);
+      // Mark as complete immediately if animation is disabled
+      if (onComplete && text.length > 0) {
+        onComplete();
+      }
+      return;
+    }
+
+    // Handle initial delay before starting animation
+    if (!hasStarted && startDelayMs > 0) {
+      const delayTimeout = setTimeout(() => {
+        setHasStarted(true);
+      }, startDelayMs);
+      return () => clearTimeout(delayTimeout);
+    }
+
+    // Start typing animation after delay (or immediately if no delay)
+    if (hasStarted && displayedText.length < text.length) {
+      const timeout = setTimeout(() => {
+        const newLength = displayedText.length + 1;
+        setDisplayedText(text.slice(0, newLength));
+
+        // Mark as complete when animation finishes
+        if (newLength === text.length && onComplete) {
+          onComplete();
+        }
+      }, speed);
+      return () => clearTimeout(timeout);
+    } else if (
+      hasStarted &&
+      displayedText.length === text.length &&
+      onComplete
+    ) {
+      // Already complete, mark it
+      onComplete();
+    }
+  }, [
+    displayedText,
+    text,
+    speed,
+    enabled,
+    onComplete,
+    startDelayMs,
+    hasStarted,
+  ]);
+
+  // Reset when text changes
+  useEffect(() => {
+    if (text !== displayedText && displayedText.length === text.length) {
+      setDisplayedText("");
+      setHasStarted(false);
+    }
+  }, [text, displayedText]);
+
+  return displayedText || "";
+}
+
+// MessageList component - memoized to prevent re-renders
+const MessageList = memo(
+  ({
+    messageViews,
+    isTyping,
+    onRetryMessage,
+    onEmbedUpdate,
+    animatedRef,
+  }: {
+    messageViews: MessageView[];
+    isTyping: boolean;
+    onRetryMessage: (id: string) => void;
+    onEmbedUpdate: (messageId: string, embed: any) => void;
+    animatedRef: React.MutableRefObject<Set<string>>;
+  }) => {
+    return (
+      <>
+        {messageViews.length === 0 ? (
+          <div className="text-sm text-slate-500 py-4 text-center">
+            No messages yet. Start the conversation!
+          </div>
+        ) : (
+          messageViews.map((view) => (
+            <MessageItem
+              key={view.id}
+              view={view}
+              onRetry={onRetryMessage}
+              onEmbedUpdate={onEmbedUpdate}
+              animatedRef={animatedRef}
+            />
+          ))
+        )}
+        {isTyping && (
+          <div className="flex items-start gap-2 mt-2">
+            <div className="bg-slate-100 text-slate-900 border border-slate-200 rounded-lg px-4 py-2.5 max-w-[80%] shadow-sm">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
+                <div
+                  className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.2s" }}
+                />
+                <div
+                  className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.4s" }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Only re-render if messageViews array reference changes or isTyping changes
+    return (
+      prevProps.messageViews === nextProps.messageViews &&
+      prevProps.isTyping === nextProps.isTyping &&
+      prevProps.onRetryMessage === nextProps.onRetryMessage &&
+      prevProps.onEmbedUpdate === nextProps.onEmbedUpdate &&
+      prevProps.animatedRef === nextProps.animatedRef
+    );
+  }
+);
+MessageList.displayName = "MessageList";
+
 export function InlineChat({
   actionId,
   threadId: initialThreadId,
@@ -78,6 +384,12 @@ export function InlineChat({
   const [threadId, setThreadId] = useState<string | null>(
     initialThreadId || null
   );
+  useEffect(() => {
+    const resolvedThreadId = initialThreadId ?? null;
+    setThreadId((current) =>
+      current === resolvedThreadId ? current : resolvedThreadId
+    );
+  }, [initialThreadId]);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -86,13 +398,23 @@ export function InlineChat({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const typingStartRef = useRef<number | null>(null);
+  const messagesRef = useRef<Message[]>([]);
   const [animatedMessageIds, setAnimatedMessageIds] = useState<Set<string>>(
     new Set()
   );
   const animatedRef = useRef<Set<string>>(new Set());
+  const previousMessagesRef = useRef<Message[]>([]);
+  const isInitialLoadRef = useRef<boolean>(true);
+  const awaitingAssistantAfterTsRef = useRef<string | null>(null);
+  const typingSessionRef = useRef<{
+    showTimerId: NodeJS.Timeout | null;
+    clearTimerId: NodeJS.Timeout | null;
+  }>({ showTimerId: null, clearTimerId: null });
 
   const MIN_TYPING_DURATION = 500; // ms
+  const ASSISTANT_START_DELAY_MS = 100; // ms
 
   // Bootstrap thread if needed (only if not provided and shouldFocus is true)
   // Note: ActionCard creates thread on expand, so this is mainly for edge cases
@@ -125,7 +447,7 @@ export function InlineChat({
   }, [threadId, actionId, onThreadCreated, shouldFocus, summary]);
 
   // Fetch messages
-  const { data: threadData, mutate: mutateThread } = useSWR<ThreadResponse>(
+  const { data: threadData, mutate: mutateThread, isLoading: isLoadingThread } = useSWR<ThreadResponse>(
     threadId ? [`thread`, threadId] : null,
     async () => {
       if (!threadId) {
@@ -156,24 +478,95 @@ export function InlineChat({
     }
   );
 
-  // Update messages when thread data changes - merge instead of replace
+  // Reset messages when threadId changes to prevent cross-thread contamination
   useEffect(() => {
-    if (threadData?.thread?.messages) {
+    if (threadId) {
+      setMessages([]); // Clear messages when switching threads
+    }
+  }, [threadId]);
+
+  // Helper function to create a normalized fingerprint for message content
+  const fingerprintContent = useCallback((content: string): string => {
+    return content.toLowerCase().trim().replace(/\s+/g, " "); // Collapse internal whitespace
+  }, []);
+
+  // Update messages when thread data changes - merge instead of replace
+  // Only process if this is the current thread to prevent cross-thread contamination
+  useEffect(() => {
+    if (threadData?.thread?.messages && threadData.thread.id === threadId) {
       setMessages((prev) => {
         const backendMessages = threadData.thread.messages;
         // Merge: keep optimistic messages that aren't confirmed yet
         const optimisticMessages = prev.filter((msg) => msg.optimistic);
         const confirmedIds = new Set(backendMessages.map((m) => m.id));
-        const stillOptimistic = optimisticMessages.filter(
-          (msg) => !confirmedIds.has(msg.id)
-        );
+
+        // Build fingerprint-based deduplication for user messages
+        // Count backend user messages by fingerprint
+        const backendUserCounts = new Map<string, number>();
+        backendMessages.forEach((msg: any) => {
+          const content = msg.content || msg.text || "";
+          const role = msg.role === "user" ? "user" : "assistant";
+          if (role === "user") {
+            const fingerprint = fingerprintContent(content);
+            backendUserCounts.set(
+              fingerprint,
+              (backendUserCounts.get(fingerprint) || 0) + 1
+            );
+          }
+        });
+
+        // Group optimistic user messages by fingerprint
+        const optimisticUserBuckets = new Map<string, Message[]>();
+        optimisticMessages.forEach((msg) => {
+          if (msg.role === "user") {
+            const fingerprint = fingerprintContent(msg.content);
+            if (!optimisticUserBuckets.has(fingerprint)) {
+              optimisticUserBuckets.set(fingerprint, []);
+            }
+            optimisticUserBuckets.get(fingerprint)!.push(msg);
+          }
+        });
+
+        // Remove matched optimistics: for each fingerprint, remove up to backendUserCounts[fingerprint] messages
+        const matchedOptimisticIds = new Set<string>();
+        optimisticUserBuckets.forEach((bucket, fingerprint) => {
+          const backendCount = backendUserCounts.get(fingerprint) || 0;
+          // Sort by timestamp (oldest first) to match oldest optimistics first
+          const sortedBucket = [...bucket].sort(
+            (a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime()
+          );
+          // Mark up to backendCount messages as matched
+          for (
+            let i = 0;
+            i < Math.min(backendCount, sortedBucket.length);
+            i++
+          ) {
+            matchedOptimisticIds.add(sortedBucket[i].id);
+          }
+        });
+
+        // Filter optimistics: exclude those matched by ID or by fingerprint count
+        const stillOptimistic = optimisticMessages.filter((msg) => {
+          // Keep if ID is confirmed (already handled by backend)
+          if (confirmedIds.has(msg.id)) {
+            return false;
+          }
+          // For user messages, exclude if matched by fingerprint count
+          if (msg.role === "user" && matchedOptimisticIds.has(msg.id)) {
+            return false;
+          }
+          // Keep all other optimistics (assistant messages, unmatched user messages)
+          return true;
+        });
 
         // Ensure roles are correct - fix any role mismatches
         const correctedBackendMessages = backendMessages.map((msg: any) => {
           // Normalize message structure - ensure it has content, role, id, ts
           const normalizedMsg = {
             id: msg.id || String(Math.random()),
-            role: (msg.role === "user" ? "user" : "assistant") as "user" | "assistant",
+            role: (msg.role === "user" ? "user" : "assistant") as
+              | "user"
+              | "assistant",
             content: msg.content || msg.text || "",
             ts: msg.ts || msg.created_at || new Date().toISOString(),
             embeds: msg.embeds || [],
@@ -181,7 +574,9 @@ export function InlineChat({
           
           // If message was sent by user (check by matching content with optimistic), ensure role is user
           const matchingOptimistic = optimisticMessages.find(
-            (opt) => opt.content === normalizedMsg.content && opt.role === "user"
+            (opt) =>
+              fingerprintContent(opt.content) ===
+                fingerprintContent(normalizedMsg.content) && opt.role === "user"
           );
           if (matchingOptimistic) {
             return { ...normalizedMsg, role: "user" as const };
@@ -197,18 +592,47 @@ export function InlineChat({
         );
       });
     }
-  }, [threadData]);
+  }, [threadData, threadId, fingerprintContent]);
+
+  // Keep messagesRef in sync with messages state
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Track animated message IDs to prevent replay
+  // Only animate assistant messages that are newly added (not in previous render)
   useEffect(() => {
+    const previousMessageIds = new Set(
+      previousMessagesRef.current.map((m) => m.id)
+    );
+    const isInitialLoad = previousMessagesRef.current.length === 0;
+
     messages.forEach((m) => {
       if (m.role === "assistant") {
+        // On initial load, mark all messages as seen (don't animate)
+        // If message was already in previous render, mark it as seen (don't animate)
+        // If it's a new message, it will animate until marked as seen
+        if (isInitialLoad || previousMessageIds.has(m.id)) {
         animatedRef.current.add(m.id);
       }
+      }
     });
+
+    // Mark initial load as complete after first messages pass
+    if (isInitialLoad && messages.length > 0) {
+      isInitialLoadRef.current = false;
+    }
+
+    // Update previous messages ref for next render
+    previousMessagesRef.current = messages;
   }, [messages]);
 
   const shouldAnimate = useCallback((msg: Message) => {
+    // Only animate assistant messages that haven't been seen before
+    // User messages always display in full
+    if (msg.role === "user") {
+      return false;
+    }
     return msg.role === "assistant" && !animatedRef.current.has(msg.id);
   }, []);
 
@@ -224,15 +648,54 @@ export function InlineChat({
     }, remaining);
   }, []);
 
-  // Clear typing indicator when assistant message arrives
+  // Detect first assistant reply after user message and clear typing indicator
   useEffect(() => {
-    const hasAssistantMessage = messages.some(
-      (msg) => msg.role === "assistant" && !msg.optimistic
+    if (!awaitingAssistantAfterTsRef.current || !isTyping) {
+      return;
+    }
+
+    const awaitingTs = awaitingAssistantAfterTsRef.current;
+    // Find first assistant message after the user message timestamp
+    const firstAssistantReply = messages.find(
+      (msg) =>
+        msg.role === "assistant" &&
+        !msg.optimistic &&
+        new Date(msg.ts).getTime() > new Date(awaitingTs).getTime() &&
+        !animatedRef.current.has(msg.id) // Not yet handled
     );
-    if (hasAssistantMessage && isTyping && typingStartRef.current) {
+
+    if (firstAssistantReply) {
+      // Clear typing indicator just before assistant animation starts
+      // Schedule clear at max(0, ASSISTANT_START_DELAY_MS - 100) which is usually 0
+      const clearDelay = Math.max(0, ASSISTANT_START_DELAY_MS - 100);
+
+      // Cancel any existing clear timer
+      if (typingSessionRef.current.clearTimerId) {
+        clearTimeout(typingSessionRef.current.clearTimerId);
+      }
+
+      typingSessionRef.current.clearTimerId = setTimeout(() => {
       clearTyping();
+        awaitingAssistantAfterTsRef.current = null;
+        typingSessionRef.current.clearTimerId = null;
+      }, clearDelay);
+
+      // Mark this assistant message as handled to avoid re-triggering
+      animatedRef.current.add(firstAssistantReply.id);
     }
   }, [messages, isTyping, clearTyping]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (typingSessionRef.current.showTimerId) {
+        clearTimeout(typingSessionRef.current.showTimerId);
+      }
+      if (typingSessionRef.current.clearTimerId) {
+        clearTimeout(typingSessionRef.current.clearTimerId);
+      }
+    };
+  }, []);
 
   // Load draft from cache
   useEffect(() => {
@@ -386,8 +849,35 @@ export function InlineChat({
     setMessages((prev) => [...prev, optimisticMessage]);
     setMessage("");
     setDraftCache((prev) => ({ ...prev, [actionId]: "" }));
-    // Don't set typing immediately - wait for user message to be confirmed before showing typing indicator
-    // This prevents flicker on first message
+
+    // Cancel any existing typing session timers
+    if (typingSessionRef.current.showTimerId) {
+      clearTimeout(typingSessionRef.current.showTimerId);
+      typingSessionRef.current.showTimerId = null;
+    }
+    if (typingSessionRef.current.clearTimerId) {
+      clearTimeout(typingSessionRef.current.clearTimerId);
+      typingSessionRef.current.clearTimerId = null;
+    }
+
+    // Calculate delay based on message length (500-2000ms)
+    // Use word count as proxy for message complexity
+    const wordCount = messageContent
+      .split(/\s+/)
+      .filter((w) => w.length > 0).length;
+    const charCount = messageContent.length;
+    // Use a combination: base 500ms + ~50ms per word (capped at 2000ms)
+    const showDelayMs = Math.min(Math.max(500 + wordCount * 50, 500), 2000);
+
+    // Set awaiting timestamp for assistant reply detection
+    awaitingAssistantAfterTsRef.current = optimisticMessage.ts;
+
+    // Schedule typing indicator to show after delay
+    typingSessionRef.current.showTimerId = setTimeout(() => {
+      setIsTyping(true);
+      typingStartRef.current = Date.now();
+      typingSessionRef.current.showTimerId = null;
+    }, showDelayMs);
 
     // Restore focus after state update
     requestAnimationFrame(() => {
@@ -421,9 +911,7 @@ export function InlineChat({
                 : msg
             )
           );
-          // Now show typing indicator for assistant response (with minimum duration)
-          setIsTyping(true);
-          typingStartRef.current = Date.now();
+          // Typing indicator already shown, just ensure it's still active
           // Refetch to get assistant response (with error handling)
           setTimeout(() => {
             try {
@@ -558,12 +1046,14 @@ export function InlineChat({
             : msg
         )
       );
-    }
-
-    // Clear typing indicator if it was set (with minimum duration)
+      // Clear typing indicator on failure
     if (typingStartRef.current) {
       clearTyping();
     }
+      // Clear awaiting timestamp since we're not expecting a reply
+      awaitingAssistantAfterTsRef.current = null;
+    }
+    // Note: Typing indicator remains active on success - it will be cleared when assistant message arrives
   }, [
     message,
     threadId,
@@ -598,7 +1088,7 @@ export function InlineChat({
 
   const handleRetryMessage = useCallback(
     async (messageId: string) => {
-      const msgToRetry = messages.find((m) => m.id === messageId);
+      const msgToRetry = messagesRef.current.find((m) => m.id === messageId);
       if (!msgToRetry || !msgToRetry.error || !msgToRetry.retryable) {
         return;
       }
@@ -624,6 +1114,9 @@ export function InlineChat({
         console.error("Cannot retry: no thread ID");
         return;
       }
+
+      // Set awaiting timestamp for assistant reply detection
+      awaitingAssistantAfterTsRef.current = new Date().toISOString();
 
       setIsTyping(true);
       typingStartRef.current = Date.now();
@@ -672,6 +1165,7 @@ export function InlineChat({
             )
           );
           clearTyping();
+          awaitingAssistantAfterTsRef.current = null;
         }
       } catch (err: any) {
         console.error("Retry failed:", err);
@@ -689,6 +1183,7 @@ export function InlineChat({
           )
         );
         clearTyping();
+        awaitingAssistantAfterTsRef.current = null;
       } finally {
         // clearTyping handles minimum duration, but only if isTyping is still true
         if (isTyping) {
@@ -698,10 +1193,10 @@ export function InlineChat({
         }
       }
     },
-    [messages, threadId, mutateThread, isTyping, clearTyping]
+    [threadId, mutateThread, isTyping, clearTyping]
   );
 
-  const formatTimestamp = (ts: string) => {
+  const formatTimestamp = useCallback((ts: string) => {
     const date = new Date(ts);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -711,56 +1206,7 @@ export function InlineChat({
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
     return date.toLocaleDateString();
-  };
-
-  // Typing effect hook for assistant messages
-  const useTypingEffect = (
-    text: string,
-    speed: number = 30,
-    enabled: boolean = true
-  ) => {
-    const [displayedText, setDisplayedText] = useState("");
-
-    useEffect(() => {
-      if (!enabled) {
-        setDisplayedText(text);
-        return;
-      }
-
-      if (displayedText.length < text.length) {
-        const timeout = setTimeout(() => {
-          setDisplayedText(text.slice(0, displayedText.length + 1));
-        }, speed);
-        return () => clearTimeout(timeout);
-      }
-    }, [displayedText, text, speed, enabled]);
-
-    // Reset when text changes
-    useEffect(() => {
-      if (text !== displayedText && displayedText.length === text.length) {
-        setDisplayedText("");
-      }
-    }, [text]);
-
-    return displayedText || "";
-  };
-
-  // Component for typing message
-  const TypingMessage = memo(
-    ({
-      content,
-      id,
-      shouldAnimate,
-    }: {
-      content: string;
-      id: string;
-      shouldAnimate: boolean;
-    }) => {
-      const displayedText = useTypingEffect(content, 30, shouldAnimate);
-      return <>{displayedText}</>;
-    }
-  );
-  TypingMessage.displayName = "TypingMessage";
+  }, []);
 
   // Group messages by time delta only (Fluent UI pattern)
   // All messages within 5 minutes are grouped together regardless of sender
@@ -793,134 +1239,6 @@ export function InlineChat({
     });
   };
 
-  // Memoized message component to prevent re-renders
-  const ChatMessage = memo(
-    ({
-      msg,
-      marginTop,
-      showTimestamp,
-      formatTimestamp,
-      handleRetryMessage,
-      shouldAnimate,
-    }: {
-      msg: Message & { isGroupStart: boolean; isGroupEnd: boolean };
-      marginTop: string;
-      showTimestamp: boolean;
-      formatTimestamp: (ts: string) => string;
-      handleRetryMessage: (id: string) => void;
-      shouldAnimate: boolean;
-    }) => {
-      const isUserMessage = msg.role === "user";
-      return (
-        <div
-          className={`flex flex-col gap-0.5 transition-all duration-300 w-full ${
-            msg.role === "user" ? "items-end" : "items-start"
-          } ${marginTop}`}
-        >
-          <div
-            className={`flex items-end gap-2 ${
-              msg.role === "user"
-                ? "justify-end flex-row-reverse"
-                : "justify-start"
-            }`}
-          >
-            {msg.error && msg.retryable && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRetryMessage(msg.id);
-                }}
-                className="flex-shrink-0 text-red-600 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 rounded p-1 transition-colors"
-                aria-label="Retry sending message"
-                title="Retry sending"
-              >
-                <ArrowClockwise24Regular className="w-4 h-4" />
-              </button>
-            )}
-            <div
-              className={`rounded-lg px-4 py-2.5 shadow-sm ${
-                msg.role === "user" ? "max-w-[80%]" : "max-w-[80%]"
-              } ${
-                msg.role === "assistant"
-                  ? "bg-slate-100 text-slate-900 border border-slate-200"
-                  : msg.error
-                  ? "bg-red-50 text-red-900 border border-red-200"
-                  : "bg-blue-500 text-white"
-              }`}
-              style={{
-                wordWrap: "break-word",
-                overflowWrap: "break-word",
-                minWidth: "fit-content",
-              }}
-            >
-              <div
-                className="text-sm leading-relaxed"
-                style={{ wordBreak: "normal" }}
-              >
-                {msg.role === "assistant" ? (
-                  <TypingMessage
-                    content={msg.content}
-                    id={msg.id}
-                    shouldAnimate={shouldAnimate}
-                  />
-                ) : (
-                  msg.content
-                )}
-              </div>
-              {msg.error && msg.errorMessage && (
-                <div className="text-xs text-red-600 mt-1 opacity-75">
-                  {msg.errorMessage}
-                </div>
-              )}
-            </div>
-          </div>
-          {/* Render ActionEmbeds after message content */}
-          {msg.embeds && msg.embeds.length > 0 && (
-            <div className="mt-2 space-y-2">
-              {msg.embeds.map((embed: any) => (
-                <ActionEmbedComponent
-                  key={embed.id}
-                  embed={embed}
-                  messageId={msg.id}
-                  onUpdate={(updatedEmbed) => {
-                    setMessages((prev) =>
-                      prev.map((m) =>
-                        m.id === msg.id
-                          ? {
-                              ...m,
-                              embeds: m.embeds?.map((e: any) =>
-                                e.id === embed.id ? updatedEmbed : e
-                              ),
-                            }
-                          : m
-                      )
-                    );
-                  }}
-                />
-              ))}
-            </div>
-          )}
-          {showTimestamp && (
-            <span className="text-xs text-slate-500 mt-1">
-              {formatTimestamp(msg.ts)}
-            </span>
-          )}
-        </div>
-      );
-    },
-    (prevProps, nextProps) => {
-      // Only re-render if message content, error state, or animation state changes
-      return (
-        prevProps.msg.id === nextProps.msg.id &&
-        prevProps.msg.content === nextProps.msg.content &&
-        prevProps.msg.error === nextProps.msg.error &&
-        prevProps.shouldAnimate === nextProps.shouldAnimate &&
-        prevProps.showTimestamp === nextProps.showTimestamp
-      );
-    }
-  );
-  ChatMessage.displayName = "ChatMessage";
-
   const contextSummary = meta
     ? [
         meta.from && `From: ${meta.from}`,
@@ -931,18 +1249,92 @@ export function InlineChat({
         .join(" • ")
     : summary || "No context available";
 
+  // Memoize grouped messages to prevent recreation on every render
+  const groupedMessages = useMemo(() => groupMessages(messages), [messages]);
+
+  // Stable callback for embed updates
+  const handleEmbedUpdate = useCallback(
+    (messageId: string, updatedEmbed: any) => {
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== messageId) return m;
+          const embedId = updatedEmbed.id;
+          return {
+            ...m,
+            embeds: m.embeds?.map((e: any) =>
+              e.id === embedId ? updatedEmbed : e
+            ) || [updatedEmbed],
+          };
+        })
+      );
+    },
+    []
+  );
+
+  // Precompute message views with all data needed for rendering
+  const messageViews = useMemo(() => {
+    if (groupedMessages.length === 0) return [];
+
+    return groupedMessages.map((msg, index) => {
+      const isGrouped = !msg.isGroupStart;
+      const showTimestamp = msg.isGroupEnd;
+
+      // Check if role changed for visual spacing
+      const prevMsg = index > 0 ? groupedMessages[index - 1] : null;
+      const roleChanged = prevMsg && prevMsg.role !== msg.role;
+
+      // Add margin-top for spacing: larger gap when role changes, tighter within same role
+      const marginTop = roleChanged ? "mt-4" : isGrouped ? "mt-1" : "mt-2";
+
+      // Precompute timestamp label
+      const timestampLabel = formatTimestamp(msg.ts);
+
+      // Compute shouldAnimate - only animate if not initial load and not already seen
+      const shouldAnimate =
+        msg.role === "assistant" &&
+        !isInitialLoadRef.current &&
+        !animatedRef.current.has(msg.id);
+
+      // Set startDelayMs for assistant messages that should animate
+      const startDelayMs =
+        shouldAnimate && msg.role === "assistant"
+          ? ASSISTANT_START_DELAY_MS
+          : 0;
+
+      return {
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        embeds: msg.embeds,
+        marginTop,
+        timestampLabel,
+        showTimestamp,
+        shouldAnimate,
+        startDelayMs,
+        error: msg.error,
+        retryable: msg.retryable,
+        errorMessage: msg.errorMessage,
+      } as MessageView;
+    });
+  }, [groupedMessages, formatTimestamp]);
+
+  const containerStyle = useMemo(() => {
+    return { height: "100%", minHeight: 0 };
+  }, []);
+
   return (
     <>
       <style>{scrollbarStyles}</style>
       <div
-        className="flex flex-col bg-white rounded-lg p-4"
-        style={{ height: "100%", minHeight: 0 }}
+        ref={containerRef}
+        className="grid grid-rows-[auto,minmax(0,1fr),auto] bg-white rounded-lg p-4 h-full min-h-0"
+        style={containerStyle}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        {/* Context Accordion - Sticky at top, always visible (hidden in workroom mode) */}
+        {/* Context Accordion - Row 1 (hidden in workroom mode) */}
         {mode !== "workroom" && (
-        <div className="flex-shrink-0 mb-4 sticky top-0 bg-white z-10 -mx-4 px-4 pt-0">
+          <div className="flex-shrink-0 mb-4 bg-white -mx-4 px-4 pt-0">
           <div className="rounded-lg border border-slate-200 overflow-hidden">
             <div className="flex items-center gap-2">
             <button
@@ -1010,75 +1402,36 @@ export function InlineChat({
           ref={messagesContainerRef}
           role="log"
           aria-live="polite"
-          className="flex-1 overflow-y-auto overflow-x-hidden bg-white -mx-4 px-4 py-3 chat-scrollbar"
+          className="min-h-0 overflow-y-auto overflow-x-hidden bg-white -mx-4 px-4 py-3 chat-scrollbar"
           style={{
             scrollBehavior: "smooth",
             scrollbarWidth: "thin",
             scrollbarColor: "#cbd5e1 #ffffff",
+            overscrollBehavior: "contain",
           }}
         >
-          {messages.length === 0 && !threadId ? (
+          {isLoadingThread && messages.length === 0 ? (
+            <div className="text-sm text-slate-500 py-4 text-center">
+              Loading messages...
+            </div>
+          ) : messages.length === 0 && !threadId ? (
             <div className="text-sm text-slate-500 py-4 text-center">
               Starting conversation...
             </div>
-          ) : messages.length === 0 ? (
-            <div className="text-sm text-slate-500 py-4 text-center">
-              No messages yet. Start the conversation!
-            </div>
           ) : (
-            (() => {
-              const groupedMessages = groupMessages(messages);
-              return groupedMessages.map((msg, index) => {
-                const isGrouped = !msg.isGroupStart;
-                const showTimestamp = msg.isGroupEnd;
-
-                // Check if role changed for visual spacing
-                const prevMsg = index > 0 ? groupedMessages[index - 1] : null;
-                const roleChanged = prevMsg && prevMsg.role !== msg.role;
-
-                // Add margin-top for spacing: larger gap when role changes, tighter within same role
-                const marginTop = roleChanged
-                  ? "mt-4"
-                  : isGrouped
-                  ? "mt-1"
-                  : "mt-2";
-
-                return (
-                  <ChatMessage
-                    key={msg.id}
-                    msg={msg}
-                    marginTop={marginTop}
-                    showTimestamp={showTimestamp}
-                    formatTimestamp={formatTimestamp}
-                    handleRetryMessage={handleRetryMessage}
-                    shouldAnimate={shouldAnimate(msg)}
+            <MessageList
+              messageViews={messageViews}
+              isTyping={isTyping}
+              onRetryMessage={handleRetryMessage}
+              onEmbedUpdate={handleEmbedUpdate}
+              animatedRef={animatedRef}
                   />
-                );
-              });
-            })()
-          )}
-          {isTyping && (
-            <div className="flex items-start gap-2 mt-2">
-              <div className="bg-slate-100 text-slate-900 border border-slate-200 rounded-lg px-4 py-2.5 max-w-[80%] shadow-sm">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
-                  <div
-                    className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
-                    style={{ animationDelay: "0.2s" }}
-                  />
-                  <div
-                    className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
-                    style={{ animationDelay: "0.4s" }}
-                  />
-                </div>
-              </div>
-            </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Wrapper - Sticky at bottom */}
-        <div className="sticky bottom-0 z-10 bg-white pt-4 pb-0 flex-shrink-0 border-t border-slate-200 -mx-4 px-4">
+        {/* Input Wrapper */}
+        <div className="flex-shrink-0 bg-white pt-4 pb-0 border-t border-slate-200 -mx-4 px-4">
           <div className="flex items-end gap-2">
             <textarea
               ref={textareaRef}

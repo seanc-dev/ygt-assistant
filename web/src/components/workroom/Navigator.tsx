@@ -14,6 +14,8 @@ interface NavigatorProps {
   tasks: Task[];
   selectedProjectId?: string;
   selectedTaskId?: string;
+  loadingProjects?: boolean;
+  loadingTasks?: boolean;
 }
 
 const statusColors: Record<TaskStatus, string> = {
@@ -31,14 +33,11 @@ export function Navigator({
   tasks,
   selectedProjectId,
   selectedTaskId,
+  loadingProjects = false,
+  loadingTasks = false,
 }: NavigatorProps) {
-  const { openProject, openTask, closeNav, view } = useWorkroomStore();
+  const { openTask, closeNav, view } = useWorkroomStore();
   const isKanban = view === "kanban";
-
-  // Project click handler
-  const handleProjectClick = (projectId: string) => {
-    openProject(projectId);
-  };
 
   // Task click handler
   const handleTaskClick = (projectId: string, taskId: string) => {
@@ -58,6 +57,10 @@ export function Navigator({
   );
   const [searchQuery, setSearchQuery] = useState("");
   const navRef = useRef<HTMLDivElement>(null);
+
+  const handleProjectClick = (projectId: string) => {
+    toggleProject(projectId);
+  };
 
   // Expand selected project on mount
   useEffect(() => {
@@ -79,20 +82,6 @@ export function Navigator({
     return () => {
       window.removeEventListener("workspace:focus-input", handleFocusInput);
     };
-  }, [open, handleClose]);
-
-  // Clickaway handler
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (navRef.current && !navRef.current.contains(e.target as Node)) {
-        handleClose();
-      }
-    };
-    if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () =>
-        document.removeEventListener("mousedown", handleClickOutside);
-    }
   }, [open, handleClose]);
 
   const toggleProject = (projectId: string) => {
@@ -123,7 +112,7 @@ export function Navigator({
   return (
     <div
       ref={navRef}
-      className="flex-1 flex flex-col border-r border-slate-200 bg-white flex-shrink-0 min-h-0"
+      className="flex-1 flex flex-col border-r border-slate-200 bg-white flex-shrink-0 min-h-0 h-100"
       style={{ width: "260px" }}
     >
       {/* Search */}
@@ -139,7 +128,11 @@ export function Navigator({
 
       {/* Projects & Tasks */}
       <div className="flex-1 overflow-y-auto">
-        {filteredProjects.length === 0 ? (
+        {loadingProjects ? (
+          <div className="p-4 text-xs text-slate-500 text-center">
+            Loading projects...
+          </div>
+        ) : filteredProjects.length === 0 ? (
           <div className="p-4 text-xs text-slate-500 text-center">
             No projects found
           </div>
@@ -189,7 +182,11 @@ export function Navigator({
                 {/* Tasks */}
                 {isExpanded && (
                   <div className="pl-4">
-                    {projectTasks.length === 0 ? (
+                    {loadingTasks ? (
+                      <div className="px-3 py-2 text-xs text-slate-400">
+                        Loading tasks...
+                      </div>
+                    ) : projectTasks.length === 0 ? (
                       <div className="px-3 py-2 text-xs text-slate-400">
                         No tasks
                       </div>
