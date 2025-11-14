@@ -7,7 +7,11 @@ import { useWorkroomStore } from "../../hooks/useWorkroomStore";
 import { workroomApi } from "../../lib/workroomApi";
 import type { Task, ChatMeta, View } from "../../hooks/useWorkroomStore";
 import { Text } from "@ygt-assistant/ui";
-import { Link24Regular, Add24Regular } from "@fluentui/react-icons";
+import {
+  Link24Regular,
+  Add24Regular,
+  Table24Regular,
+} from "@fluentui/react-icons";
 
 interface WorkspaceProps {
   taskId: string;
@@ -26,6 +30,8 @@ export function Workspace({ taskId }: WorkspaceProps) {
   } = useWorkroomStore();
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingChats, setLoadingChats] = useState(false);
+  const [creatingChat, setCreatingChat] = useState(false);
   const [chats, setChats] = useState<ChatMeta[]>([]);
 
   const taskState = taskId
@@ -58,12 +64,15 @@ export function Workspace({ taskId }: WorkspaceProps) {
   const loadChats = async () => {
     if (!taskId) return;
     try {
+      setLoadingChats(true);
       const response = await workroomApi.getChats(taskId);
       if (response.ok) {
         setChats(response.chats);
       }
     } catch (err) {
       console.error("Failed to load chats:", err);
+    } finally {
+      setLoadingChats(false);
     }
   };
 
@@ -140,8 +149,8 @@ export function Workspace({ taskId }: WorkspaceProps) {
   }
 
   return (
-    <div className="flex flex-col flex-1 min-w-0 min-h-0">
-      {/* Tabs Row */}
+    <div className="flex flex-col flex-1 min-w-0 min-h-0 h-100">
+      {/* Fixed headers */}
       <div className="px-4 pt-3 pb-0 border-b border-slate-200">
         <div className="flex items-center gap-1">
           {tabs.map((tab) => {
@@ -167,13 +176,19 @@ export function Workspace({ taskId }: WorkspaceProps) {
           })}
         </div>
       </div>
-
-      {/* Breadcrumb & Actions Row */}
       <div className="px-4 py-3 flex items-center justify-between border-b border-slate-200">
         <Text variant="caption" className="text-xs text-slate-500">
           Context — Task: {task.title}
         </Text>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleViewChange("kanban")}
+            className="inline-flex items-center justify-center w-9 h-9 rounded-md border border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300 transition-colors"
+            title="Switch to Kanban view"
+            aria-label="Switch to Kanban view"
+          >
+            <Table24Regular className="w-4.5 h-4.5" />
+          </button>
           <button
             onClick={handleAttachSource}
             className="inline-flex items-center gap-1 px-2 py-1 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded transition-colors"
@@ -205,8 +220,8 @@ export function Workspace({ taskId }: WorkspaceProps) {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-hidden min-w-0">
+      {/* Only this block scrolls within the .pane */}
+      <div className="scroll-area flex flex-col min-h-0">
         {activeView === "doc" && (
           <TaskDoc
             taskId={taskId}
@@ -219,56 +234,67 @@ export function Workspace({ taskId }: WorkspaceProps) {
 
         {activeView === "chats" && (
           <div className="flex-1 flex flex-col min-h-0">
-            <ChatTabs
-              chats={chats}
-              activeChatId={taskState?.activeChatId || null}
-              onSelectChat={handleChatSelect}
-              onCloseChat={(chatId) => {
-                if (!taskId || !taskState) return;
-                const newOpenChats = taskState.openChatIds.filter(
-                  (id) => id !== chatId
-                );
-                setTaskViewState(taskId, {
-                  ...taskState,
-                  openChatIds: newOpenChats,
-                  activeChatId:
-                    taskState.activeChatId === chatId
-                      ? newOpenChats[0] || null
-                      : taskState.activeChatId,
-                });
-              }}
-              onCreateChat={async () => {
-                try {
-                  const response = await workroomApi.createChat(taskId, {
-                    title: `Chat ${chats.length + 1}`,
+            {/* keep tabs visible while messages scroll */}
+            <div className="sticky top-0 z-10">
+              <ChatTabs
+                chats={chats}
+                activeChatId={taskState?.activeChatId || null}
+                loading={loadingChats}
+                creating={creatingChat}
+                onSelectChat={handleChatSelect}
+                onCloseChat={(chatId) => {
+                  if (!taskId || !taskState) return;
+                  const newOpenChats = taskState.openChatIds.filter(
+                    (id) => id !== chatId
+                  );
+                  setTaskViewState(taskId, {
+                    ...taskState,
+                    openChatIds: newOpenChats,
+                    activeChatId:
+                      taskState.activeChatId === chatId
+                        ? newOpenChats[0] || null
+                        : taskState.activeChatId,
                   });
-                  if (response.ok) {
-                    await loadChats();
-                    handleChatSelect(response.chat.id);
+                }}
+                onCreateChat={async () => {
+                  if (creatingChat) return;
+                  try {
+                    setCreatingChat(true);
+                    const response = await workroomApi.createChat(taskId, {
+                      title: `Chat ${chats.length + 1}`,
+                    });
+                    if (response.ok) {
+                      await loadChats();
+                      handleChatSelect(response.chat.id);
+                    }
+                  } catch (err) {
+                    console.error("Failed to create chat:", err);
+                  } finally {
+                    setCreatingChat(false);
                   }
-                } catch (err) {
-                  console.error("Failed to create chat:", err);
-                }
-              }}
-            />
-            {taskState?.activeChatId ? (
-              <ThreadView
-                threadId={taskState.activeChatId}
-                taskId={taskId}
-                mode="workroom"
+                }}
               />
-            ) : (
-              <div className="flex-1 flex items-center justify-center p-4">
-                <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center max-w-md">
-                  <Text variant="muted" className="text-sm mb-2">
-                    No chat selected
-                  </Text>
-                  <Text variant="caption" className="text-xs text-slate-500">
-                    Select a chat from the tabs above or create a new one
-                  </Text>
+            </div>
+            <div className="flex-1 min-h-0">
+              {taskState?.activeChatId ? (
+                <ThreadView
+                  threadId={taskState.activeChatId}
+                  taskId={taskId}
+                  mode="workroom"
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center p-4">
+                  <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center max-w-md">
+                    <Text variant="muted" className="text-sm mb-2">
+                      No chat selected
+                    </Text>
+                    <Text variant="caption" className="text-xs text-slate-500">
+                      Select a chat from the tabs above or create a new one
+                    </Text>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
 

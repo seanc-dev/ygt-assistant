@@ -64,6 +64,8 @@ export default function WorkroomPage() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [loadingTasks, setLoadingTasks] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const initializedRef = useRef(false);
@@ -227,6 +229,7 @@ export default function WorkroomPage() {
 
     try {
       setError(null);
+      setLoadingProjects(true);
       const response = await workroomApi.getProjects();
       if (response && response.ok) {
         setProjects(response.projects || []);
@@ -272,6 +275,7 @@ export default function WorkroomPage() {
       setError(err.message || "Failed to load projects");
     } finally {
       setLoading(false);
+      setLoadingProjects(false);
     }
   };
 
@@ -288,12 +292,15 @@ export default function WorkroomPage() {
 
   const loadTasks = async (projectId: string) => {
     try {
+      setLoadingTasks(true);
       const response = await workroomApi.getTasks(projectId);
       if (response.ok) {
         setTasks(response.tasks || []);
       }
     } catch (err) {
       console.error("Failed to load tasks:", err);
+    } finally {
+      setLoadingTasks(false);
     }
   };
 
@@ -483,8 +490,8 @@ export default function WorkroomPage() {
   }
 
   if (error) {
-  return (
-    <Layout>
+    return (
+      <Layout>
         <div className="p-4">
           <Text variant="body" className="text-red-600 mb-2">
             Error: {error}
@@ -522,6 +529,7 @@ export default function WorkroomPage() {
                 <KanbanBoard
                   tasks={tasks}
                   onUpdateTaskStatus={handleStatusChange}
+                  loading={loadingTasks}
                 />
               </div>
             </>
@@ -538,28 +546,31 @@ export default function WorkroomPage() {
               {/* Left: Navigator */}
               {navOpen ? (
                 <div
-                  className="pane"
+                  className="pane relative min-h-0 overflow-hidden"
                   style={{ gridArea: "nav" }}
                   aria-expanded={navOpen}
                   aria-label="Navigator"
                   id="navigator"
                 >
-                  <Navigator
-                    open={navOpen}
-                    onClose={() => closeNav()}
-                    projects={projects}
-                    tasks={tasks}
-                    selectedProjectId={projectId}
-                    selectedTaskId={taskId}
-                  />
-                  {/* Collapse handle on nav's right edge */}
+                  <div className="scroll-area">
+                    <Navigator
+                      open={navOpen}
+                      onClose={() => closeNav()}
+                      projects={projects}
+                      tasks={tasks}
+                      selectedProjectId={projectId}
+                      selectedTaskId={taskId}
+                      loadingProjects={loadingProjects}
+                      loadingTasks={loadingTasks}
+                    />
+                  </div>
                   <EdgeToggle
                     side="left"
                     label="Hide navigator"
                     onToggle={() => closeNav()}
                     visible={true}
-              />
-            </div>
+                  />
+                </div>
               ) : null}
 
               {/* Gutter 1 */}
@@ -567,38 +578,38 @@ export default function WorkroomPage() {
 
               {/* Center: Workspace */}
               <div
-                className="pane bg-white"
+                className="pane relative min-h-0 overflow-hidden bg-white"
                 style={{ gridArea: "main", minWidth: "640px" }}
               >
-                {taskId ? (
-                  <Workspace
-                    taskId={taskId}
-                    projectId={projectId || ""}
-                    projectTitle={selectedProject?.title}
-                  />
-                ) : (
-                  <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center">
-                      <Text variant="muted" className="text-sm mb-2">
-                        Select a task to view
-                      </Text>
-                      <Text
-                        variant="caption"
-                        className="text-xs text-slate-500"
-                      >
-                        Use Navigator or press ⌘K to search
-                      </Text>
+                <div className="scroll-area flex flex-col">
+                  {taskId ? (
+                    <Workspace
+                      taskId={taskId}
+                      projectId={projectId || ""}
+                      projectTitle={selectedProject?.title}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <Text variant="muted" className="text-sm mb-2">
+                          Select a task to view
+                        </Text>
+                        <Text
+                          variant="caption"
+                          className="text-xs text-slate-500"
+                        >
+                          Use Navigator or press ⌘K to search
+                        </Text>
+                      </div>
                     </div>
-                  </div>
-                )}
-                {/* Show nav opener when nav is closed (left edge of center) */}
+                  )}
+                </div>
                 <EdgeToggle
                   side="right"
                   label="Show navigator"
                   onToggle={() => openNav()}
                   visible={!navOpen}
                 />
-                {/* Show context opener when context is closed (right edge of center) */}
                 <EdgeToggle
                   side="left"
                   label="Show context"
@@ -615,21 +626,22 @@ export default function WorkroomPage() {
               {/* Right: Context */}
               {contextOpen && level === "task" ? (
                 <div
-                  className="pane"
+                  className="pane relative min-h-0 overflow-hidden"
                   style={{ gridArea: "ctx" }}
                   aria-expanded={contextOpen}
                   aria-label="Context"
                   id="context"
                 >
-                  <ContextPane
-                    projectId={projectId}
-                    taskId={taskId}
-                    projectTitle={selectedProject?.title}
-                    taskTitle={selectedTask?.title}
-                    open={contextOpen}
-                    onToggle={toggleContext}
-                  />
-                  {/* Collapse handle on context's left edge */}
+                  <div className="scroll-area">
+                    <ContextPane
+                      projectId={projectId}
+                      taskId={taskId}
+                      projectTitle={selectedProject?.title}
+                      taskTitle={selectedTask?.title}
+                      open={contextOpen}
+                      onToggle={toggleContext}
+                    />
+                  </div>
                   <EdgeToggle
                     side="right"
                     label="Hide context"
@@ -639,9 +651,9 @@ export default function WorkroomPage() {
                 </div>
               ) : null}
             </div>
-              )}
-            </div>
-          </div>
+          )}
+        </div>
+      </div>
     </Layout>
   );
 }
