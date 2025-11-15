@@ -9,8 +9,22 @@ from presentation.api.routes.queue import _get_user_id
 from datetime import datetime, timezone
 import uuid
 import os
+import asyncio
 
 router = APIRouter()
+
+# Thread-level lock to prevent concurrent assistant response generation
+_assistant_lock: Dict[str, asyncio.Lock] = {}
+_lock_lock = asyncio.Lock()  # Lock for managing the lock dictionary
+
+
+async def _get_thread_lock(thread_id: str) -> asyncio.Lock:
+    """Get or create a lock for a specific thread."""
+    async with _lock_lock:
+        if thread_id not in _assistant_lock:
+            _assistant_lock[thread_id] = asyncio.Lock()
+        return _assistant_lock[thread_id]
+
 
 # Feature flag for seeding threads
 FEATURE_SEED_THREADS = os.getenv("FEATURE_SEED_THREADS", "false").strip().lower() in {
@@ -19,6 +33,20 @@ FEATURE_SEED_THREADS = os.getenv("FEATURE_SEED_THREADS", "false").strip().lower(
     "yes",
     "on",
 }
+
+
+def _normalize_task_status(status: str) -> str:
+    """Normalize task status to match database enum values.
+
+    Maps frontend-friendly values to database enum values:
+    - "todo" -> "backlog" (database enum doesn't include "todo")
+    """
+    status_map = {
+        "todo": "backlog",
+    }
+    return status_map.get(status.lower(), status.lower())
+
+
 DEV_MODE = os.getenv("DEV_MODE", "false").strip().lower() in {
     "1",
     "true",
@@ -226,14 +254,20 @@ async def get_projects(
                 "id": p["id"],
                 "title": p["name"],
                 "brief": p.get("description"),
-                "createdAt": p.get("created_at", datetime.now(timezone.utc).isoformat()),
-                "updatedAt": p.get("updated_at", p.get("created_at", datetime.now(timezone.utc).isoformat())),
+                "createdAt": p.get(
+                    "created_at", datetime.now(timezone.utc).isoformat()
+                ),
+                "updatedAt": p.get(
+                    "updated_at",
+                    p.get("created_at", datetime.now(timezone.utc).isoformat()),
+                ),
             }
             for p in projects
         ]
         return {"ok": True, "projects": transformed}
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error loading projects: {str(e)}")
 
@@ -249,15 +283,20 @@ async def get_project(
     project = next((p for p in projects if p["id"] == project_id), None)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+
     return {
         "ok": True,
         "project": {
             "id": project["id"],
             "title": project["name"],
             "brief": project.get("description"),
-            "createdAt": project.get("created_at", datetime.now(timezone.utc).isoformat()),
-            "updatedAt": project.get("updated_at", project.get("created_at", datetime.now(timezone.utc).isoformat())),
+            "createdAt": project.get(
+                "created_at", datetime.now(timezone.utc).isoformat()
+            ),
+            "updatedAt": project.get(
+                "updated_at",
+                project.get("created_at", datetime.now(timezone.utc).isoformat()),
+            ),
         },
     }
 
@@ -299,28 +338,35 @@ async def get_tasks(
     transformed = []
     for task in tasks:
         task_threads = [t for t in threads if t.get("task_id") == task["id"]]
-        transformed.append({
-            "id": task["id"],
-            "projectId": task["project_id"],
-            "title": task["title"],
-            "status": task["status"],
-            "priority": task.get("importance"),
-            "due": task.get("due"),
-            "tags": [],
-            "doc": None,  # TODO: Add doc support
-            "chats": [
-                {
-                    "id": t["id"],
-                    "title": t["title"],
-                    "pinned": False,
-                    "lastMessageAt": t.get("updated_at"),
-                }
-                for t in task_threads
-            ],
-            "unreadCount": 0,
-            "createdAt": task.get("created_at", datetime.now(timezone.utc).isoformat()),
-            "updatedAt": task.get("updated_at", task.get("created_at", datetime.now(timezone.utc).isoformat())),
-        })
+        transformed.append(
+            {
+                "id": task["id"],
+                "projectId": task["project_id"],
+                "title": task["title"],
+                "status": task["status"],
+                "priority": task.get("importance"),
+                "due": task.get("due"),
+                "tags": [],
+                "doc": None,  # TODO: Add doc support
+                "chats": [
+                    {
+                        "id": t["id"],
+                        "title": t["title"],
+                        "pinned": False,
+                        "lastMessageAt": t.get("updated_at"),
+                    }
+                    for t in task_threads
+                ],
+                "unreadCount": 0,
+                "createdAt": task.get(
+                    "created_at", datetime.now(timezone.utc).isoformat()
+                ),
+                "updatedAt": task.get(
+                    "updated_at",
+                    task.get("created_at", datetime.now(timezone.utc).isoformat()),
+                ),
+            }
+        )
     return {"ok": True, "tasks": transformed}
 
 
@@ -332,11 +378,12 @@ async def get_task(
 ) -> Dict[str, Any]:
     """Get a single task."""
     from datetime import timezone
+
     try:
         task = workroom_repo.get_task(user_id, task_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Task not found")
-    
+
     threads = workroom_repo.get_threads(user_id, task_id=task_id)
     return {
         "ok": True,
@@ -360,7 +407,10 @@ async def get_task(
             ],
             "unreadCount": 0,
             "createdAt": task.get("created_at", datetime.now(timezone.utc).isoformat()),
-            "updatedAt": task.get("updated_at", task.get("created_at", datetime.now(timezone.utc).isoformat())),
+            "updatedAt": task.get(
+                "updated_at",
+                task.get("created_at", datetime.now(timezone.utc).isoformat()),
+            ),
         },
     }
 
@@ -373,11 +423,16 @@ async def create_task(
 ) -> Dict[str, Any]:
     """Create a new task."""
     from datetime import timezone
+
+    # Normalize status to match database enum (map "todo" to "backlog")
+    raw_status = body.get("status", "backlog")
+    normalized_status = _normalize_task_status(raw_status)
+
     task = workroom_repo.create_task(
         user_id=user_id,
         project_id=body["projectId"],
         title=body["title"],
-        status=body.get("status", "backlog"),
+        status=normalized_status,
         importance=body.get("priority", "medium"),
         due=body.get("due"),
     )
@@ -409,7 +464,8 @@ async def update_task_status(
 ) -> Dict[str, Any]:
     """Update task status.
 
-    Valid statuses: backlog, ready, doing, blocked, done
+    Valid statuses: backlog, ready, doing, blocked, done, todo
+    Note: "todo" is mapped to "backlog" for database storage.
     """
     valid_statuses = ["backlog", "ready", "doing", "blocked", "done", "todo"]
     if body.status not in valid_statuses:
@@ -417,19 +473,23 @@ async def update_task_status(
             status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}"
         )
 
+    # Normalize status to match database enum (map "todo" to "backlog")
+    normalized_status = _normalize_task_status(body.status)
+
     try:
-        task = workroom_repo.update_task_status(user_id, task_id, body.status)
+        task = workroom_repo.update_task_status(user_id, task_id, normalized_status)
     except ValueError:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # Audit log
+    # Audit log (use original status for audit, not normalized)
     request_id = getattr(request.state, "request_id", None)
     audit_log.write_audit(
         "update_task_status",
         {
             "user_id": user_id,
             "task_id": task_id,
-            "status": body.status,
+            "status": body.status,  # Original status from request
+            "normalized_status": normalized_status,  # Actual status stored in DB
         },
         request_id=request_id,
     )
@@ -591,31 +651,6 @@ async def send_message(
         request_id=request_id,
     )
 
-    # Dev-only: Automatically generate assistant response when user sends a message
-    if DEV_MODE and body.role == "user":
-        import asyncio
-
-        # Generate a contextual response based on user message
-        response_content = _generate_dev_response(body.content)
-
-        # Add slight delay to simulate LLM processing (1-2 seconds)
-        await asyncio.sleep(1.5)
-
-        # Create assistant response
-        assistant_message = workroom_repo.add_message(
-            user_id=user_id,
-            thread_id=thread_id,
-            role="assistant",
-            content=response_content,
-        )
-
-        # Return both messages
-        return {
-            "ok": True,
-            "message": message,
-            "assistant_message": assistant_message,
-        }
-
     return {
         "ok": True,
         "message": message,
@@ -629,8 +664,35 @@ async def seed_workroom(
 ) -> Dict[str, Any]:
     """Seed workroom with test data (dev only)."""
     if not DEV_MODE:
-        raise HTTPException(status_code=403, detail="Seed endpoint only available in dev mode")
-    
+        raise HTTPException(
+            status_code=403, detail="Seed endpoint only available in dev mode"
+        )
+
+    # Always use mock DB when available (for testing, independent of LLM_TESTING_MODE)
+    import os
+
+    try:
+        from llm_testing.mock_db import get_mock_client
+        from presentation.api.repos.workroom import _resolve_identity
+
+        tenant_id, resolved_user_id = _resolve_identity(user_id)
+        mock_db = get_mock_client()
+        # Check if mock DB is actually being used (has seeded user)
+        if mock_db._tables.get("users"):
+            seed_data = mock_db.seed_workroom(resolved_user_id, tenant_id)
+            # Return in same format as real seeding
+            return {
+                "ok": True,
+                "projects": len(seed_data["projects"]),
+                "tasks": len(seed_data["tasks"]),
+                "threads": 0,
+            }
+    except Exception as e:
+        # Fall through to real seeding if mock fails or not available
+        import logging
+
+        logging.getLogger(__name__).debug(f"Mock DB not available, using real DB: {e}")
+
     # Create projects
     project1 = workroom_repo.create_project(
         user_id=user_id,
@@ -642,7 +704,7 @@ async def seed_workroom(
         name="Marketing Campaign",
         description="Social media and email marketing campaign",
     )
-    
+
     # Create tasks
     task1 = workroom_repo.create_task(
         user_id=user_id,
@@ -679,7 +741,7 @@ async def seed_workroom(
         status="blocked",
         importance="medium",
     )
-    
+
     # Create threads/chats
     thread1 = workroom_repo.create_thread(
         user_id=user_id,
@@ -691,7 +753,7 @@ async def seed_workroom(
         task_id=task2["id"],
         title="Copy review",
     )
-    
+
     # Add some seed messages
     workroom_repo.add_message(
         user_id=user_id,
@@ -705,10 +767,401 @@ async def seed_workroom(
         role="assistant",
         content="The color scheme looks good! I'd suggest making the CTA button more prominent. Should I draft some alternatives?",
     )
-    
+
     return {
         "ok": True,
         "projects": 2,
         "tasks": 5,
         "threads": 2,
+    }
+
+
+class AssistantSuggestRequest(BaseModel):
+    message: Optional[str] = Field(
+        None,
+        description="User message to the assistant (optional when thread_id provided)",
+    )
+    thread_id: Optional[str] = Field(
+        None,
+        description="Thread ID to aggregate pending user messages from",
+    )
+    trust_level: Optional[str] = Field(
+        None,
+        description="Override trust level (training_wheels, supervised, autonomous)",
+    )
+
+
+@router.post("/api/workroom/tasks/{task_id}/assistant-suggest")
+async def assistant_suggest_for_task(
+    task_id: str,
+    body: AssistantSuggestRequest,
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Get LLM-suggested operations for a task.
+
+    Resolves tenant_id + user_id, calls propose_ops_for_user with focus_task_id,
+    executes ops based on trust_mode, and returns operations, applied, pending.
+    """
+    from services import llm as llm_service
+    from core.services.llm_executor import execute_ops
+    from presentation.api.repos import user_settings
+    import presentation.api.repos.workroom as workroom_module
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    # Resolve tenant_id
+    tenant_id, _ = workroom_module._resolve_identity(user_id)
+
+    # Get trust mode from request body or settings
+    if body.trust_level:
+        trust_mode = body.trust_level
+    else:
+        settings = user_settings.get_settings(user_id)
+        trust_mode = settings.get("trust_level", "training_wheels")
+    # Map legacy "standard" to "supervised"
+    if trust_mode == "standard":
+        trust_mode = "supervised"
+
+    # Verify task exists
+    try:
+        task = workroom_repo.get_task(user_id, task_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Get thread_id from task or request
+    thread_id = body.thread_id
+    if not thread_id and task.get("thread_id"):
+        thread_id = task["thread_id"]
+
+    # Aggregate pending user messages if thread_id provided
+    input_messages = None
+    if thread_id:
+        # Acquire lock for this thread to prevent concurrent processing
+        thread_lock = await _get_thread_lock(thread_id)
+        async with thread_lock:
+            # Get pending user messages since last assistant response
+            pending_messages = workroom_repo.get_pending_user_messages(
+                thread_id, user_id
+            )
+            if pending_messages:
+                input_messages = [msg.get("content", "") for msg in pending_messages]
+
+    # Fallback to single message if no thread_id or no pending messages
+    if not input_messages:
+        if not body.message:
+            raise HTTPException(
+                status_code=400, detail="Either message or thread_id must be provided"
+            )
+        input_messages = [body.message]
+
+    # Propose operations with aggregated messages
+    operations = llm_service.propose_ops_for_user(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        input_messages=input_messages,
+        focus_task_id=task_id,
+    )
+
+    # Convert to typed operations for executor
+    from core.domain.llm_ops import validate_operation
+
+    typed_ops = []
+    for op_dict in operations:
+        try:
+            op = validate_operation(op_dict)
+            typed_ops.append(op)
+        except ValueError as e:
+            logger.warning(f"Invalid operation skipped: {e}")
+
+    # Execute with trust gating
+    result = execute_ops(
+        typed_ops,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        trust_mode=trust_mode,
+        thread_id=thread_id,
+    )
+
+    # Refresh task
+    try:
+        refreshed_task = workroom_repo.get_task(user_id, task_id)
+    except ValueError:
+        refreshed_task = task
+
+    request_id = getattr(request.state, "request_id", None)
+
+    # Write audit log
+    audit_log.write_audit(
+        "assistant_suggest",
+        {
+            "task_id": task_id,
+            "user_id": user_id,
+            "thread_id": thread_id,
+            "message_count": len(input_messages),
+            "operations_count": len(operations),
+            "applied_count": len(result["applied"]),
+            "pending_count": len(result["pending"]),
+        },
+        request_id=request_id,
+    )
+
+    return {
+        "ok": True,
+        "operations": operations,
+        "applied": result["applied"],
+        "pending": result["pending"],
+        "errors": result["errors"],
+        "task": refreshed_task,
+    }
+
+
+class ApproveOperationRequest(BaseModel):
+    operation: Dict[str, Any] = Field(..., description="Operation to approve")
+
+
+@router.post("/api/workroom/tasks/{task_id}/assistant-approve")
+async def assistant_approve_operation_for_task(
+    task_id: str,
+    body: ApproveOperationRequest,
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Approve and execute a pending operation for a task."""
+    from core.services.llm_executor import execute_single_op_approved
+    from core.domain.llm_ops import validate_operation
+    import presentation.api.repos.workroom as workroom_module
+
+    tenant_id, _ = workroom_module._resolve_identity(user_id)
+
+    # Validate operation
+    try:
+        # Convert to dict if it's a Pydantic model
+        operation_dict = body.operation
+        if hasattr(operation_dict, "dict"):
+            operation_dict = operation_dict.dict()
+        elif hasattr(operation_dict, "model_dump"):
+            operation_dict = operation_dict.model_dump()
+        op = validate_operation(operation_dict)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid operation: {e}")
+
+    # Get thread_id from task
+    try:
+        task = workroom_repo.get_task(user_id, task_id)
+        thread_id = task.get("thread_id")
+    except ValueError:
+        thread_id = None
+
+    # Execute approved operation (bypasses trust gating)
+    result = execute_single_op_approved(
+        op,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        thread_id=thread_id,
+    )
+
+    # Refresh task
+    try:
+        refreshed_task = workroom_repo.get_task(user_id, task_id)
+    except ValueError:
+        refreshed_task = None
+
+    request_id = getattr(request.state, "request_id", None)
+    audit_log.write_audit(
+        "assistant_approve",
+        {
+            "task_id": task_id,
+            "operation": body.operation,
+            "result": result,
+        },
+        request_id=request_id,
+    )
+
+    return {
+        "ok": result.get("ok", False),
+        "result": result,
+        "task": refreshed_task,
+    }
+
+
+class EditOperationRequest(BaseModel):
+    operation: Dict[str, Any] = Field(..., description="Original operation")
+    edited_params: Dict[str, Any] = Field(..., description="Edited parameters")
+
+
+@router.post("/api/workroom/tasks/{task_id}/assistant-edit")
+async def assistant_edit_operation_for_task(
+    task_id: str,
+    body: EditOperationRequest,
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Edit and execute a pending operation for a task."""
+    from core.services.llm_executor import execute_single_op_approved
+    from core.domain.llm_ops import validate_operation
+    import presentation.api.repos.workroom as workroom_module
+
+    tenant_id, _ = workroom_module._resolve_identity(user_id)
+
+    # Create edited operation (convert to dict if it's a Pydantic model)
+    operation_dict = body.operation
+    if hasattr(operation_dict, "dict"):
+        operation_dict = operation_dict.dict()
+    elif hasattr(operation_dict, "model_dump"):
+        operation_dict = operation_dict.model_dump()
+
+    edited_op_dict = {
+        "op": operation_dict.get("op"),
+        "params": {**operation_dict.get("params", {}), **body.edited_params},
+    }
+
+    # Validate edited operation
+    try:
+        op = validate_operation(edited_op_dict)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid edited operation: {e}")
+
+    # Get thread_id from task
+    try:
+        task = workroom_repo.get_task(user_id, task_id)
+        thread_id = task.get("thread_id")
+    except ValueError:
+        thread_id = None
+
+    # Execute edited operation
+    result = execute_single_op_approved(
+        op,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        thread_id=thread_id,
+    )
+
+    # Refresh task
+    try:
+        refreshed_task = workroom_repo.get_task(user_id, task_id)
+    except ValueError:
+        refreshed_task = None
+
+    request_id = getattr(request.state, "request_id", None)
+    audit_log.write_audit(
+        "assistant_edit",
+        {
+            "task_id": task_id,
+            "original_operation": body.operation,
+            "edited_operation": edited_op_dict,
+            "result": result,
+        },
+        request_id=request_id,
+    )
+
+    return {
+        "ok": result.get("ok", False),
+        "result": result,
+        "task": refreshed_task,
+    }
+
+
+class DeclineOperationRequest(BaseModel):
+    operation: Dict[str, Any] = Field(..., description="Operation to decline")
+
+
+@router.post("/api/workroom/tasks/{task_id}/assistant-decline")
+async def assistant_decline_operation_for_task(
+    task_id: str,
+    body: DeclineOperationRequest,
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Decline a pending operation for a task."""
+    import presentation.api.repos.workroom as workroom_module
+
+    tenant_id, _ = workroom_module._resolve_identity(user_id)
+
+    # Just log the decline - no execution needed
+    request_id = getattr(request.state, "request_id", None)
+    audit_log.write_audit(
+        "assistant_decline",
+        {
+            "task_id": task_id,
+            "operation": body.operation,
+        },
+        request_id=request_id,
+    )
+
+    # Refresh task
+    try:
+        refreshed_task = workroom_repo.get_task(user_id, task_id)
+    except ValueError:
+        refreshed_task = None
+
+    return {
+        "ok": True,
+        "task": refreshed_task,
+    }
+
+
+class UndoOperationRequest(BaseModel):
+    operation: Dict[str, Any] = Field(..., description="Operation to undo")
+    original_state: Optional[Dict[str, Any]] = Field(
+        None, description="Original state before operation"
+    )
+
+
+@router.post("/api/workroom/tasks/{task_id}/assistant-undo")
+async def assistant_undo_operation_for_task(
+    task_id: str,
+    body: UndoOperationRequest,
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Undo a previously applied operation for a task."""
+    from core.services.llm_executor import undo_operation
+    from core.domain.llm_ops import validate_operation
+    import presentation.api.repos.workroom as workroom_module
+
+    tenant_id, _ = workroom_module._resolve_identity(user_id)
+
+    # Validate operation
+    try:
+        # Convert to dict if it's a Pydantic model
+        operation_dict = body.operation
+        if hasattr(operation_dict, "dict"):
+            operation_dict = operation_dict.dict()
+        elif hasattr(operation_dict, "model_dump"):
+            operation_dict = operation_dict.model_dump()
+        op = validate_operation(operation_dict)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid operation: {e}")
+
+    # Undo operation
+    result = undo_operation(
+        op,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        original_state=body.original_state,
+    )
+
+    # Refresh task
+    try:
+        refreshed_task = workroom_repo.get_task(user_id, task_id)
+    except ValueError:
+        refreshed_task = None
+
+    request_id = getattr(request.state, "request_id", None)
+    audit_log.write_audit(
+        "assistant_undo",
+        {
+            "task_id": task_id,
+            "operation": body.operation,
+            "result": result,
+        },
+        request_id=request_id,
+    )
+
+    return {
+        "ok": result.get("ok", False),
+        "result": result,
+        "task": refreshed_task,
     }
