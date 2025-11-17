@@ -12,6 +12,39 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 
+def _get_current_project_id(context: Dict[str, Any], focus_task_id: Optional[str] = None, user_id: Optional[str] = None) -> Optional[str]:
+    """Helper to derive 'current project' ID from focus_task_id.
+    
+    Args:
+        context: Context dict with tasks
+        focus_task_id: Optional focus task ID
+        user_id: User ID for loading task if not in context
+    
+    Returns:
+        Project ID or None
+    """
+    if not focus_task_id:
+        return None
+    
+    # Try to find task in context
+    tasks = context.get("tasks", [])
+    focus_task = next((t for t in tasks if t.get("id") == focus_task_id), None)
+    
+    if focus_task:
+        return focus_task.get("project_id")
+    
+    # Fallback: load task from DB
+    if user_id:
+        try:
+            from presentation.api.repos import workroom
+            task = workroom.get_task(user_id, focus_task_id)
+            return task.get("project_id")
+        except ValueError:
+            pass
+    
+    return None
+
+
 def build_context_for_user(
     tenant_id: str,
     user_id: str,
@@ -50,7 +83,7 @@ def build_context_for_user(
     try:
         # Load projects
         projects = workroom.get_projects(user_id)
-        context["projects"] = [
+        project_list = [
             {
                 "id": p["id"],
                 "name": p.get("name", ""),
@@ -59,13 +92,19 @@ def build_context_for_user(
             }
             for p in projects[:max_projects]
         ]
+        context["projects"] = project_list
+        
+        # Check for duplicate project names (case-insensitive)
+        project_names_lower = [p["name"].lower().strip() for p in project_list if p.get("name")]
+        has_duplicate_projects = len(project_names_lower) != len(set(project_names_lower))
+        context["has_duplicate_projects"] = has_duplicate_projects
     except Exception as e:
         logger.warning(f"Failed to load projects: {e}")
     
     try:
         # Load tasks
         all_tasks = workroom.get_tasks(user_id)
-        context["tasks"] = [
+        task_list = [
             {
                 "id": t["id"],
                 "title": t.get("title", ""),
@@ -76,6 +115,25 @@ def build_context_for_user(
             }
             for t in all_tasks[:max_tasks]
         ]
+        context["tasks"] = task_list
+        
+        # Check for duplicate task titles within projects (case-insensitive)
+        # Group tasks by project_id
+        tasks_by_project: Dict[str, List[Dict[str, Any]]] = {}
+        for task in task_list:
+            project_id = task.get("project_id") or "no_project"
+            if project_id not in tasks_by_project:
+                tasks_by_project[project_id] = []
+            tasks_by_project[project_id].append(task)
+        
+        has_duplicate_tasks = False
+        for project_id, tasks_in_project in tasks_by_project.items():
+            task_titles_lower = [t["title"].lower().strip() for t in tasks_in_project if t.get("title")]
+            if len(task_titles_lower) != len(set(task_titles_lower)):
+                has_duplicate_tasks = True
+                break
+        
+        context["has_duplicate_tasks"] = has_duplicate_tasks
     except Exception as e:
         logger.warning(f"Failed to load tasks: {e}")
     

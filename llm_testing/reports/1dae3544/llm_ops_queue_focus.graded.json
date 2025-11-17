@@ -1,0 +1,262 @@
+{
+  "evaluation": {
+    "scores": {
+      "factual": 0.0,
+      "clarity": 0.0,
+      "safety": 0.0
+    },
+    "ok": false,
+    "rationale": "forbidden:error",
+    "snapshot": {
+      "match": true,
+      "diff": null,
+      "normalized": {
+        "scenario": "llm_ops_queue_focus",
+        "steps": [
+          {
+            "action": "reset_state",
+            "response": {
+              "ok": true,
+              "cleared": {
+                "approvals": true,
+                "history": true,
+                "queue": true,
+                "settings": false
+              }
+            }
+          },
+          {
+            "endpoint": "/dev/queue/seed",
+            "method": "POST",
+            "response": {
+              "ok": true,
+              "seeded": 5,
+              "total": 5
+            },
+            "status": 200
+          },
+          {
+            "endpoint": "/api/queue",
+            "method": "GET",
+            "response": {
+              "ok": true,
+              "items": [
+                {
+                  "action_id": "<uuid>",
+                  "source": "email",
+                  "category": "needs_response",
+                  "priority": "high",
+                  "preview": "Test action item 1: Follow up on Q4 planning meeting",
+                  "created_at": "<timestamp>"
+                },
+                {
+                  "action_id": "<uuid>",
+                  "source": "email",
+                  "category": "needs_response",
+                  "priority": "high",
+                  "preview": "Test action item 4: Follow up on Q4 planning meeting",
+                  "created_at": "<timestamp>"
+                },
+                {
+                  "action_id": "<uuid>",
+                  "source": "teams",
+                  "category": "needs_response",
+                  "priority": "medium",
+                  "preview": "Test action item 2: Follow up on Q4 planning meeting",
+                  "created_at": "<timestamp>"
+                },
+                {
+                  "action_id": "<uuid>",
+                  "source": "teams",
+                  "category": "needs_response",
+                  "priority": "medium",
+                  "preview": "Test action item 5: Follow up on Q4 planning meeting",
+                  "created_at": "<timestamp>"
+                },
+                {
+                  "action_id": "<uuid>",
+                  "source": "doc",
+                  "category": "needs_response",
+                  "priority": "low",
+                  "preview": "Test action item 3: Follow up on Q4 planning meeting",
+                  "created_at": "<timestamp>"
+                }
+              ],
+              "total": 5,
+              "limit": 5,
+              "offset": 0
+            },
+            "status": 200
+          },
+          {
+            "endpoint": "/api/queue/<uuid>/assistant-suggest",
+            "method": "POST",
+            "response": {
+              "ok": true,
+              "operations": [
+                {
+                  "op": "chat",
+                  "params": {
+                    "message": "I'll help you manage this action item. Let me link it to a task and update its state."
+                  }
+                },
+                {
+                  "op": "link_action_to_task",
+                  "params": {
+                    "action_id": "<uuid>",
+                    "task_id": "<task_id>"
+                  }
+                },
+                {
+                  "op": "update_action_state",
+                  "params": {
+                    "action_id": "<uuid>",
+                    "state": "converted_to_task"
+                  }
+                }
+              ],
+              "applied": [
+                {
+                  "op": "chat",
+                  "params": {
+                    "message": "I'll help you manage this action item. Let me link it to a task and update its state."
+                  }
+                }
+              ],
+              "pending": [
+                {
+                  "op": "link_action_to_task",
+                  "params": {
+                    "action_id": "<uuid>",
+                    "task_id": "<task_id>"
+                  }
+                },
+                {
+                  "op": "update_action_state",
+                  "params": {
+                    "action_id": "<uuid>",
+                    "state": "converted_to_task"
+                  }
+                }
+              ],
+              "errors": [],
+              "action": {
+                "id": "<uuid>",
+                "tenant_id": "<uuid>",
+                "owner_id": "<uuid>",
+                "source_type": "email",
+                "source_id": "msg-0",
+                "priority": "high",
+                "state": "queued",
+                "payload": {
+                  "preview": "Test action item 1: Follow up on Q4 planning meeting",
+                  "subject": "Test Email 1"
+                }
+              }
+            },
+            "status": 200
+          },
+          {
+            "endpoint": "/api/queue/<uuid>/assistant-suggest",
+            "method": "POST",
+            "response": {
+              "ok": true,
+              "operations": [
+                {
+                  "op": "chat",
+                  "params": {
+                    "message": "I'll help you manage this action item. Let me link it to a task and update its state."
+                  }
+                },
+                {
+                  "op": "link_action_to_task",
+                  "params": {
+                    "action_id": "<uuid>",
+                    "task_id": "<task_id>"
+                  }
+                },
+                {
+                  "op": "update_action_state",
+                  "params": {
+                    "action_id": "<uuid>",
+                    "state": "converted_to_task"
+                  }
+                }
+              ],
+              "applied": [
+                {
+                  "op": "chat",
+                  "params": {
+                    "message": "I'll help you manage this action item. Let me link it to a task and update its state."
+                  }
+                }
+              ],
+              "pending": [
+                {
+                  "op": "link_action_to_task",
+                  "params": {
+                    "action_id": "<uuid>",
+                    "task_id": "<task_id>"
+                  }
+                },
+                {
+                  "op": "update_action_state",
+                  "params": {
+                    "action_id": "<uuid>",
+                    "state": "converted_to_task"
+                  }
+                }
+              ],
+              "errors": [],
+              "action": {
+                "id": "<uuid>",
+                "tenant_id": "<uuid>",
+                "owner_id": "<uuid>",
+                "source_type": "email",
+                "source_id": "msg-0",
+                "priority": "high",
+                "state": "queued",
+                "payload": {
+                  "preview": "Test action item 1: Follow up on Q4 planning meeting",
+                  "subject": "Test Email 1"
+                }
+              }
+            },
+            "status": 200
+          },
+          {
+            "endpoint": "/api/queue/<uuid>/assistant-approve",
+            "method": "POST",
+            "response": {
+              "ok": true,
+              "result": {
+                "ok": true,
+                "op": "update_action_state",
+                "params": {
+                  "action_id": "<uuid>",
+                  "state": "converted_to_task"
+                }
+              },
+              "action": {
+                "id": "<uuid>",
+                "tenant_id": "<uuid>",
+                "owner_id": "<uuid>",
+                "source_type": "email",
+                "source_id": "msg-0",
+                "priority": "high",
+                "state": "converted_to_task",
+                "payload": {
+                  "preview": "Test action item 1: Follow up on Q4 planning meeting",
+                  "subject": "Test Email 1"
+                },
+                "updated_at": "<timestamp>"
+              }
+            },
+            "status": 200
+          }
+        ],
+        "text": "{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': False}}\n{'ok': True, 'seeded': 5, 'total': 5}\n{'ok': True, 'items': [{'action_id': '<uuid>', 'source': 'email', 'category': 'needs_response', 'priority': 'high', 'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'email', 'category': 'needs_response', 'priority': 'high', 'preview': 'Test action item 4: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'teams', 'category': 'needs_response', 'priority': 'medium', 'preview': 'Test action item 2: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'teams', 'category': 'needs_response', 'priority': 'medium', 'preview': 'Test action item 5: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'doc', 'category': 'needs_response', 'priority': 'low', 'preview': 'Test action item 3: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}], 'total': 5, 'limit': 5, 'offset': 0}\n{'ok': True, 'operations': [{'op': 'chat', 'params': {'message': \"I'll help you manage this action item. Let me link it to a task and update its state.\"}}, {'op': 'link_action_to_task', 'params': {'action_id': '<uuid>', 'task_id': '<task_id>'}}, {'op': 'update_action_state', 'params': {'action_id': '<uuid>', 'state': 'converted_to_task'}}], 'applied': [{'op': 'chat', 'params': {'message': \"I'll help you manage this action item. Let me link it to a task and update its state.\"}}], 'pending': [{'op': 'link_action_to_task', 'params': {'action_id': '<uuid>', 'task_id': '<task_id>'}}, {'op': 'update_action_state', 'params': {'action_id': '<uuid>', 'state': 'converted_to_task'}}], 'errors': [], 'action': {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'source_type': 'email', 'source_id': 'msg-0', 'priority': 'high', 'state': 'queued', 'payload': {'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'subject': 'Test Email 1'}}}\n{'ok': True, 'operations': [{'op': 'chat', 'params': {'message': \"I'll help you manage this action item. Let me link it to a task and update its state.\"}}, {'op': 'link_action_to_task', 'params': {'action_id': '<uuid>', 'task_id': '<task_id>'}}, {'op': 'update_action_state', 'params': {'action_id': '<uuid>', 'state': 'converted_to_task'}}], 'applied': [{'op': 'chat', 'params': {'message': \"I'll help you manage this action item. Let me link it to a task and update its state.\"}}], 'pending': [{'op': 'link_action_to_task', 'params': {'action_id': '<uuid>', 'task_id': '<task_id>'}}, {'op': 'update_action_state', 'params': {'action_id': '<uuid>', 'state': 'converted_to_task'}}], 'errors': [], 'action': {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'source_type': 'email', 'source_id': 'msg-0', 'priority': 'high', 'state': 'queued', 'payload': {'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'subject': 'Test Email 1'}}}\n{'ok': True, 'result': {'ok': True, 'op': 'update_action_state', 'params': {'action_id': '<uuid>', 'state': 'converted_to_task'}}, 'action': {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'source_type': 'email', 'source_id': 'msg-0', 'priority': 'high', 'state': 'converted_to_task', 'payload': {'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'subject': 'Test Email 1'}, 'updated_at': '<timestamp>'}}"
+      }
+    }
+  }
+}

@@ -12,10 +12,27 @@ Please use the following instructions to update the tasks and projects databases
 ## Approaches by Use Case
 
 ### For Queries (Read Operations)
-**Use MCP server functions:**
-- `mcp_notion_API-post-database-query` - Query databases with filters
-- `mcp_notion_API-retrieve-a-database` - Get database schema
-- `mcp_notion_API-retrieve-a-page` - Get page properties
+**Use `utils.notion_helper` functions:**
+- `query_database(database_id, filter_dict)` - Query databases with filters
+- `get_items_by_status(database_type, status_name)` - Get items by status
+- `find_item_by_name(database_id, item_name)` - Find item by name
+- `get_page_content(page_id)` - Get page properties and content
+- `get_database_id(database_type)` - Get database ID for tasks/projects
+
+**Examples:**
+```python
+from utils.notion_helper import query_database, get_items_by_status, find_item_by_name, get_database_id
+
+# Query with custom filter
+db_id = get_database_id("tasks")
+items = query_database(db_id, {"property": "Status", "status": {"equals": "In progress"}})
+
+# Get items by status
+tasks = get_items_by_status("tasks", "In progress")
+
+# Find specific item
+task = find_item_by_name(get_database_id("tasks"), "Task name")
+```
 
 ### For Updates (Modify Existing Items)
 **Use `utils.notion_helper` functions:**
@@ -79,7 +96,7 @@ python scripts/notion_update.py projects --list "Done"
 
 ## Adding Todos Workflow
 
-1. Query for project using MCP or `find_item_by_name()` to get project ID
+1. Query for project using `find_item_by_name()` or `query_database()` to get project ID
 2. Create tasks using `utils.notion_helper.create_task()` or modify `scripts/create_notion_tasks.py`
 3. Link tasks to projects via the `project_id` parameter
 4. Add relevant properties (Status, Project relation, Notes, etc.)

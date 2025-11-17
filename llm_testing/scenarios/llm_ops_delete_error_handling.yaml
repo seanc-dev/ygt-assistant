@@ -1,0 +1,33 @@
+name: llm_ops_delete_error_handling
+mode: mock
+steps:
+  - action: reset_state
+  - action: http
+    method: POST
+    url: /dev/workroom/seed
+    expect:
+      status: 200
+  - action: http
+    method: GET
+    url: /api/workroom/tree
+    expect:
+      status: 200
+    extract:
+      task_id: "tree.0.children.0.id"
+  - action: http
+    method: POST
+    url: /api/workroom/tasks/<task_id>/assistant-suggest
+    json:
+      message: "Delete the project called 'Non-existent Project'"
+      trust_level: "autonomous"
+    expect:
+      status: 200
+expectations:
+  must_contain:
+    - "operations"
+  function_calling:
+    check_operations: true
+    # Should generate a chat operation explaining the error
+    expected_operations: ["delete_project", "chat"]
+    snapshot_operations: "llm_ops_delete_error_handling_operations.json"
+

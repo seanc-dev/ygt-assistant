@@ -7,6 +7,8 @@ on:
       - 'services/**'
       - 'presentation/api/**'
       - 'docs/llm/**'
+      - 'core/services/llm*.py'
+      - 'core/domain/llm*.py'
   workflow_dispatch: {}
 
 jobs:

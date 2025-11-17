@@ -2,8 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import LucidWork Design System Theme */
-@import "./theme.css";
+/* Global height and scroll lock */
+html,
+body,
+#__next,
+#root {
+  height: 100%;
+}
+
+body {
+  overflow: hidden; /* prevent document scrolling; panes will scroll */
+  @apply bg-[var(--lw-base)] text-[var(--lw-neutral-text)] antialiased;
+  font-family: var(--lw-font-body);
+}
 
 /* Calm, low-load defaults */
 :root {
@@ -12,11 +23,6 @@
 
 html {
   font-size: 17px; /* slightly larger for readability */
-}
-
-body {
-  @apply bg-[var(--lw-base)] text-[var(--lw-neutral-text)] antialiased;
-  font-family: var(--lw-font-body);
 }
 
 a {
@@ -90,8 +96,7 @@ select:focus {
   display: flex;
   flex-direction: column;
   height: 100%;
-  position: relative; /* for absolute positioning of EdgeToggle */
-  /* Provide a usable floor while still tracking available viewport height */
+  position: relative;
   min-height: max(
     50vh,
     calc(100svh - var(--top-nav-h, 56px) - (2 * var(--page-vpad, 16px)))
@@ -101,8 +106,12 @@ select:focus {
 /* The inner content area that should scroll */
 .pane .scroll-area {
   min-height: 0;
-  overflow: auto; /* independent scrolling */
+  overflow: auto;
   flex: 1 1 auto;
+}
+
+.h-100 {
+  height: 100%;
 }
 
 /* Kanban enter animation */

@@ -1,4 +1,4 @@
-import { InlineChat } from "../hub/InlineChat";
+import { AssistantChat } from "../hub/AssistantChat";
 import { ActionEmbedComponent } from "./ActionEmbed";
 import type { ActionEmbed } from "../../lib/actionEmbeds";
 
@@ -29,9 +29,10 @@ export function ThreadView({
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
-      <InlineChat
+    <div className="h-full flex flex-col min-h-0">
+      <AssistantChat
         actionId={taskId}
+        taskId={taskId}
         threadId={threadId}
         shouldFocus={false}
         onOpenWorkroom={undefined}
@@ -42,4 +43,3 @@ export function ThreadView({
     </div>
   );
 }
-

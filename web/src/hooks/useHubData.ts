@@ -1,17 +1,16 @@
 import useSWR from "swr";
 import { api } from "../lib/api";
+import { buildApiUrl } from "../lib/apiBase";
 
 /**
  * Hook to fetch sync/connection status from /connections/ms/status
  * Returns sync state: "synced", "syncing", or "error"
  */
 export function useSyncStatus() {
-  const apiBase =
-    process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000";
   return useSWR(
     "/connections/ms/status",
     () =>
-      fetch(`${apiBase}/connections/ms/status`, { credentials: "include" })
+      fetch(buildApiUrl("/connections/ms/status"), { credentials: "include" })
         .then((res) => res.json())
         .then((data) => {
           if (!data || !data.connected) {

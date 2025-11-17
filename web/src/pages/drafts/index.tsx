@@ -12,6 +12,7 @@ import { Layout } from "../../components/Layout";
 import { Field } from "../../components/Form/Field";
 import { Textarea } from "../../components/Form/Textarea";
 import { Toast } from "../../components/Toast";
+import { buildApiUrl } from "../../lib/apiBase";
 
 type Draft = {
   id: string;
@@ -29,18 +30,17 @@ export default function DraftsPage() {
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const apiBase =
-    process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.ygt-assistant.com";
-
   const load = useCallback(async () => {
-    const res = await fetch(`${apiBase}/drafts`, { credentials: "include" });
+    const res = await fetch(buildApiUrl("/drafts"), {
+      credentials: "include",
+    });
     if (!res.ok) {
       setItems([]);
       return;
     }
     const data = await res.json();
     setItems(data || []);
-  }, [apiBase]);
+  }, []);
 
   useEffect(() => {
     load();
@@ -50,7 +50,7 @@ export default function DraftsPage() {
     event.preventDefault();
     setLoading(true);
     try {
-      await fetch(`${apiBase}/email/drafts`, {
+      await fetch(buildApiUrl("/email/drafts"), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -75,7 +75,7 @@ export default function DraftsPage() {
 
   const sendViaOutlook = async (id: string) => {
     setToast("Sending via Outlook…");
-    await fetch(`${apiBase}/email/send/${encodeURIComponent(id)}`, {
+    await fetch(buildApiUrl(`/email/send/${encodeURIComponent(id)}`), {
       method: "POST",
       credentials: "include",
     });
@@ -85,7 +85,7 @@ export default function DraftsPage() {
 
   const sendViaTeams = async (id: string) => {
     setToast("Handing off to Teams…");
-    await fetch(`${apiBase}/teams/send/draft`, {
+    await fetch(buildApiUrl("/teams/send/draft"), {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },

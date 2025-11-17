@@ -1,0 +1,37 @@
+[
+  {
+    "ok": true,
+    "operations": [
+      {
+        "op": "chat",
+        "params": {
+          "message": "I understand you want to update the task status. I can help with that!"
+        }
+      },
+      {
+        "op": "update_task_status",
+        "params": {
+          "task_id": "<uuid>",
+          "status": "doing"
+        }
+      }
+    ],
+    "applied": [
+      {
+        "op": "chat",
+        "params": {
+          "message": "I understand you want to update the task status. I can help with that!"
+        }
+      },
+      {
+        "op": "update_task_status",
+        "params": {
+          "task_id": "<uuid>",
+          "status": "doing"
+        }
+      }
+    ],
+    "pending": [],
+    "errors": []
+  }
+]

@@ -112,4 +112,37 @@ jobs:
             llm_testing/scenarios/triage_sla.yaml \
             llm_testing/scenarios/reschedule_ranked.yaml \
             llm_testing/scenarios/reconnect_retry.yaml
+      - name: Check if assistant chat & LLM ops tests should run
+        id: should_run_e2e
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            assistant_llm_ops:
+              - 'presentation/api/routes/chat.py'
+              - 'presentation/api/routes/workroom.py'
+              - 'presentation/api/routes/queue.py'
+              - 'presentation/api/routes/dev.py'
+              - 'services/llm.py'
+              - 'core/services/llm*.py'
+              - 'core/domain/llm*.py'
+              - 'llm_testing/**'
+              - 'presentation/api/repos/workroom.py'
+              - 'presentation/api/repos/queue.py'
+              - 'presentation/api/repos/tasks.py'
+              - 'presentation/api/repos/user_settings.py'
+      - name: Run assistant chat & LLM ops e2e scenarios
+        if: steps.should_run_e2e.outputs.assistant_llm_ops == 'true' || github.ref == 'refs/heads/main'
+        env:
+          OFFLINE_EVAL: "true"
+          DEV_MODE: "true"
+          USE_MOCK_GRAPH: "true"
+          LLM_TESTING_MODE: "true"
+        run: |
+          python -m llm_testing.runner --scenarios \
+            llm_testing/scenarios/assistant_chat_happy_path.yaml \
+            llm_testing/scenarios/assistant_chat_edge_cases.yaml \
+            llm_testing/scenarios/assistant_chat_live_inbox.yaml \
+            llm_testing/scenarios/llm_ops_task_training_wheels.yaml \
+            llm_testing/scenarios/llm_ops_task_autonomous.yaml \
+            llm_testing/scenarios/llm_ops_queue_focus.yaml
       # Skip migrations in this workflow; covered elsewhere

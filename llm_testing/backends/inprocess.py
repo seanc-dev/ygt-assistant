@@ -1,20 +1,50 @@
 from __future__ import annotations
 from typing import Any, Dict, List
 from fastapi.testclient import TestClient  # type: ignore
+import os
+import sys
 
 
 class InProcessBackend:
     def __init__(self) -> None:
         # Prepare minimal env for app import
-        import os
-
         os.environ.setdefault("DEV_MODE", "true")
         os.environ.setdefault("USE_MOCK_GRAPH", "true")
+        
+        # Always set up mock database for tests (independent of LLM_TESTING_MODE)
+        # LLM_TESTING_MODE controls LLM fixtures vs live calls
+        # Mock DB ensures we don't hit real Supabase during testing
+        self._setup_mock_db()
+
         try:
             from presentation.api.app import app  # type: ignore
         except Exception as exc:
             raise RuntimeError(f"FastAPI app not importable: {exc}")
         self.client = TestClient(app)
+
+    def _setup_mock_db(self) -> None:
+        """Set up mock database by patching the Supabase client."""
+        from llm_testing.mock_db import get_mock_client, MockSupabaseClient
+
+        # Create a context manager that returns our mock client
+        class MockClientContext:
+            def __init__(self, mock_client: MockSupabaseClient):
+                self.mock_client = mock_client
+
+            def __enter__(self):
+                return self.mock_client
+
+            def __exit__(self, *args):
+                pass
+
+        # Patch the client function to return our mock
+        import archive.infra.supabase.client as client_module
+
+        def mock_client():
+            return MockClientContext(get_mock_client())
+
+        # Monkey patch the client function before any repos import it
+        client_module.client = mock_client
 
     # WhatsApp
     def whatsapp_verify(self, mode: str, token: str, challenge: str) -> str:

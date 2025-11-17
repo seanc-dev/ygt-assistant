@@ -61,6 +61,39 @@ def test_validate_update_action_state_op():
     assert op.op == "update_action_state"
 
 
+def test_validate_create_task_op_invalid_priority():
+    """Invalid priority should raise ValueError."""
+    with pytest.raises(ValueError, match="priority"):
+        validate_operation(
+            {
+                "op": "create_task",
+                "params": {"title": "Test task", "priority": "highest"},
+            }
+        )
+
+
+def test_validate_update_task_status_invalid_status():
+    """Invalid status should raise ValueError."""
+    with pytest.raises(ValueError, match="status"):
+        validate_operation(
+            {
+                "op": "update_task_status",
+                "params": {"task_id": "task-123", "status": "nearly-done"},
+            }
+        )
+
+
+def test_validate_update_action_state_invalid_state():
+    """Invalid action state should raise ValueError."""
+    with pytest.raises(ValueError, match="state"):
+        validate_operation(
+            {
+                "op": "update_action_state",
+                "params": {"action_id": "action-123", "state": "sending"},
+            }
+        )
+
+
 def test_validate_missing_op_field():
     """Test validation fails when op field is missing."""
     with pytest.raises(ValueError, match="Operation missing 'op' field"):

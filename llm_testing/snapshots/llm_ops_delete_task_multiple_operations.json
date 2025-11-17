@@ -1,0 +1,29 @@
+[
+  {
+    "ok": true,
+    "operations": [
+      {
+        "op": "delete_task",
+        "params": {
+          "task_ids": [
+            "<uuid>",
+            "<uuid>"
+          ]
+        }
+      }
+    ],
+    "applied": [],
+    "pending": [
+      {
+        "op": "delete_task",
+        "params": {
+          "task_ids": [
+            "<uuid>",
+            "<uuid>"
+          ]
+        }
+      }
+    ],
+    "errors": []
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "evaluation": {
+    "scores": {
+      "factual": 0.0,
+      "clarity": 0.0,
+      "safety": 0.0
+    },
+    "ok": false,
+    "rationale": "operation_snapshot_mismatch: --- stored\n+++ current\n@@ -21,7 +21,7 @@\n           \"title\": \"Review Q4 metrics\",\n           \"description\": \"Analyze the Q4 performance dashboards and capture insights for leadership.\",\n           \"pr"
+  }
+}

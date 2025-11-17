@@ -99,9 +99,13 @@ def update_settings(user_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
     
     # Update trust_level
     if "trust_level" in updates:
-        if updates["trust_level"] not in ["training_wheels", "standard", "autonomous"]:
+        trust_level = updates["trust_level"]
+        # Map legacy "standard" to "supervised"
+        if trust_level == "standard":
+            trust_level = "supervised"
+        if trust_level not in ["training_wheels", "supervised", "autonomous"]:
             raise ValueError("Invalid trust_level")
-        current["trust_level"] = updates["trust_level"]
+        current["trust_level"] = trust_level
     
     # Update ui_prefs
     if "ui_prefs" in updates:

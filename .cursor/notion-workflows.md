@@ -4,8 +4,8 @@ This guide helps you work with Notion databases as your project management store
 
 ## Overview
 
-- **MCP Server**: Use for querying/searching databases (read-only works well)
-- **Direct API**: Use for updates (via `utils/notion_helper.py` or `scripts/notion_update.py`)
+- **Notion API**: Use `utils/notion_helper.py` functions for all operations (queries and updates)
+- All operations use direct API calls via `utils/notion_helper.py` or `scripts/notion_update.py`
 
 ## Database IDs
 
@@ -50,9 +50,9 @@ Pull context from Notion: show me tasks related to [keyword]
 ```
 
 **How to implement:**
-- Use MCP server: `mcp_notion_API-post-database-query`
-- Or use `utils.notion_helper.get_items_by_status()`
-- Or use `utils.notion_helper.query_database()`
+- Use `utils.notion_helper.get_items_by_status()` for status queries
+- Use `utils.notion_helper.query_database()` for custom filters
+- Use `utils.notion_helper.find_item_by_name()` for name searches
 
 **Example Python:**
 ```python
@@ -62,8 +62,9 @@ from utils.notion_helper import get_items_by_status, query_database
 tasks = get_items_by_status("tasks", "In progress")
 
 # Query with custom filter
+db_id = get_database_id("tasks")
 items = query_database(
-    database_id,
+    db_id,
     filter_dict={"property": "Tags", "multi_select": {"contains": "api"}}
 )
 ```
@@ -169,15 +170,17 @@ python scripts/notion_update.py projects --list "Not started"
 
 ## Integration Tips
 
-1. **Use MCP for queries**: The MCP server works great for searching and reading. Use it when you need to find items or pull context.
+1. **Use API for all operations**: All queries and updates use direct Notion API calls via `utils/notion_helper.py` functions.
 
-2. **Use API for updates**: Direct API calls are more reliable for updates. Use `utils/notion_helper.py` functions or the CLI script.
+2. **Query functions**: Use `query_database()`, `get_items_by_status()`, `find_item_by_name()`, or `get_page_content()` for reading data.
 
-3. **Update text fields**: Use `update_page_property()` with rich_text format to add or update Notes fields.
+3. **Update functions**: Use `update_item_status()`, `update_page_property()`, or `create_task()` for modifying data.
 
-4. **Combine workflows**: Query databases for context, then update items based on completion or changes.
+4. **Update text fields**: Use `update_page_property()` with rich_text format to add or update Notes fields.
 
-5. **Error handling**: Always check if items exist before updating. The helper functions raise `ValueError` if items aren't found.
+5. **Combine workflows**: Query databases for context, then update items based on completion or changes.
+
+6. **Error handling**: Always check if items exist before updating. The helper functions raise `ValueError` if items aren't found.
 
 ## Example: Complete Workflow
 
@@ -212,11 +215,11 @@ for item in priority_items:
         "Notes",
         {"rich_text": [{"text": {"content": f"Review notes for {name}"}}]}
     )
+```
 
 ## Troubleshooting
 
 - **Authentication errors**: Ensure `NOTION_TOKEN` is set in `.env.local`
 - **Item not found**: Check exact spelling/capitalization of item names
 - **Status value errors**: Use exact status names: "Not started", "In progress", "Done"
-- **MCP server issues**: Use direct API calls via `utils/notion_helper.py` as fallback
-
+- **API errors**: All operations use direct API calls - check network connectivity and token validity

@@ -91,3 +91,26 @@ def test_assistant_approve_create_task_duplicate_returns_conflict(
         and "already has a task with that name" in detail["stock_message"]
     )
 
+
+def test_assistant_approve_rejects_invalid_priority(client: TestClient) -> None:
+    """Server should reject invalid priority enums before execution."""
+    _seed_workroom(client)
+    task_id = _get_first_task_id(client)
+
+    operation = {
+        "op": "create_task",
+        "params": {
+            "title": "Plan roadmap",
+            "priority": "highest",
+        },
+    }
+
+    resp = client.post(
+        f"/api/workroom/tasks/{task_id}/assistant-approve",
+        json={"operation": operation},
+        cookies={"user_id": "test-user"},
+    )
+
+    assert resp.status_code == 400
+    assert "priority" in resp.json()["detail"]
+

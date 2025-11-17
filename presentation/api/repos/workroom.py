@@ -17,6 +17,16 @@ logger = logging.getLogger(__name__)
 DEV_USER_EMAIL = os.getenv("DEV_USER_EMAIL", "test.user+local@example.com")
 
 
+class DuplicateProjectNameError(Exception):
+    """Raised when attempting to create a project with a name that already exists."""
+    pass
+
+
+class DuplicateTaskTitleError(Exception):
+    """Raised when attempting to create a task with a title that already exists in the project."""
+    pass
+
+
 def get_projects(user_id: str) -> List[Dict[str, Any]]:
     """Fetch all projects scoped to the caller's tenant (excluding deleted)."""
     tenant_id, _ = _resolve_identity(user_id)
@@ -63,8 +73,22 @@ def get_threads(user_id: str, task_id: Optional[str] = None) -> List[Dict[str, A
 def create_project(
     user_id: str, name: str, description: Optional[str] = None, priority: str = "medium"
 ) -> Dict[str, Any]:
-    """Create a project row in Supabase."""
+    """Create a project row in Supabase.
+    
+    Raises:
+        DuplicateProjectNameError: If a project with the same name (case-insensitive) already exists for this tenant.
+    """
     tenant_id, resolved_user_id = _resolve_identity(user_id)
+    
+    # Check for duplicate project name (case-insensitive)
+    existing_projects = get_projects(user_id)
+    name_lower = name.lower().strip()
+    for project in existing_projects:
+        if project.get("name", "").lower().strip() == name_lower:
+            raise DuplicateProjectNameError(
+                f"Project '{name}' already exists. Would you like to name it something else?"
+            )
+    
     payload = {
         "tenant_id": tenant_id,
         "owner_id": resolved_user_id,
@@ -87,7 +111,7 @@ def create_task(
     from_action_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Create a task row in Supabase.
-    
+
     Args:
         user_id: User identifier
         title: Task title
@@ -97,8 +121,25 @@ def create_task(
         due: Optional due date ISO string
         description: Optional task description
         from_action_id: Optional action ID that this task is created from
+    
+    Raises:
+        DuplicateTaskTitleError: If a task with the same title (case-insensitive) already exists in the project.
     """
     tenant_id, resolved_user_id = _resolve_identity(user_id)
+    
+    # Check for duplicate task title within the project (case-insensitive)
+    if project_id:
+        existing_tasks = get_tasks(user_id, project_id=project_id)
+        title_lower = title.lower().strip()
+        for task in existing_tasks:
+            if task.get("title", "").lower().strip() == title_lower:
+                # Get project name for error message
+                projects = get_projects(user_id)
+                project_name = next((p.get("name", "this project") for p in projects if p.get("id") == project_id), "this project")
+                raise DuplicateTaskTitleError(
+                    f"This project already has a task with that name. Would you like to name it something else?"
+                )
+    
     payload = {
         "tenant_id": tenant_id,
         "owner_id": resolved_user_id,
@@ -114,13 +155,14 @@ def create_task(
     if description:
         payload["description"] = description
     task = _insert("tasks", payload)
-    
+
     # If from_action_id is provided, link the action to the task
     if from_action_id:
         # Filter out placeholder values
         from_action_id_str = str(from_action_id).strip()
         if from_action_id_str and "placeholder" not in from_action_id_str.lower():
             from presentation.api.repos import tasks as tasks_repo
+
             try:
                 tasks_repo.update_action_task_link(user_id, from_action_id, task["id"])
                 # Create task_action_links entry (many-to-many join)
@@ -141,15 +183,19 @@ def create_task(
                     )
                 except ValueError:
                     # Action doesn't exist - skip linking (likely placeholder from LLM)
-                    logger.debug(f"Skipping action link - action {from_action_id} not found")
+                    logger.debug(
+                        f"Skipping action link - action {from_action_id} not found"
+                    )
                 except Exception as e:
                     logger.warning(f"Failed to create task_source from action: {e}")
             except ValueError:
                 # Action doesn't exist - skip linking
-                logger.debug(f"Skipping action link - action {from_action_id} not found")
+                logger.debug(
+                    f"Skipping action link - action {from_action_id} not found"
+                )
             except Exception as e:
                 logger.warning(f"Failed to link action to task: {e}")
-    
+
     return task
 
 
@@ -161,7 +207,7 @@ def create_thread(
     source_action_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Create a chat thread tied to a task or source action.
-    
+
     Note: Requires database schema with 'prefs' and 'context_refs' columns in threads table.
     Ensure migration 20251114000000_baseline.sql (not 20251114T000000_baseline.sql) is applied.
     """
@@ -251,16 +297,16 @@ def get_pending_user_messages(
     user_id: str,
 ) -> List[Dict[str, Any]]:
     """Get all user messages since the last assistant response.
-    
+
     Args:
         thread_id: Thread identifier
         user_id: User identifier
-        
+
     Returns:
         List of user messages (dicts with id, role, content, ts/created_at)
     """
     tenant_id, _ = _resolve_identity(user_id)
-    
+
     # Get all messages for the thread
     all_messages = _select(
         "messages",
@@ -270,28 +316,28 @@ def get_pending_user_messages(
             "order": "created_at.asc",
         },
     )
-    
+
     if not all_messages:
         return []
-    
+
     # Find the last assistant message timestamp
     last_assistant_ts = None
     for msg in reversed(all_messages):
         if msg.get("role") == "assistant":
             last_assistant_ts = msg.get("created_at") or msg.get("ts")
             break
-    
+
     # If no assistant message exists, return all user messages
     if last_assistant_ts is None:
         return [msg for msg in all_messages if msg.get("role") == "user"]
-    
+
     # Return all user messages after the last assistant message
     pending = []
     for msg in all_messages:
         msg_ts = msg.get("created_at") or msg.get("ts")
         if msg.get("role") == "user" and msg_ts and msg_ts > last_assistant_ts:
             pending.append(msg)
-    
+
     return pending
 
 
@@ -337,7 +383,7 @@ def _select(
     table: str, params: Optional[Dict[str, Any]] = None
 ) -> List[Dict[str, Any]]:
     """Select rows from a table with PostgREST query parameters.
-    
+
     Handles deleted_at filtering gracefully - if the column doesn't exist
     or PostgREST rejects the filter, falls back to Python-side filtering.
     """
@@ -368,7 +414,7 @@ def _select_one(table: str, params: Dict[str, Any]) -> Dict[str, Any]:
 
 def _insert(table: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     """Insert a row and return the created record.
-    
+
     Raises RuntimeError if the insert fails or returns unexpected data.
     """
     with client() as c:
@@ -378,22 +424,27 @@ def _insert(table: str, payload: Dict[str, Any]) -> Dict[str, Any]:
             headers={"Prefer": "return=representation"},
         )
         resp.raise_for_status()
-        
+
         try:
             data = resp.json()
         except Exception as e:
             logger.error(
                 f"Failed to parse JSON response from {table} insert",
-                extra={"table": table, "payload": payload, "error": str(e), "status_code": resp.status_code}
+                extra={
+                    "table": table,
+                    "payload": payload,
+                    "error": str(e),
+                    "status_code": resp.status_code,
+                },
             )
             raise RuntimeError(f"Failed to parse response from {table} insert: {e}")
-        
+
         # Handle both list and single object responses
         if isinstance(data, list):
             if not data:
                 logger.error(
                     f"Insert to {table} returned empty response",
-                    extra={"table": table, "payload": payload, "response": data}
+                    extra={"table": table, "payload": payload, "response": data},
                 )
                 raise RuntimeError(
                     f"Insert to {table} returned empty response. "
@@ -406,35 +457,40 @@ def _insert(table: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         else:
             logger.error(
                 f"Unexpected response format from {table} insert",
-                extra={"table": table, "payload": payload, "response_type": type(data).__name__, "response": data}
+                extra={
+                    "table": table,
+                    "payload": payload,
+                    "response_type": type(data).__name__,
+                    "response": data,
+                },
             )
             raise RuntimeError(
                 f"Unexpected response format from {table} insert: {type(data)}. "
                 f"Expected list or dict, got {type(data).__name__}"
             )
-        
+
         # Validate required fields
         if "id" not in row:
             logger.error(
                 f"Insert to {table} succeeded but response missing 'id' field",
-                extra={"table": table, "payload": payload, "response": row}
+                extra={"table": table, "payload": payload, "response": row},
             )
             raise RuntimeError(
                 f"Insert to {table} succeeded but response missing 'id' field. "
                 f"Response: {row}"
             )
-        
+
         if "created_at" not in row:
             logger.warning(
                 f"Insert to {table} succeeded but response missing 'created_at' field",
-                extra={"table": table, "payload": payload, "response": row}
+                extra={"table": table, "payload": payload, "response": row},
             )
-        
+
         logger.debug(
             f"Successfully inserted row into {table}",
-            extra={"table": table, "id": row.get("id")}
+            extra={"table": table, "id": row.get("id")},
         )
-        
+
         return row
 
 
@@ -457,34 +513,33 @@ def _patch(
 
 def delete_project(user_id: str, project_id: str) -> Dict[str, Any]:
     """Soft delete a project and cascade delete all tasks in the project.
-    
+
     Args:
         user_id: User identifier
         project_id: Project ID to delete
-        
+
     Returns:
         Dict with deleted project and count of deleted tasks
     """
     from datetime import datetime, timezone
-    
+
     tenant_id, _ = _resolve_identity(user_id)
     deleted_at = datetime.now(timezone.utc).isoformat()
-    
+
     # Verify project exists and belongs to tenant (not deleted)
     project = _select_one(
-        "projects",
-        {"tenant_id": f"eq.{tenant_id}", "id": f"eq.{project_id}"}
+        "projects", {"tenant_id": f"eq.{tenant_id}", "id": f"eq.{project_id}"}
     )
     if project.get("deleted_at") is not None:
         raise ValueError(f"Project {project_id} is already deleted")
-    
+
     # Soft delete the project
     _patch(
         "projects",
         {"tenant_id": f"eq.{tenant_id}", "id": f"eq.{project_id}"},
         {"deleted_at": deleted_at},
     )
-    
+
     # Cascade: soft delete all tasks in the project
     tasks_to_delete = _select(
         "tasks",
@@ -494,7 +549,7 @@ def delete_project(user_id: str, project_id: str) -> Dict[str, Any]:
         },
     )
     tasks_to_delete = [t for t in tasks_to_delete if t.get("deleted_at") is None]
-    
+
     task_count = 0
     for task in tasks_to_delete:
         try:
@@ -506,7 +561,7 @@ def delete_project(user_id: str, project_id: str) -> Dict[str, Any]:
             task_count += 1
         except Exception as e:
             logger.warning(f"Failed to delete task {task['id']}: {e}")
-    
+
     return {
         "project": project,
         "tasks_deleted": task_count,
@@ -516,18 +571,18 @@ def delete_project(user_id: str, project_id: str) -> Dict[str, Any]:
 
 def delete_projects(user_id: str, project_ids: List[str]) -> Dict[str, Any]:
     """Soft delete multiple projects and cascade delete their tasks.
-    
+
     Args:
         user_id: User identifier
         project_ids: List of project IDs to delete
-        
+
     Returns:
         Dict with summary: total projects deleted, total tasks deleted
     """
     total_projects = 0
     total_tasks = 0
     deleted_projects = []
-    
+
     for project_id in project_ids:
         try:
             result = delete_project(user_id, project_id)
@@ -538,7 +593,7 @@ def delete_projects(user_id: str, project_ids: List[str]) -> Dict[str, Any]:
             logger.warning(f"Project {project_id} not found or already deleted: {e}")
         except Exception as e:
             logger.error(f"Failed to delete project {project_id}: {e}", exc_info=True)
-    
+
     return {
         "projects_deleted": total_projects,
         "tasks_deleted": total_tasks,
@@ -548,34 +603,31 @@ def delete_projects(user_id: str, project_ids: List[str]) -> Dict[str, Any]:
 
 def delete_task(user_id: str, task_id: str) -> Dict[str, Any]:
     """Soft delete a task.
-    
+
     Args:
         user_id: User identifier
         task_id: Task ID to delete
-        
+
     Returns:
         Dict with deleted task
     """
     from datetime import datetime, timezone
-    
+
     tenant_id, _ = _resolve_identity(user_id)
     deleted_at = datetime.now(timezone.utc).isoformat()
-    
+
     # Verify task exists and belongs to tenant (not deleted)
-    task = _select_one(
-        "tasks",
-        {"tenant_id": f"eq.{tenant_id}", "id": f"eq.{task_id}"}
-    )
+    task = _select_one("tasks", {"tenant_id": f"eq.{tenant_id}", "id": f"eq.{task_id}"})
     if task.get("deleted_at") is not None:
         raise ValueError(f"Task {task_id} is already deleted")
-    
+
     # Soft delete the task
     _patch(
         "tasks",
         {"tenant_id": f"eq.{tenant_id}", "id": f"eq.{task_id}"},
         {"deleted_at": deleted_at},
     )
-    
+
     return {
         "task": task,
         "deleted_at": deleted_at,
@@ -584,17 +636,17 @@ def delete_task(user_id: str, task_id: str) -> Dict[str, Any]:
 
 def delete_tasks(user_id: str, task_ids: List[str]) -> Dict[str, Any]:
     """Soft delete multiple tasks.
-    
+
     Args:
         user_id: User identifier
         task_ids: List of task IDs to delete
-        
+
     Returns:
         Dict with summary: total tasks deleted
     """
     total_tasks = 0
     deleted_tasks = []
-    
+
     for task_id in task_ids:
         try:
             result = delete_task(user_id, task_id)
@@ -604,7 +656,7 @@ def delete_tasks(user_id: str, task_ids: List[str]) -> Dict[str, Any]:
             logger.warning(f"Task {task_id} not found or already deleted: {e}")
         except Exception as e:
             logger.error(f"Failed to delete task {task_id}: {e}", exc_info=True)
-    
+
     return {
         "tasks_deleted": total_tasks,
         "tasks": deleted_tasks,

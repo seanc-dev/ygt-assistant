@@ -1,0 +1,56 @@
+[
+  {
+    "ok": true,
+    "operations": [
+      {
+        "op": "chat",
+        "params": {
+          "message": "I'll move this task forward and create the new 'Review Q4 metrics' follow-up."
+        }
+      },
+      {
+        "op": "update_task_status",
+        "params": {
+          "task_id": "<uuid>",
+          "status": "doing"
+        }
+      },
+      {
+        "op": "create_task",
+        "params": {
+          "title": "Review Q4 metrics",
+          "description": "Analyze the Q4 performance dashboards and capture insights for leadership.",
+          "priority": "high",
+          "project_id": "<uuid>"
+        }
+      }
+    ],
+    "applied": [
+      {
+        "op": "chat",
+        "params": {
+          "message": "I'll move this task forward and create the new 'Review Q4 metrics' follow-up."
+        }
+      }
+    ],
+    "pending": [
+      {
+        "op": "update_task_status",
+        "params": {
+          "task_id": "<uuid>",
+          "status": "doing"
+        }
+      },
+      {
+        "op": "create_task",
+        "params": {
+          "title": "Review Q4 metrics",
+          "description": "Analyze the Q4 performance dashboards and capture insights for leadership.",
+          "priority": "high",
+          "project_id": "<uuid>"
+        }
+      }
+    ],
+    "errors": []
+  }
+]

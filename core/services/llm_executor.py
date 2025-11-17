@@ -18,17 +18,51 @@ from core.domain.llm_ops import (
     UpdateActionStateOp,
     DeleteProjectOp,
     DeleteTaskOp,
+    PriorityLiteral,
+    TaskStatusLiteral,
+    ActionStateLiteral,
 )
 
 logger = logging.getLogger(__name__)
 
 TrustMode = Literal["training_wheels", "supervised", "autonomous"]
 
+PRIORITY_VALUES = set(PriorityLiteral.__args__)
+TASK_STATUS_VALUES = set(TaskStatusLiteral.__args__)
+ACTION_STATE_VALUES = set(ActionStateLiteral.__args__)
+
 
 class MultipleMatchesError(Exception):
     """Raised when a semantic reference matches multiple items."""
 
     pass
+
+
+def _normalize_enum_value(
+    value: Optional[str],
+    *,
+    allowed: set[str],
+    field: str,
+    op_type: str,
+    default: Optional[str] = None,
+) -> Optional[str]:
+    """Normalize enum-like user input, logging if coercion is needed."""
+    if value is None:
+        return default
+
+    normalized = str(value).strip().lower()
+    if normalized in allowed:
+        return normalized
+
+    fallback = default if default is not None else None
+    logger.warning(
+        "Invalid %s '%s' for %s operation; using fallback '%s'",
+        field,
+        value,
+        op_type,
+        fallback,
+    )
+    return fallback
 
 
 def _resolve_project_id(
@@ -809,7 +843,13 @@ def _execute_single_op(
                 raise ValueError(str(e))
 
         description = params.get("description")
-        priority = params.get("priority", "medium")
+        priority = _normalize_enum_value(
+            params.get("priority"),
+            allowed=PRIORITY_VALUES,
+            field="priority",
+            op_type=op.op,
+            default="medium",
+        )
 
         # Resolve from_action reference (supports "from_action" or "from_action_id")
         from_action_ref = params.get("from_action") or params.get("from_action_id")
@@ -848,7 +888,13 @@ def _execute_single_op(
         params = op.params
         # Resolve task reference (supports "task" or "task_id" for backward compatibility)
         task_ref = params.get("task") or params.get("task_id")
-        status = params.get("status")
+        status = _normalize_enum_value(
+            params.get("status"),
+            allowed=TASK_STATUS_VALUES,
+            field="status",
+            op_type=op.op,
+            default="backlog",
+        )
 
         if not task_ref or not status:
             raise ValueError(
@@ -908,7 +954,13 @@ def _execute_single_op(
         params = op.params
         # Resolve action reference
         action_ref = params.get("action") or params.get("action_id")
-        state = params.get("state")
+        state = _normalize_enum_value(
+            params.get("state"),
+            allowed=ACTION_STATE_VALUES,
+            field="state",
+            op_type=op.op,
+            default="queued",
+        )
 
         if not action_ref or not state:
             raise ValueError(

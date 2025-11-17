@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import List
 import argparse
 import json
+import os
 from pathlib import Path
 
 from llm_testing.harness import run_scenario
@@ -24,7 +25,16 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--scenarios", nargs="*")
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="Run scenarios against live LLM provider (sets LLM_TESTING_MODE=false)",
+    )
     args = parser.parse_args()
+
+    if args.live:
+        os.environ["LLM_TESTING_MODE"] = "false"
+
     if args.all:
         paths = sorted(str(p) for p in Path("llm_testing/scenarios").glob("*.yaml"))
     else:

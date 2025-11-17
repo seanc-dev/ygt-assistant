@@ -1,0 +1,276 @@
+{
+  "scenario": {
+    "name": "llm_ops_task_autonomous",
+    "mode": "mock",
+    "snapshot": "llm_ops_task_autonomous.json",
+    "steps": [
+      {
+        "action": "reset_state"
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/dev/workroom/seed",
+        "expect": {
+          "status": 200
+        }
+      },
+      {
+        "action": "http",
+        "method": "PUT",
+        "url": "/api/settings",
+        "json": {
+          "trust_level": "autonomous"
+        },
+        "expect": {
+          "status": 200
+        }
+      },
+      {
+        "action": "http",
+        "method": "GET",
+        "url": "/api/workroom/tree",
+        "expect": {
+          "status": 200
+        },
+        "extract": {
+          "task_id": "tree.0.children.0.id"
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/api/workroom/tasks/<task_id>/assistant-suggest",
+        "json": {
+          "message": "Update this task status to doing and create a follow-up task"
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "operations",
+            "applied"
+          ]
+        }
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "operations",
+        "applied"
+      ],
+      "must_not_contain": [
+        "error"
+      ]
+    }
+  },
+  "transcript": {
+    "scenario": "llm_ops_task_autonomous",
+    "steps": [
+      {
+        "action": "reset_state",
+        "response": {
+          "ok": true,
+          "cleared": {
+            "approvals": true,
+            "history": true,
+            "queue": true,
+            "settings": true
+          }
+        }
+      },
+      {
+        "endpoint": "/dev/workroom/seed",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "projects": 2,
+          "tasks": 2,
+          "threads": 0
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/settings",
+        "method": "PUT",
+        "response": {
+          "ok": true,
+          "work_hours": {
+            "start": "09:00",
+            "end": "17:00"
+          },
+          "time_zone": "UTC",
+          "day_shape": {
+            "morning_focus": true,
+            "focus_block_lengths_min": [
+              90,
+              60
+            ],
+            "focus_block_max_minutes": 120,
+            "lunch_window": {
+              "start": "12:00",
+              "end": "14:00",
+              "min_minutes": 45,
+              "max_minutes": 60
+            },
+            "meeting_avoid_windows": [
+              {
+                "start": "16:00",
+                "end": "23:59"
+              }
+            ],
+            "buffer_minutes": {
+              "min": 5,
+              "max": 10
+            }
+          },
+          "translation": {
+            "default": "llm",
+            "fallback": "azure",
+            "rules": {
+              "outbound": "auto",
+              "inbound": "prompt",
+              "internal": "off",
+              "external": "auto"
+            }
+          },
+          "trust_level": "autonomous",
+          "ui_prefs": {
+            "thread_open_behavior": "new_tab",
+            "brief": {
+              "weather": false,
+              "news": false,
+              "tone": "neutral"
+            },
+            "hotkeys": {
+              "approve": "a",
+              "edit": "e",
+              "defer": "d",
+              "add_to_today": "t",
+              "open_workroom": "o",
+              "collapse": "Escape",
+              "kanban_toggle": "Meta+k",
+              "settings": "Meta+,"
+            }
+          }
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/workroom/tree",
+        "method": "GET",
+        "response": {
+          "ok": true,
+          "tree": [
+            {
+              "id": "c2a78497-dee2-499b-912d-2a308be6a0ff",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Product Launch",
+              "description": "Q4 product launch planning and execution",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "children": [
+                {
+                  "id": "7d08305a-00cf-4d2a-b2f6-7a0c3839d616",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "c2a78497-dee2-499b-912d-2a308be6a0ff",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Write product copy",
+                  "status": "ready",
+                  "priority": "medium",
+                  "order_index": 1,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                },
+                {
+                  "id": "524b8f11-6b55-45d1-8c1d-de7ec5497e2c",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "c2a78497-dee2-499b-912d-2a308be6a0ff",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Design landing page",
+                  "status": "doing",
+                  "priority": "high",
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "3dfdbe3c-6c56-4c04-8dd4-5ba5fc01b1bb",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Marketing Campaign",
+              "description": "Social media and email marketing campaign",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 1,
+              "metadata": {},
+              "children": []
+            }
+          ]
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/workroom/tasks/7d08305a-00cf-4d2a-b2f6-7a0c3839d616/assistant-suggest",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "operations": [
+            {
+              "op": "chat",
+              "params": {
+                "message": "I understand you want to update the task status. I can help with that!"
+              }
+            },
+            {
+              "op": "update_task_status",
+              "params": {
+                "task_id": "7d08305a-00cf-4d2a-b2f6-7a0c3839d616",
+                "status": "doing"
+              }
+            }
+          ],
+          "applied": [
+            {
+              "op": "chat",
+              "params": {
+                "message": "I understand you want to update the task status. I can help with that!"
+              }
+            },
+            {
+              "op": "update_task_status",
+              "params": {
+                "task_id": "7d08305a-00cf-4d2a-b2f6-7a0c3839d616",
+                "status": "doing"
+              }
+            }
+          ],
+          "pending": [],
+          "errors": [],
+          "task": {
+            "id": "7d08305a-00cf-4d2a-b2f6-7a0c3839d616",
+            "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+            "project_id": "c2a78497-dee2-499b-912d-2a308be6a0ff",
+            "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+            "title": "Write product copy",
+            "status": "ready",
+            "priority": "medium",
+            "order_index": 1,
+            "source_type": "manual",
+            "source_ref": {},
+            "children": []
+          }
+        },
+        "status": 200
+      }
+    ],
+    "text": "{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': True}}\n{'ok': True, 'projects': 2, 'tasks': 2, 'threads': 0}\n{'ok': True, 'work_hours': {'start': '09:00', 'end': '17:00'}, 'time_zone': 'UTC', 'day_shape': {'morning_focus': True, 'focus_block_lengths_min': [90, 60], 'focus_block_max_minutes': 120, 'lunch_window': {'start': '12:00', 'end': '14:00', 'min_minutes': 45, 'max_minutes': 60}, 'meeting_avoid_windows': [{'start': '16:00', 'end': '23:59'}], 'buffer_minutes': {'min': 5, 'max': 10}}, 'translation': {'default': 'llm', 'fallback': 'azure', 'rules': {'outbound': 'auto', 'inbound': 'prompt', 'internal': 'off', 'external': 'auto'}}, 'trust_level': 'autonomous', 'ui_prefs': {'thread_open_behavior': 'new_tab', 'brief': {'weather': False, 'news': False, 'tone': 'neutral'}, 'hotkeys': {'approve': 'a', 'edit': 'e', 'defer': 'd', 'add_to_today': 't', 'open_workroom': 'o', 'collapse': 'Escape', 'kanban_toggle': 'Meta+k', 'settings': 'Meta+,'}}}\n{'ok': True, 'tree': [{'id': 'c2a78497-dee2-499b-912d-2a308be6a0ff', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '7d08305a-00cf-4d2a-b2f6-7a0c3839d616', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'c2a78497-dee2-499b-912d-2a308be6a0ff', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '524b8f11-6b55-45d1-8c1d-de7ec5497e2c', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'c2a78497-dee2-499b-912d-2a308be6a0ff', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Design landing page', 'status': 'doing', 'priority': 'high', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '3dfdbe3c-6c56-4c04-8dd4-5ba5fc01b1bb', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 1, 'metadata': {}, 'children': []}]}\n{'ok': True, 'operations': [{'op': 'chat', 'params': {'message': 'I understand you want to update the task status. I can help with that!'}}, {'op': 'update_task_status', 'params': {'task_id': '7d08305a-00cf-4d2a-b2f6-7a0c3839d616', 'status': 'doing'}}], 'applied': [{'op': 'chat', 'params': {'message': 'I understand you want to update the task status. I can help with that!'}}, {'op': 'update_task_status', 'params': {'task_id': '7d08305a-00cf-4d2a-b2f6-7a0c3839d616', 'status': 'doing'}}], 'pending': [], 'errors': [], 'task': {'id': '7d08305a-00cf-4d2a-b2f6-7a0c3839d616', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'c2a78497-dee2-499b-912d-2a308be6a0ff', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'children': []}}"
+  },
+  "ts": 1763175101.6431549
+}

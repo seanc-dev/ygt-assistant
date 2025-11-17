@@ -10,8 +10,24 @@ logger = logging.getLogger(__name__)
 
 try:
     import openai
-except Exception:
+except ImportError:
     openai = None
+
+if openai is not None:
+    OpenAIError = getattr(openai, "OpenAIError", Exception)
+else:  # pragma: no cover - fallback when OpenAI client unavailable
+
+    class OpenAIError(Exception):
+        """Fallback OpenAI error placeholder."""
+
+
+RECOVERABLE_LLM_ERRORS = (
+    OpenAIError,
+    json.JSONDecodeError,
+    OSError,
+    ValueError,
+    RuntimeError,
+)
 
 
 def generate_assistant_response(
@@ -41,7 +57,7 @@ def generate_assistant_response(
     if os.getenv("LLM_TESTING_MODE", "false").lower() in {"1", "true", "yes", "on"}:
         fixture_path = Path("llm_testing/fixtures/llm_ops/chat_response.json")
         if fixture_path.exists():
-            with open(fixture_path, "r") as f:
+            with open(fixture_path, "r", encoding="utf-8") as f:
                 fixture = json.load(f)
                 return fixture.get(
                     "response",
@@ -108,8 +124,8 @@ def generate_assistant_response(
         )
 
         return response.choices[0].message.content.strip()
-    except Exception as e:
-        # Fallback on error - use first message for fallback
+    except RECOVERABLE_LLM_ERRORS:
+        logger.exception("Failed to call OpenAI chat completions; falling back")
         return _generate_fallback_response(user_messages[0] if user_messages else "")
 
 
@@ -142,7 +158,7 @@ def _generate_fallback_response(user_message: str) -> str:
 
 
 def summarise_and_propose(
-    context: Dict[str, Any], core_ctx: Dict[str, Any]
+    context: Dict[str, Any], _core_ctx: Dict[str, Any]
 ) -> List[Dict[str, Any]]:
     # If live inbox items are provided in context, propose actions from them
     inbox = context.get("inbox") or []
@@ -186,7 +202,7 @@ def summarise_and_propose(
 
 
 def draft_email(
-    intent: Dict[str, Any], tone: str | None, core_ctx: Dict[str, Any]
+    intent: Dict[str, Any], tone: str | None, _core_ctx: Dict[str, Any]
 ) -> Dict[str, Any]:
     return {
         "id": "draft-1",
@@ -229,7 +245,7 @@ def propose_ops_for_user(
             raise ValueError("Either input_message or input_messages must be provided")
         input_messages = [input_message]
     from core.services.llm_context_builder import build_context_for_user
-    from core.domain.llm_ops import parse_operations_response, validate_operation
+    from core.domain.llm_ops import parse_operations_response
 
     # Build context
     context = build_context_for_user(
@@ -290,6 +306,10 @@ def propose_ops_for_user(
             else:
                 # Default to project deletion if unclear
                 fixture_path = Path("llm_testing/fixtures/llm_ops/delete_project.json")
+        elif "create task" in user_msg or "new task" in user_msg:
+            fixture_path = Path(
+                "llm_testing/fixtures/llm_ops/task_suggest_autonomous.json"
+            )
         elif focus_task_id:
             # Try training_wheels fixture first, fallback to autonomous
             fixture_name = "task_suggest_training_wheels.json"
@@ -304,7 +324,7 @@ def propose_ops_for_user(
             fixture_path = None
 
         if fixture_path and fixture_path.exists():
-            with open(fixture_path, "r") as f:
+            with open(fixture_path, "r", encoding="utf-8") as f:
                 fixture = json.load(f)
                 ops = fixture.get("operations", [])
                 # Replace placeholders with actual IDs from context
@@ -333,7 +353,7 @@ def propose_ops_for_user(
                     if focus_task_id and "<task_id>" in params_str:
                         params_str = params_str.replace("<task_id>", focus_task_id)
 
-                    # Replace project_id placeholders
+                    # Replace project_id placeholders (backward compatibility - old fixtures)
                     if projects and "<project_id_1>" in params_str:
                         params_str = params_str.replace(
                             "<project_id_1>", projects[0].get("id", "")
@@ -346,6 +366,45 @@ def propose_ops_for_user(
                     if projects and "<project_id>" in params_str:
                         params_str = params_str.replace(
                             "<project_id>", projects[0].get("id", "")
+                        )
+
+                    # Replace project_name placeholders (semantic references)
+                    if projects and "<project_name_1>" in params_str:
+                        params_str = params_str.replace(
+                            "<project_name_1>", projects[0].get("name", "")
+                        )
+                    if projects and "<project_name_2>" in params_str:
+                        params_str = params_str.replace(
+                            "<project_name_2>",
+                            projects[1].get("name", "") if len(projects) > 1 else "",
+                        )
+                    if projects and "<project_name>" in params_str:
+                        params_str = params_str.replace(
+                            "<project_name>", projects[0].get("name", "")
+                        )
+
+                    # Replace task_title placeholders (semantic references)
+                    if tasks and "<task_title_1>" in params_str:
+                        params_str = params_str.replace(
+                            "<task_title_1>", tasks[0].get("title", "")
+                        )
+                    elif focus_task_id and "<task_title_1>" in params_str:
+                        # Try to get task title from focus task
+                        try:
+                            from presentation.api.repos import workroom
+
+                            focus_task = workroom.get_task(user_id, focus_task_id)
+                            params_str = params_str.replace(
+                                "<task_title_1>", focus_task.get("title", "")
+                            )
+                        except ValueError:
+                            params_str = params_str.replace(
+                                "<task_title_1>", "this task"
+                            )
+
+                    if tasks and len(tasks) > 1 and "<task_title_2>" in params_str:
+                        params_str = params_str.replace(
+                            "<task_title_2>", tasks[1].get("title", "")
                         )
 
                     if focus_action_id and "<action_id>" in params_str:
@@ -373,19 +432,35 @@ You can propose operations to create tasks, update task status, link actions to 
 Always respond with a JSON object containing an "operations" array.
 Each operation must have an "op" field and a "params" field.
 
+CRITICAL: Use semantic references (names, titles, "current project", "this task") instead of UUIDs or IDs.
+NEVER output UUIDs, IDs, or placeholders like "current_project_id". Use human-readable identifiers.
+
+Allowed enum values (adhere exactly):
+- priority: low | medium | high | urgent
+- task status: backlog | ready | doing | blocked | done | todo
+- action state: queued | deferred | completed | dismissed | converted_to_task
+If the user requests something outside these lists, ask for a valid option or choose the closest allowed value and mention the adjustment.
+
 Available operations:
 - chat: {"op": "chat", "params": {"message": "..."}}
-- create_task: {"op": "create_task", "params": {"title": "...", "project_id": "...", "description": "...", "priority": "...", "from_action_id": "..."}}
-- update_task_status: {"op": "update_task_status", "params": {"task_id": "...", "status": "backlog|doing|done|blocked"}}
-- link_action_to_task: {"op": "link_action_to_task", "params": {"action_id": "...", "task_id": "..."}}
-- update_action_state: {"op": "update_action_state", "params": {"action_id": "...", "state": "queued|deferred|completed|dismissed|converted_to_task", "defer_until": "...", "added_to_today": true/false}}
-- delete_project: {"op": "delete_project", "params": {"project_ids": ["id1", "id2", ...]}}
-- delete_task: {"op": "delete_task", "params": {"task_ids": ["id1", "id2", ...]}}
+- create_task: {"op": "create_task", "params": {"title": "...", "project": "project name or 'current project'", "description": "...", "priority": "low|medium|high|urgent", "from_action": "action preview"}}
+- update_task_status: {"op": "update_task_status", "params": {"task": "task title or 'this task'", "status": "backlog|ready|doing|blocked|done|todo"}}
+- link_action_to_task: {"op": "link_action_to_task", "params": {"action": "action preview", "task": "task title"}}
+- update_action_state: {"op": "update_action_state", "params": {"action": "action preview", "state": "queued|deferred|completed|dismissed|converted_to_task", "defer_until": "...", "added_to_today": true/false}}
+- delete_project: {"op": "delete_project", "params": {"projects": ["project name 1", "project name 2", ...]}}
+- delete_task: {"op": "delete_task", "params": {"tasks": ["task title 1", "task title 2", ...]}}
+
+Semantic reference rules:
+- For projects: Use the project name (e.g., "Launch Readiness") or "current project" if referring to the focus task's project
+- For tasks: Use the task title (e.g., "Finalize onboarding flow") or "this task" if referring to the focus task
+- For actions: Use the action preview/subject from the context
+- If context shows duplicate names, ask the user to clarify before proposing operations (e.g., "There are two tasks named 'Review Q4 metrics' - which one?")
 
 Important notes:
-- When deleting multiple items, use a single operation with a list of IDs (e.g., {"op": "delete_project", "params": {"project_ids": ["id1", "id2"]}})
+- When deleting multiple items, use a single operation with a list of names (e.g., {"op": "delete_project", "params": {"projects": ["Project A", "Project B"]}})
 - Deleting a project will also delete all tasks in that project (cascade deletion)
 - Deletion is soft delete (items are archived, not permanently removed)
+- Check the provided context for available projects, tasks, and actions before proposing operations
 
 Respond ONLY with JSON matching this schema:
 {
@@ -450,7 +525,42 @@ Context:
                                                         "update_action_state",
                                                     ],
                                                 },
-                                                "params": {"type": "object"},
+                                                "params": {
+                                                    "type": "object",
+                                                    "additionalProperties": True,
+                                                    "properties": {
+                                                        "priority": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "low",
+                                                                "medium",
+                                                                "high",
+                                                                "urgent",
+                                                            ],
+                                                        },
+                                                        "status": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "backlog",
+                                                                "ready",
+                                                                "doing",
+                                                                "blocked",
+                                                                "done",
+                                                                "todo",
+                                                            ],
+                                                        },
+                                                        "state": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "queued",
+                                                                "deferred",
+                                                                "completed",
+                                                                "dismissed",
+                                                                "converted_to_task",
+                                                            ],
+                                                        },
+                                                    },
+                                                },
                                             },
                                             "required": ["op", "params"],
                                         },
@@ -478,9 +588,10 @@ Context:
                 if tool_calls:
                     function_args = json.loads(tool_calls[0].function.arguments)
                     return parse_operations_response(function_args)
-            except Exception as e:
+            except RECOVERABLE_LLM_ERRORS:
                 logger.warning(
-                    f"Function calling failed, falling back to JSON mode: {e}"
+                    "Function calling failed, falling back to JSON mode",
+                    exc_info=True,
                 )
                 use_tools = False
 
@@ -502,11 +613,13 @@ Context:
                 return parse_operations_response(json_data)
 
             # If parsing failed, return empty
-            logger.warning(f"Failed to parse JSON from LLM response: {content[:200]}")
+            logger.warning(
+                "Failed to parse JSON from LLM response: %.200s", content or ""
+            )
             return []
 
-    except Exception as e:
-        logger.error(f"Error proposing operations: {e}", exc_info=True)
+    except RECOVERABLE_LLM_ERRORS:
+        logger.exception("Error proposing operations")
         return []
 
 

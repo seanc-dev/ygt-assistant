@@ -1,0 +1,83 @@
+{
+  "scenario": {
+    "name": "plan_today_buffers",
+    "mode": "mock",
+    "steps": [
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/actions/plan-today-v2",
+        "json": {},
+        "expect": {
+          "contains": [
+            "plan",
+            "Buffer",
+            "Focus"
+          ]
+        }
+      },
+      {
+        "action": "grade",
+        "rubric": {
+          "must_include": [
+            "Buffer",
+            "Focus"
+          ],
+          "disallow": [
+            "booked"
+          ]
+        }
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "Buffer",
+        "Focus"
+      ],
+      "must_not_contain": [
+        "booked"
+      ]
+    }
+  },
+  "transcript": {
+    "scenario": "plan_today_buffers",
+    "steps": [
+      {
+        "endpoint": "/actions/plan-today-v2",
+        "method": "POST",
+        "response": {
+          "plan": [
+            {
+              "time": "09:00",
+              "title": "Standup",
+              "kind": "meeting"
+            },
+            {
+              "time": "09:15",
+              "title": "Buffer",
+              "kind": "buffer"
+            },
+            {
+              "time": "10:00",
+              "title": "Client prep notes",
+              "kind": "prep"
+            },
+            {
+              "time": "11:00",
+              "title": "Focus block (energy: high)",
+              "kind": "focus"
+            },
+            {
+              "time": "12:30",
+              "title": "Buffer",
+              "kind": "buffer"
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "text": "{'plan': [{'time': '09:00', 'title': 'Standup', 'kind': 'meeting'}, {'time': '09:15', 'title': 'Buffer', 'kind': 'buffer'}, {'time': '10:00', 'title': 'Client prep notes', 'kind': 'prep'}, {'time': '11:00', 'title': 'Focus block (energy: high)', 'kind': 'focus'}, {'time': '12:30', 'title': 'Buffer', 'kind': 'buffer'}]}"
+  },
+  "ts": 1763353742.071527
+}

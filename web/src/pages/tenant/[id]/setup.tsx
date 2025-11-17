@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { api } from "../../../lib/api";
+import { buildApiUrl } from "../../../lib/apiBase";
 import { normalizeNotionIdFromString } from "../../../lib/notionId";
 import { Button } from "../../../components/Button";
 import { Field } from "../../../components/Form/Field";
@@ -52,7 +53,7 @@ type MessageState = { tone: "success" | "danger"; text: string } | null;
 
 async function apiGetSettings(tenantId: string) {
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_ADMIN_API_BASE}/admin/tenants/${tenantId}/settings`,
+    buildApiUrl(`/admin/tenants/${tenantId}/settings`),
     { credentials: "include" }
   );
   if (response.status === 401) {
@@ -183,15 +184,12 @@ export default function Setup() {
     setMessage(null);
     setIsSaving(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_ADMIN_API_BASE}/admin/tenants/${id}/settings`,
-        {
-          method: "PUT",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: form }),
-        }
-      );
+      const response = await fetch(buildApiUrl(`/admin/tenants/${id}/settings`), {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: form }),
+      });
       if (response.status === 401) {
         router.push("/login");
         return;
@@ -222,15 +220,12 @@ export default function Setup() {
     setMessage(null);
     setIsInviting(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_ADMIN_API_BASE}/admin/tenants/${id}/invite`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ to_email: form.client_email }),
-        }
-      );
+      const response = await fetch(buildApiUrl(`/admin/tenants/${id}/invite`), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to_email: form.client_email }),
+      });
       if (!response.ok) {
         const detail = await extractErrorDetail(response);
         throw new Error(
@@ -263,7 +258,7 @@ export default function Setup() {
     setIsIssuing(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_ADMIN_API_BASE}/admin/tenants/${id}/issue-credentials`,
+        buildApiUrl(`/admin/tenants/${id}/issue-credentials`),
         {
           method: "POST",
           credentials: "include",
@@ -295,10 +290,9 @@ export default function Setup() {
     setIsCheckingRules(true);
     try {
       let sampleText = "";
-      const sampleRes = await fetch(
-        `${process.env.NEXT_PUBLIC_ADMIN_API_BASE}/config/rules.sample.yaml`,
-        { credentials: "include" }
-      );
+      const sampleRes = await fetch(buildApiUrl("/config/rules.sample.yaml"), {
+        credentials: "include",
+      });
       if (sampleRes.ok) {
         sampleText = await sampleRes.text();
       } else if (sampleRes.status === 404) {
@@ -493,7 +487,7 @@ export default function Setup() {
                 href={
                   hasNotion
                     ? undefined
-                    : `${process.env.NEXT_PUBLIC_ADMIN_API_BASE}/connect?provider=notion&tenant_id=${id}`
+                    : buildApiUrl(`/connect?provider=notion&tenant_id=${id}`)
                 }
                 aria-disabled={hasNotion}
                 onClick={(e) => {
@@ -513,7 +507,9 @@ export default function Setup() {
                 href={
                   hasNylas
                     ? undefined
-                    : `${process.env.NEXT_PUBLIC_ADMIN_API_BASE}/oauth/nylas/start?provider=google&tenant_id=${id}`
+                    : buildApiUrl(
+                        `/oauth/nylas/start?provider=google&tenant_id=${id}`
+                      )
                 }
                 aria-disabled={hasNylas}
                 onClick={(e) => {

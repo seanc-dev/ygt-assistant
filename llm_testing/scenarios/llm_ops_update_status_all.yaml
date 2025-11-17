@@ -1,0 +1,53 @@
+name: llm_ops_update_status_all
+mode: mock
+steps:
+  - action: reset_state
+  - action: http
+    method: POST
+    url: /dev/workroom/seed
+    expect:
+      status: 200
+  - action: http
+    method: GET
+    url: /api/workroom/tree
+    expect:
+      status: 200
+    extract:
+      task_id: "tree.0.children.0.id"
+  - action: http
+    method: POST
+    url: /api/workroom/tasks/<task_id>/assistant-suggest
+    json:
+      message: "Mark this task as done"
+    expect:
+      status: 200
+      contains:
+        - "operations"
+  - action: http
+    method: POST
+    url: /api/workroom/tasks/<task_id>/assistant-suggest
+    json:
+      message: "Actually, set it to doing instead"
+    expect:
+      status: 200
+      contains:
+        - "operations"
+  - action: http
+    method: POST
+    url: /api/workroom/tasks/<task_id>/assistant-suggest
+    json:
+      message: "Change status back to todo"
+    expect:
+      status: 200
+      contains:
+        - "operations"
+expectations:
+  must_contain:
+    - "operations"
+  must_not_contain:
+    - "error"
+  function_calling:
+    check_operations: true
+    # Note: With fixtures, operations may vary. We validate structure, not specific ops.
+    snapshot_operations: "llm_ops_update_status_all_operations.json"
+

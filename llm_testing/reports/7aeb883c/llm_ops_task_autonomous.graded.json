@@ -1,0 +1,232 @@
+{
+  "evaluation": {
+    "scores": {
+      "factual": 0.0,
+      "clarity": 0.0,
+      "safety": 0.0
+    },
+    "ok": false,
+    "rationale": "snapshot_mismatch: --- stored\n+++ current\n@@ -9,7 +9,7 @@\n           \"approvals\": true,\n           \"history\": true,\n           \"queue\": true,\n-          \"settings\": true\n+          \"settings\": false\n         }\n       }\n",
+    "snapshot": {
+      "match": false,
+      "diff": "--- stored\n+++ current\n@@ -9,7 +9,7 @@\n           \"approvals\": true,\n           \"history\": true,\n           \"queue\": true,\n-          \"settings\": true\n+          \"settings\": false\n         }\n       }\n     },\n@@ -167,11 +167,11 @@\n           {\n             \"op\": \"create_task\",\n             \"params\": {\n-              \"title\": \"Follow up on product copy\",\n+              \"title\": \"Follow-up on product copy\",\n               \"project_id\": \"project_id_placeholder\",\n-              \"description\": \"Check in on the progress of the product copy and gather feedback.\",\n+              \"description\": \"Check the progress and make necessary adjustments to the product copy.\",\n               \"priority\": \"medium\",\n-              \"from_action_id\": \"action_id_placeholder\"\n+              \"from_action_id\": \"\"\n             }\n           }\n         ],\n@@ -182,22 +182,20 @@\n               \"task_id\": \"<uuid>\",\n               \"status\": \"doing\"\n             }\n+          },\n+          {\n+            \"op\": \"create_task\",\n+            \"params\": {\n+              \"title\": \"Follow-up on product copy\",\n+              \"project_id\": \"project_id_placeholder\",\n+              \"description\": \"Check the progress and make necessary adjustments to the product copy.\",\n+              \"priority\": \"medium\",\n+              \"from_action_id\": \"\"\n+            }\n           }\n         ],\n         \"pending\": [],\n-        \"errors\": [\n-          {\n-            \"op\": \"create_task\",\n-            \"params\": {\n-              \"title\": \"Follow up on product copy\",\n-              \"project_id\": \"project_id_placeholder\",\n-              \"description\": \"Check in on the progress of the product copy and gather feedback.\",\n-              \"priority\": \"medium\",\n-              \"from_action_id\": \"action_id_placeholder\"\n-            },\n-            \"error\": \"HTTP 404\"\n-          }\n-        ],\n+        \"errors\": [],\n         \"task\": {\n           \"id\": \"<uuid>\",\n           \"tenant_id\": \"<uuid>\",\n@@ -215,5 +213,5 @@\n       \"status\": 200\n     }\n   ],\n-  \"text\": \"{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': True}}\\n{'ok': True, 'projects': 2, 'tasks': 2, 'threads': 0}\\n{'ok': True, 'work_hours': {'start': '09:00', 'end': '17:00'}, 'time_zone': 'UTC', 'day_shape': {'morning_focus': True, 'focus_block_lengths_min': [90, 60], 'focus_block_max_minutes': 120, 'lunch_window': {'start': '12:00', 'end': '14:00', 'min_minutes': 45, 'max_minutes': 60}, 'meeting_avoid_windows': [{'start': '16:00', 'end': '23:59'}], 'buffer_minutes': {'min': 5, 'max': 10}}, 'translation': {'default': 'llm', 'fallback': 'azure', 'rules': {'outbound': 'auto', 'inbound': 'prompt', 'internal': 'off', 'external': 'auto'}}, 'trust_level': 'autonomous', 'ui_prefs': {'thread_open_behavior': 'new_tab', 'brief': {'weather': False, 'news': False, 'tone': 'neutral'}, 'hotkeys': {'approve': 'a', 'edit': 'e', 'defer': 'd', 'add_to_today': 't', 'open_workroom': 'o', 'collapse': 'Escape', 'kanban_toggle': 'Meta+k', 'settings': 'Meta+,'}}}\\n{'ok': True, 'tree': [{'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'status': 'doing', 'priority': 'high', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 1, 'metadata': {}, 'children': []}]}\\n{'ok': True, 'operations': [{'op': 'update_task_status', 'params': {'task_id': '<uuid>', 'status': 'doing'}}, {'op': 'create_task', 'params': {'title': 'Follow up on product copy', 'project_id': 'project_id_placeholder', 'description': 'Check in on the progress of the product copy and gather feedback.', 'priority': 'medium', 'from_action_id': 'action_id_placeholder'}}], 'applied': [{'op': 'update_task_status', 'params': {'task_id': '<uuid>', 'status': 'doing'}}], 'pending': [], 'errors': [{'op': 'create_task', 'params': {'title': 'Follow up on product copy', 'project_id': 'project_id_placeholder', 'description': 'Check in on the progress of the product copy and gather feedback.', 'priority': 'medium', 'from_action_id': 'action_id_placeholder'}, 'error': 'HTTP 404'}], 'task': {'id': '<uuid>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'children': []}}\"\n+  \"text\": \"{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': False}}\\n{'ok': True, 'projects': 2, 'tasks': 2, 'threads': 0}\\n{'ok': True, 'work_hours': {'start': '09:00', 'end': '17:00'}, 'time_zone': 'UTC', 'day_shape': {'morning_focus': True, 'focus_block_lengths_min': [90, 60], 'focus_block_max_minutes': 120, 'lunch_window': {'start': '12:00', 'end': '14:00', 'min_minutes': 45, 'max_minutes': 60}, 'meeting_avoid_windows': [{'start': '16:00', 'end': '23:59'}], 'buffer_minutes': {'min': 5, 'max': 10}}, 'translation': {'default': 'llm', 'fallback': 'azure', 'rules': {'outbound': 'auto', 'inbound': 'prompt', 'internal': 'off', 'external': 'auto'}}, 'trust_level': 'autonomous', 'ui_prefs': {'thread_open_behavior': 'new_tab', 'brief': {'weather': False, 'news': False, 'tone': 'neutral'}, 'hotkeys': {'approve': 'a', 'edit': 'e', 'defer': 'd', 'add_to_today': 't', 'open_workroom': 'o', 'collapse': 'Escape', 'kanban_toggle': 'Meta+k', 'settings': 'Meta+,'}}}\\n{'ok': True, 'tree': [{'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'status': 'doing', 'priority': 'high', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 1, 'metadata': {}, 'children': []}]}\\n{'ok': True, 'operations': [{'op': 'update_task_status', 'params': {'task_id': '<uuid>', 'status': 'doing'}}, {'op': 'create_task', 'params': {'title': 'Follow-up on product copy', 'project_id': 'project_id_placeholder', 'description': 'Check the progress and make necessary adjustments to the product copy.', 'priority': 'medium', 'from_action_id': ''}}], 'applied': [{'op': 'update_task_status', 'params': {'task_id': '<uuid>', 'status': 'doing'}}, {'op': 'create_task', 'params': {'title': 'Follow-up on product copy', 'project_id': 'project_id_placeholder', 'description': 'Check the progress and make necessary adjustments to the product copy.', 'priority': 'medium', 'from_action_id': ''}}], 'pending': [], 'errors': [], 'task': {'id': '<uuid>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'children': []}}\"\n }",
+      "normalized": {
+        "scenario": "llm_ops_task_autonomous",
+        "steps": [
+          {
+            "action": "reset_state",
+            "response": {
+              "ok": true,
+              "cleared": {
+                "approvals": true,
+                "history": true,
+                "queue": true,
+                "settings": false
+              }
+            }
+          },
+          {
+            "endpoint": "/dev/workroom/seed",
+            "method": "POST",
+            "response": {
+              "ok": true,
+              "projects": 2,
+              "tasks": 2,
+              "threads": 0
+            },
+            "status": 200
+          },
+          {
+            "endpoint": "/api/settings",
+            "method": "PUT",
+            "response": {
+              "ok": true,
+              "work_hours": {
+                "start": "09:00",
+                "end": "17:00"
+              },
+              "time_zone": "UTC",
+              "day_shape": {
+                "morning_focus": true,
+                "focus_block_lengths_min": [
+                  90,
+                  60
+                ],
+                "focus_block_max_minutes": 120,
+                "lunch_window": {
+                  "start": "12:00",
+                  "end": "14:00",
+                  "min_minutes": 45,
+                  "max_minutes": 60
+                },
+                "meeting_avoid_windows": [
+                  {
+                    "start": "16:00",
+                    "end": "23:59"
+                  }
+                ],
+                "buffer_minutes": {
+                  "min": 5,
+                  "max": 10
+                }
+              },
+              "translation": {
+                "default": "llm",
+                "fallback": "azure",
+                "rules": {
+                  "outbound": "auto",
+                  "inbound": "prompt",
+                  "internal": "off",
+                  "external": "auto"
+                }
+              },
+              "trust_level": "autonomous",
+              "ui_prefs": {
+                "thread_open_behavior": "new_tab",
+                "brief": {
+                  "weather": false,
+                  "news": false,
+                  "tone": "neutral"
+                },
+                "hotkeys": {
+                  "approve": "a",
+                  "edit": "e",
+                  "defer": "d",
+                  "add_to_today": "t",
+                  "open_workroom": "o",
+                  "collapse": "Escape",
+                  "kanban_toggle": "Meta+k",
+                  "settings": "Meta+,"
+                }
+              }
+            },
+            "status": 200
+          },
+          {
+            "endpoint": "/api/workroom/tree",
+            "method": "GET",
+            "response": {
+              "ok": true,
+              "tree": [
+                {
+                  "id": "<uuid>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Product Launch",
+                  "description": "Q4 product launch planning and execution",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 0,
+                  "metadata": {},
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Write product copy",
+                      "status": "ready",
+                      "priority": "medium",
+                      "order_index": 1,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    },
+                    {
+                      "id": "<uuid>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Design landing page",
+                      "status": "doing",
+                      "priority": "high",
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Marketing Campaign",
+                  "description": "Social media and email marketing campaign",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 1,
+                  "metadata": {},
+                  "children": []
+                }
+              ]
+            },
+            "status": 200
+          },
+          {
+            "endpoint": "/api/workroom/tasks/<uuid>/assistant-suggest",
+            "method": "POST",
+            "response": {
+              "ok": true,
+              "operations": [
+                {
+                  "op": "update_task_status",
+                  "params": {
+                    "task_id": "<uuid>",
+                    "status": "doing"
+                  }
+                },
+                {
+                  "op": "create_task",
+                  "params": {
+                    "title": "Follow-up on product copy",
+                    "project_id": "project_id_placeholder",
+                    "description": "Check the progress and make necessary adjustments to the product copy.",
+                    "priority": "medium",
+                    "from_action_id": ""
+                  }
+                }
+              ],
+              "applied": [
+                {
+                  "op": "update_task_status",
+                  "params": {
+                    "task_id": "<uuid>",
+                    "status": "doing"
+                  }
+                },
+                {
+                  "op": "create_task",
+                  "params": {
+                    "title": "Follow-up on product copy",
+                    "project_id": "project_id_placeholder",
+                    "description": "Check the progress and make necessary adjustments to the product copy.",
+                    "priority": "medium",
+                    "from_action_id": ""
+                  }
+                }
+              ],
+              "pending": [],
+              "errors": [],
+              "task": {
+                "id": "<uuid>",
+                "tenant_id": "<uuid>",
+                "project_id": "<uuid>",
+                "owner_id": "<uuid>",
+                "title": "Write product copy",
+                "status": "ready",
+                "priority": "medium",
+                "order_index": 1,
+                "source_type": "manual",
+                "source_ref": {},
+                "children": []
+              }
+            },
+            "status": 200
+          }
+        ],
+        "text": "{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': False}}\n{'ok': True, 'projects': 2, 'tasks': 2, 'threads': 0}\n{'ok': True, 'work_hours': {'start': '09:00', 'end': '17:00'}, 'time_zone': 'UTC', 'day_shape': {'morning_focus': True, 'focus_block_lengths_min': [90, 60], 'focus_block_max_minutes': 120, 'lunch_window': {'start': '12:00', 'end': '14:00', 'min_minutes': 45, 'max_minutes': 60}, 'meeting_avoid_windows': [{'start': '16:00', 'end': '23:59'}], 'buffer_minutes': {'min': 5, 'max': 10}}, 'translation': {'default': 'llm', 'fallback': 'azure', 'rules': {'outbound': 'auto', 'inbound': 'prompt', 'internal': 'off', 'external': 'auto'}}, 'trust_level': 'autonomous', 'ui_prefs': {'thread_open_behavior': 'new_tab', 'brief': {'weather': False, 'news': False, 'tone': 'neutral'}, 'hotkeys': {'approve': 'a', 'edit': 'e', 'defer': 'd', 'add_to_today': 't', 'open_workroom': 'o', 'collapse': 'Escape', 'kanban_toggle': 'Meta+k', 'settings': 'Meta+,'}}}\n{'ok': True, 'tree': [{'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'status': 'doing', 'priority': 'high', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 1, 'metadata': {}, 'children': []}]}\n{'ok': True, 'operations': [{'op': 'update_task_status', 'params': {'task_id': '<uuid>', 'status': 'doing'}}, {'op': 'create_task', 'params': {'title': 'Follow-up on product copy', 'project_id': 'project_id_placeholder', 'description': 'Check the progress and make necessary adjustments to the product copy.', 'priority': 'medium', 'from_action_id': ''}}], 'applied': [{'op': 'update_task_status', 'params': {'task_id': '<uuid>', 'status': 'doing'}}, {'op': 'create_task', 'params': {'title': 'Follow-up on product copy', 'project_id': 'project_id_placeholder', 'description': 'Check the progress and make necessary adjustments to the product copy.', 'priority': 'medium', 'from_action_id': ''}}], 'pending': [], 'errors': [], 'task': {'id': '<uuid>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'children': []}}"
+      }
+    }
+  }
+}

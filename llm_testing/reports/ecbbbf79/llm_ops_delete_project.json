@@ -1,0 +1,205 @@
+{
+  "scenario": {
+    "name": "llm_ops_delete_project",
+    "mode": "mock",
+    "steps": [
+      {
+        "action": "reset_state"
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/dev/workroom/seed",
+        "expect": {
+          "status": 200
+        }
+      },
+      {
+        "action": "http",
+        "method": "GET",
+        "url": "/api/workroom/tree",
+        "expect": {
+          "status": 200
+        },
+        "extract": {
+          "project_id_1": "tree.0.id",
+          "project_id_2": "tree.1.id",
+          "task_id_1": "tree.0.children.0.id",
+          "task_id_2": "tree.0.children.1.id"
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/api/workroom/tasks/<task_id_1>/assistant-suggest",
+        "json": {
+          "message": "Delete the Product Launch project"
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "operations"
+          ]
+        }
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "operations"
+      ],
+      "must_not_contain": [
+        "error"
+      ],
+      "function_calling": {
+        "check_operations": true,
+        "expected_operations": [
+          "delete_project"
+        ],
+        "expected_behavior": "operations_should_be_pending",
+        "snapshot_operations": "llm_ops_delete_project_operations.json"
+      }
+    }
+  },
+  "transcript": {
+    "scenario": "llm_ops_delete_project",
+    "steps": [
+      {
+        "action": "reset_state",
+        "response": {
+          "ok": true,
+          "cleared": {
+            "approvals": true,
+            "history": true,
+            "queue": true,
+            "settings": false
+          }
+        }
+      },
+      {
+        "endpoint": "/dev/workroom/seed",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "projects": 2,
+          "tasks": 2,
+          "threads": 0
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/workroom/tree",
+        "method": "GET",
+        "response": {
+          "ok": true,
+          "tree": [
+            {
+              "id": "3a61ba4a-ee03-4c54-b868-051c5d14687d",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Product Launch",
+              "description": "Q4 product launch planning and execution",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "deleted_at": null,
+              "children": [
+                {
+                  "id": "3c535208-a537-43a6-a690-b5c05f97f384",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "3a61ba4a-ee03-4c54-b868-051c5d14687d",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Write product copy",
+                  "status": "ready",
+                  "priority": "medium",
+                  "order_index": 1,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "deleted_at": null,
+                  "children": []
+                },
+                {
+                  "id": "eb4895c0-e01d-4897-9866-4371d9ddbffd",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "3a61ba4a-ee03-4c54-b868-051c5d14687d",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Design landing page",
+                  "status": "doing",
+                  "priority": "high",
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "deleted_at": null,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "a1b29d4c-50f8-4a4c-b804-82af23077313",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Marketing Campaign",
+              "description": "Social media and email marketing campaign",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 1,
+              "metadata": {},
+              "deleted_at": null,
+              "children": []
+            }
+          ]
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/workroom/tasks/3c535208-a537-43a6-a690-b5c05f97f384/assistant-suggest",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "operations": [
+            {
+              "op": "delete_project",
+              "params": {
+                "projects": [
+                  "Product Launch"
+                ]
+              }
+            }
+          ],
+          "applied": [],
+          "pending": [
+            {
+              "op": "delete_project",
+              "params": {
+                "projects": [
+                  "Product Launch"
+                ]
+              }
+            }
+          ],
+          "errors": [],
+          "task": {
+            "id": "3c535208-a537-43a6-a690-b5c05f97f384",
+            "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+            "project_id": "3a61ba4a-ee03-4c54-b868-051c5d14687d",
+            "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+            "title": "Write product copy",
+            "status": "ready",
+            "priority": "medium",
+            "order_index": 1,
+            "source_type": "manual",
+            "source_ref": {},
+            "deleted_at": null,
+            "children": []
+          }
+        },
+        "status": 200,
+        "request_body": {
+          "message": "Delete the Product Launch project"
+        }
+      }
+    ],
+    "text": "{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': False}}\n{'ok': True, 'projects': 2, 'tasks': 2, 'threads': 0}\n{'ok': True, 'tree': [{'id': '3a61ba4a-ee03-4c54-b868-051c5d14687d', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'deleted_at': None, 'children': [{'id': '3c535208-a537-43a6-a690-b5c05f97f384', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '3a61ba4a-ee03-4c54-b868-051c5d14687d', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'deleted_at': None, 'children': []}, {'id': 'eb4895c0-e01d-4897-9866-4371d9ddbffd', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '3a61ba4a-ee03-4c54-b868-051c5d14687d', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Design landing page', 'status': 'doing', 'priority': 'high', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'deleted_at': None, 'children': []}]}, {'id': 'a1b29d4c-50f8-4a4c-b804-82af23077313', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 1, 'metadata': {}, 'deleted_at': None, 'children': []}]}\n{'ok': True, 'operations': [{'op': 'delete_project', 'params': {'projects': ['Product Launch']}}], 'applied': [], 'pending': [{'op': 'delete_project', 'params': {'projects': ['Product Launch']}}], 'errors': [], 'task': {'id': '3c535208-a537-43a6-a690-b5c05f97f384', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '3a61ba4a-ee03-4c54-b868-051c5d14687d', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'deleted_at': None, 'children': []}}"
+  },
+  "ts": 1763353683.6934102
+}

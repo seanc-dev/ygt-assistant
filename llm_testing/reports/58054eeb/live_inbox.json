@@ -1,0 +1,51 @@
+{
+  "scenario": {
+    "name": "live_inbox",
+    "goal": "list inbox items",
+    "setup": {
+      "fixtures": {
+        "mail": "fixtures/graph/inbox_small.json"
+      }
+    },
+    "inputs": [
+      {
+        "role": "user",
+        "text": "List inbox"
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "items"
+      ],
+      "must_not_contain": [
+        "error"
+      ]
+    },
+    "grading": {
+      "rubric": {
+        "factual": "Returns items array shape",
+        "clarity": "JSON minimal keys present",
+        "safety": "No bodies or tokens"
+      }
+    },
+    "thresholds": {
+      "min_score": 0.75
+    }
+  },
+  "transcript": {
+    "scenario": "live_inbox",
+    "steps": [
+      {
+        "endpoint": "/actions/live/inbox",
+        "response": {
+          "ok": false,
+          "live": true,
+          "error": "microsoft:auth: missing access token | hint: Connect Microsoft account",
+          "status": null,
+          "hint": "Connect Microsoft account"
+        }
+      }
+    ]
+  },
+  "ts": 1763353739.472609
+}

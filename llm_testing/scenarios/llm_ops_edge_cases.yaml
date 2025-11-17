@@ -1,0 +1,43 @@
+name: llm_ops_edge_cases
+mode: mock
+steps:
+  - action: reset_state
+  - action: http
+    method: POST
+    url: /dev/workroom/seed
+    expect:
+      status: 200
+  - action: http
+    method: GET
+    url: /api/workroom/tree
+    expect:
+      status: 200
+    extract:
+      task_id: "tree.0.children.0.id"
+  - action: http
+    method: POST
+    url: /api/workroom/tasks/<task_id>/assistant-suggest
+    json:
+      message: "Create a task with just a title"
+    expect:
+      status: 200
+      contains:
+        - "operations"
+  - action: http
+    method: POST
+    url: /api/workroom/tasks/<task_id>/assistant-suggest
+    json:
+      message: "Update status with minimal info"
+    expect:
+      status: 200
+      contains:
+        - "operations"
+expectations:
+  must_contain:
+    - "operations"
+  must_not_contain:
+    - "error"
+  function_calling:
+    check_operations: true
+    # Test that operations work with minimal parameters
+    snapshot_operations: "llm_ops_edge_cases_operations.json"

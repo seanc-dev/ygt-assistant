@@ -393,6 +393,15 @@ async def assistant_suggest_for_action(
             raise HTTPException(status_code=400, detail="Either message or thread_id must be provided")
         input_messages = [body.message]
     
+    # Build context for resolution
+    from core.services.llm_context_builder import build_context_for_user
+    
+    context = build_context_for_user(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        focus_action_id=action_id,
+    )
+
     # Propose operations with aggregated messages
     operations = llm_service.propose_ops_for_user(
         tenant_id=tenant_id,
@@ -400,7 +409,7 @@ async def assistant_suggest_for_action(
         input_messages=input_messages,
         focus_action_id=action_id,
     )
-    
+
     # Convert to typed operations for executor
     from core.domain.llm_ops import validate_operation
     typed_ops = []
@@ -410,14 +419,15 @@ async def assistant_suggest_for_action(
             typed_ops.append(op)
         except ValueError as e:
             logger.warning(f"Invalid operation skipped: {e}")
-    
-    # Execute with trust gating
+
+    # Execute with trust gating and context for resolution
     result = execute_ops(
         typed_ops,
         tenant_id=tenant_id,
         user_id=user_id,
         trust_mode=trust_mode,
         thread_id=thread_id,
+        context=context,
     )
     
     # Refresh action item
@@ -490,13 +500,34 @@ async def assistant_approve_operation(
     except ValueError:
         thread_id = None
     
-    # Execute approved operation (bypasses trust gating)
+    # Build context for resolution
+    from core.services.llm_context_builder import build_context_for_user
+    
+    context = build_context_for_user(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        focus_action_id=action_id,
+    )
+    
+    # Execute approved operation (bypasses trust gating) with context
     result = execute_single_op_approved(
         op,
         tenant_id=tenant_id,
         user_id=user_id,
         thread_id=thread_id,
+        context=context,
     )
+    
+    # Check for duplicate errors and return 409 with stock message
+    if not result.get("ok") and result.get("stock_message"):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": result.get("error"),
+                "stock_message": result.get("stock_message"),
+                "operation": body.operation,
+            }
+        )
     
     # Refresh action
     try:

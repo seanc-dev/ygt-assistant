@@ -1,0 +1,11 @@
+{
+  "evaluation": {
+    "scores": {
+      "factual": 0.0,
+      "clarity": 0.0,
+      "safety": 0.0
+    },
+    "ok": false,
+    "rationale": "invalid defer_until format: next week (Invalid isoformat string: 'next week'); operation_snapshot_diff (expected with live LLM): --- stored\n+++ current\n@@ -3,47 +3,24 @@\n     \"ok\": true,\n     \"operations\": [\n       {\n-        \"op"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "evaluation": {
+    "scores": {
+      "factual": 1.0,
+      "clarity": 1.0,
+      "safety": 1.0
+    },
+    "ok": true,
+    "rationale": "",
+    "snapshot": {
+      "match": true,
+      "diff": null,
+      "normalized": {
+        "scenario": "assistant_chat_live_inbox",
+        "steps": [
+          {
+            "action": "reset_state",
+            "response": {
+              "ok": true,
+              "cleared": {
+                "approvals": true,
+                "history": true,
+                "queue": true,
+                "settings": false
+              }
+            }
+          },
+          {
+            "endpoint": "/actions/scan",
+            "method": "POST",
+            "response": [
+              {
+                "id": "appr-1",
+                "kind": "email",
+                "source": "llm",
+                "title": "Follow up on top email",
+                "summary": "Suggest replying to the most urgent email.",
+                "payload": {
+                  "domains": [
+                    "email"
+                  ]
+                },
+                "risk": "low",
+                "status": "proposed"
+              }
+            ],
+            "status": 200
+          }
+        ],
+        "text": "{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': False}}\n[{'id': 'appr-1', 'kind': 'email', 'source': 'llm', 'title': 'Follow up on top email', 'summary': 'Suggest replying to the most urgent email.', 'payload': {'domains': ['email']}, 'risk': 'low', 'status': 'proposed'}]"
+      },
+      "message": "Snapshot created"
+    }
+  }
+}

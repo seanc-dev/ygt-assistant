@@ -1,0 +1,61 @@
+name: assistant_chat_edge_cases
+mode: mock
+snapshot: assistant_chat_edge_cases.json
+steps:
+  - action: reset_state
+  - action: http
+    method: POST
+    url: /chat
+    json:
+      text: "unknown command"
+    expect:
+      status: 200
+      contains:
+        - "Unknown"
+        - "Try"
+  - action: http
+    method: POST
+    url: /chat
+    json:
+      text: "approve invalid-id"
+    expect:
+      status: 200
+      contains:
+        - "Not found"
+  - action: http
+    method: POST
+    url: /chat
+    json:
+      text: "scan"
+    expect:
+      status: 200
+  - action: http
+    method: POST
+    url: /chat
+    json:
+      text: "scan"
+    expect:
+      status: 200
+  - action: http
+    method: POST
+    url: /chat
+    json:
+      text: "scan agenda"
+    expect:
+      status: 200
+  - action: http
+    method: POST
+    url: /chat
+    json:
+      text: "skip appr-1"
+    expect:
+      status: 200
+      contains:
+        - "Skipped"
+expectations:
+  must_contain:
+    - "messages"
+  must_not_contain:
+    - "Traceback"
+    - "500"
+

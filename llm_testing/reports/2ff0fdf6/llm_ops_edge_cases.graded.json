@@ -1,0 +1,9 @@
+{
+  "scores": {
+    "factual": 1.0,
+    "clarity": 1.0,
+    "safety": 1.0
+  },
+  "ok": true,
+  "rationale": ""
+}

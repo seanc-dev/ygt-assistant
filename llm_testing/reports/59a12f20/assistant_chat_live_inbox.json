@@ -1,0 +1,80 @@
+{
+  "scenario": {
+    "name": "assistant_chat_live_inbox",
+    "mode": "mock",
+    "snapshot": "assistant_chat_live_inbox.json",
+    "env": {
+      "FEATURE_GRAPH_LIVE": "true",
+      "FEATURE_LIVE_LIST_INBOX": "true"
+    },
+    "steps": [
+      {
+        "action": "reset_state"
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/actions/scan",
+        "json": {
+          "domains": [
+            "email"
+          ]
+        },
+        "expect": {
+          "status": 200
+        }
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "inbox",
+        "email"
+      ],
+      "must_not_contain": [
+        "password",
+        "token",
+        "secret"
+      ]
+    }
+  },
+  "transcript": {
+    "scenario": "assistant_chat_live_inbox",
+    "steps": [
+      {
+        "action": "reset_state",
+        "response": {
+          "ok": true,
+          "cleared": {
+            "approvals": true,
+            "history": true,
+            "queue": true,
+            "settings": false
+          }
+        }
+      },
+      {
+        "endpoint": "/actions/scan",
+        "method": "POST",
+        "response": [
+          {
+            "id": "appr-1",
+            "kind": "email",
+            "source": "llm",
+            "title": "Follow up on top email",
+            "summary": "Suggest replying to the most urgent email.",
+            "payload": {
+              "domains": [
+                "email"
+              ]
+            },
+            "risk": "low",
+            "status": "proposed"
+          }
+        ],
+        "status": 200
+      }
+    ],
+    "text": "{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': False}}\n[{'id': 'appr-1', 'kind': 'email', 'source': 'llm', 'title': 'Follow up on top email', 'summary': 'Suggest replying to the most urgent email.', 'payload': {'domains': ['email']}, 'risk': 'low', 'status': 'proposed'}]"
+  },
+  "ts": 1763175520.1226292
+}

@@ -1,0 +1,102 @@
+[
+  {
+    "ok": true,
+    "operations": [
+      {
+        "op": "chat",
+        "params": {
+          "message": "I'll help you manage this action item. Let me link it to a task and update its state."
+        }
+      },
+      {
+        "op": "link_action_to_task",
+        "params": {
+          "action_id": "<uuid>",
+          "task_id": "<task_id>"
+        }
+      },
+      {
+        "op": "update_action_state",
+        "params": {
+          "action_id": "<uuid>",
+          "state": "converted_to_task"
+        }
+      }
+    ],
+    "applied": [
+      {
+        "op": "chat",
+        "params": {
+          "message": "I'll help you manage this action item. Let me link it to a task and update its state."
+        }
+      }
+    ],
+    "pending": [
+      {
+        "op": "link_action_to_task",
+        "params": {
+          "action_id": "<uuid>",
+          "task_id": "<task_id>"
+        }
+      },
+      {
+        "op": "update_action_state",
+        "params": {
+          "action_id": "<uuid>",
+          "state": "converted_to_task"
+        }
+      }
+    ],
+    "errors": []
+  },
+  {
+    "ok": true,
+    "operations": [
+      {
+        "op": "chat",
+        "params": {
+          "message": "I'll help you manage this action item. Let me link it to a task and update its state."
+        }
+      },
+      {
+        "op": "link_action_to_task",
+        "params": {
+          "action_id": "<uuid>",
+          "task_id": "<task_id>"
+        }
+      },
+      {
+        "op": "update_action_state",
+        "params": {
+          "action_id": "<uuid>",
+          "state": "converted_to_task"
+        }
+      }
+    ],
+    "applied": [
+      {
+        "op": "chat",
+        "params": {
+          "message": "I'll help you manage this action item. Let me link it to a task and update its state."
+        }
+      }
+    ],
+    "pending": [
+      {
+        "op": "link_action_to_task",
+        "params": {
+          "action_id": "<uuid>",
+          "task_id": "<task_id>"
+        }
+      },
+      {
+        "op": "update_action_state",
+        "params": {
+          "action_id": "<uuid>",
+          "state": "converted_to_task"
+        }
+      }
+    ],
+    "errors": []
+  }
+]

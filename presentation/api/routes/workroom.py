@@ -856,6 +856,15 @@ async def assistant_suggest_for_task(
             )
         input_messages = [body.message]
 
+    # Build context for resolution
+    from core.services.llm_context_builder import build_context_for_user
+
+    context = build_context_for_user(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        focus_task_id=task_id,
+    )
+
     # Propose operations with aggregated messages
     operations = llm_service.propose_ops_for_user(
         tenant_id=tenant_id,
@@ -875,13 +884,14 @@ async def assistant_suggest_for_task(
         except ValueError as e:
             logger.warning(f"Invalid operation skipped: {e}")
 
-    # Execute with trust gating
+    # Execute with trust gating and context for resolution
     result = execute_ops(
         typed_ops,
         tenant_id=tenant_id,
         user_id=user_id,
         trust_mode=trust_mode,
         thread_id=thread_id,
+        context=context,
     )
 
     # Refresh task
@@ -907,9 +917,17 @@ async def assistant_suggest_for_task(
         request_id=request_id,
     )
 
+    # Merge applied chat operations (e.g., error messages) into operations array
+    # for UI feedback and test compatibility
+    all_operations = list(operations)
+    for applied_op in result["applied"]:
+        # Add chat operations from executor (e.g., graceful degradation messages)
+        if applied_op.get("op") == "chat" and applied_op not in all_operations:
+            all_operations.append(applied_op)
+
     return {
         "ok": True,
-        "operations": operations,
+        "operations": all_operations,
         "applied": result["applied"],
         "pending": result["pending"],
         "errors": result["errors"],
@@ -937,7 +955,6 @@ async def assistant_approve_operation_for_task(
 
     # Validate operation
     try:
-        # Convert to dict if it's a Pydantic model
         operation_dict = body.operation
         if hasattr(operation_dict, "dict"):
             operation_dict = operation_dict.dict()
@@ -954,19 +971,47 @@ async def assistant_approve_operation_for_task(
     except ValueError:
         thread_id = None
 
-    # Execute approved operation (bypasses trust gating)
-    result = execute_single_op_approved(
-        op,
+    # Build context for resolution
+    from core.services.llm_context_builder import build_context_for_user
+
+    context = build_context_for_user(
         tenant_id=tenant_id,
         user_id=user_id,
-        thread_id=thread_id,
+        focus_task_id=task_id,
     )
 
-    # Refresh task
-    try:
-        refreshed_task = workroom_repo.get_task(user_id, task_id)
-    except ValueError:
-        refreshed_task = None
+    # Execute the approved operation with context
+    result = execute_single_op_approved(
+        op, tenant_id=tenant_id, user_id=user_id, thread_id=thread_id, context=context
+    )
+
+    # Check for duplicate errors and return 409 with stock message
+    if not result.get("ok") and result.get("stock_message"):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": result.get("error"),
+                "stock_message": result.get("stock_message"),
+                "operation": body.operation,
+            },
+        )
+
+    # Refresh task - if this was a create_task op, we need to get the newly created task
+    # Otherwise, refresh the focus task
+    refreshed_task = task
+    if result.get("ok") and op.op == "create_task":
+        # For create_task, the result should contain the created task_id
+        # But since we don't return it, we'll refresh the focus task
+        # TODO: Return created task_id from execute_single_op_approved
+        try:
+            refreshed_task = workroom_repo.get_task(user_id, task_id)
+        except ValueError:
+            pass
+    else:
+        try:
+            refreshed_task = workroom_repo.get_task(user_id, task_id)
+        except ValueError:
+            refreshed_task = task
 
     request_id = getattr(request.state, "request_id", None)
     audit_log.write_audit(
