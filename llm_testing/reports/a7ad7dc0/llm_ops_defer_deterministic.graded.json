@@ -1,0 +1,11 @@
+{
+  "evaluation": {
+    "scores": {
+      "factual": 0.0,
+      "clarity": 0.0,
+      "safety": 0.0
+    },
+    "ok": false,
+    "rationale": "defer_until date (2023-10-30) not in next week range (days_ahead: -747)"
+  }
+}

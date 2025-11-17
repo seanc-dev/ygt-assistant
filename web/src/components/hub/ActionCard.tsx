@@ -14,7 +14,7 @@ import {
   Clock24Regular,
   MoreHorizontal24Regular,
 } from "@fluentui/react-icons";
-import { InlineChat } from "./InlineChat";
+import { AssistantChat } from "./AssistantChat";
 
 type ActionCardProps = {
   item: {
@@ -28,6 +28,7 @@ type ActionCardProps = {
   onToggleExpand: (id: string) => void;
   expanded: boolean;
   selected?: boolean;
+  trustMode?: "training_wheels" | "supervised" | "autonomous";
   onDefer: (
     id: string,
     bucket: "afternoon" | "tomorrow" | "this_week" | "next_week"
@@ -79,6 +80,7 @@ export function ActionCard({
   onSchedule,
   onOpenSchedule,
   cardRef,
+  trustMode = "training_wheels",
 }: ActionCardProps) {
   const router = useRouter();
   const [openMenu, setOpenMenu] = useState<MenuType>(null);
@@ -809,10 +811,10 @@ export function ActionCard({
 
           {/* Content area */}
           <div
-            className="flex-1 min-h-0"
+            className="flex-1 min-h-0 relative"
             onClick={(e) => e.stopPropagation()}
           >
-            <InlineChat
+            <AssistantChat
               actionId={item.action_id}
               threadId={threadId}
               summary={item.preview}
@@ -824,6 +826,7 @@ export function ActionCard({
               onThreadCreated={handleThreadCreated}
               onOpenWorkroom={handleOpenInWorkroom}
               shouldFocus={expanded}
+              trustMode={trustMode}
             />
           </div>
         </div>

@@ -11,6 +11,7 @@ import {
   Text,
 } from "@ygt-assistant/ui";
 import { api } from "../lib/api";
+import { buildApiUrl } from "../lib/apiBase";
 import { Layout } from "../components/Layout";
 
 type Approval = {
@@ -50,13 +51,7 @@ export default function Home() {
       .then((res) => setApprovals((res || []).slice(0, 4)))
       .catch(() => setApprovals([]));
 
-    fetch(
-      `${
-        process.env.NEXT_PUBLIC_ADMIN_API_BASE ||
-        "https://api.ygt-assistant.com"
-      }/calendar/plan-today`,
-      { credentials: "include" }
-    )
+    fetch(buildApiUrl("/calendar/plan-today"), { credentials: "include" })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data) =>
         setFocusBlocks(
@@ -70,13 +65,11 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const apiBase =
-      process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000";
     const userId = "local-user";
 
     setConnection({ state: "loading" });
 
-    fetch(`${apiBase}/connections/ms/status`, { credentials: "include" })
+    fetch(buildApiUrl("/connections/ms/status"), { credentials: "include" })
       .then((res) => (res.ok ? res.json() : Promise.reject(res.statusText)))
       .then((data) => {
         if (data?.connected) {

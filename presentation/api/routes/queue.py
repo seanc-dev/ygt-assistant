@@ -4,14 +4,29 @@ from typing import Any, Dict, List, Optional
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import uuid
+import logging
+import asyncio
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel, Field
 from settings import DEFAULT_TZ
-from presentation.api.repos import user_settings, audit_log
+from presentation.api.repos import user_settings, audit_log, workroom
 from presentation.api.utils.defer import compute_defer_until
 from presentation.api.stores import proposed_blocks_store
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Thread-level lock to prevent concurrent assistant response generation
+_assistant_lock: Dict[str, asyncio.Lock] = {}
+_lock_lock = asyncio.Lock()  # Lock for managing the lock dictionary
+
+
+async def _get_thread_lock(thread_id: str) -> asyncio.Lock:
+    """Get or create a lock for a specific thread."""
+    async with _lock_lock:
+        if thread_id not in _assistant_lock:
+            _assistant_lock[thread_id] = asyncio.Lock()
+        return _assistant_lock[thread_id]
 
 
 def _get_user_id(request: Request) -> str:
@@ -63,6 +78,54 @@ async def get_queue(
     - offset: Offset for pagination (default: 0)
     - use_unified: If true, fetch from unified sources (default: false, uses queue_store)
     """
+    # If mock DB is available (for testing), use it
+    try:
+        from llm_testing.mock_db import get_mock_client
+        from presentation.api.repos.queue import _resolve_identity
+        
+        tenant_id, resolved_user_id = _resolve_identity(user_id)
+        mock_db = get_mock_client()
+        
+        # Get action items from mock DB
+        action_items = mock_db._tables.get("action_items", [])
+        # Filter by tenant and owner
+        user_items = [
+            item for item in action_items
+            if item.get("tenant_id") == tenant_id and item.get("owner_id") == resolved_user_id
+        ]
+        
+        # Convert to queue format
+        queue_items = []
+        for item in user_items:
+            queue_items.append({
+                "action_id": item["id"],
+                "source": item.get("source_type", "email"),
+                "category": "needs_response",
+                "priority": item.get("priority", "medium"),
+                "preview": item.get("payload", {}).get("preview", ""),
+                "created_at": item.get("created_at", datetime.now(timezone.utc).isoformat()),
+            })
+        
+        # Sort by priority and creation time
+        queue_items.sort(key=lambda x: (
+            {"high": 0, "medium": 1, "low": 2}.get(x.get("priority", "medium"), 1),
+            x.get("created_at", "")
+        ))
+        
+        total = len(queue_items)
+        items = queue_items[offset:offset + limit]
+        
+        return {
+            "ok": True,
+            "items": items,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        }
+    except (ImportError, AttributeError, RuntimeError):
+        # Mock DB not available - fall through to in-memory queue_store
+        pass
+    
     # If use_unified is true, fetch from unified sources
     if use_unified:
         try:
@@ -267,4 +330,399 @@ async def reply_action(
         "ok": True,
         "action_id": action_id,
         "draft_id": draft_id,
+    }
+
+
+class AssistantSuggestRequest(BaseModel):
+    message: Optional[str] = Field(None, description="User message to the assistant (deprecated, use thread_id)")
+    thread_id: Optional[str] = Field(None, description="Thread ID to aggregate pending messages from")
+
+
+@router.post("/api/queue/{action_id}/assistant-suggest")
+async def assistant_suggest_for_action(
+    action_id: str,
+    body: AssistantSuggestRequest,
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Get LLM-suggested operations for an action item.
+    
+    Resolves tenant_id + user_id, calls propose_ops_for_user with focus_action_id,
+    executes ops based on trust_mode, and returns operations, applied, pending.
+    """
+    from services import llm as llm_service
+    from core.services.llm_executor import execute_ops
+    from presentation.api.repos import user_settings, tasks
+    from presentation.api.repos.workroom import _resolve_identity
+    
+    # Resolve tenant_id
+    tenant_id, _ = _resolve_identity(user_id)
+    
+    # Get trust mode from settings
+    settings = user_settings.get_settings(user_id)
+    trust_mode = settings.get("trust_level", "training_wheels")
+    # Map legacy "standard" to "supervised"
+    if trust_mode == "standard":
+        trust_mode = "supervised"
+    
+    # Verify action exists
+    try:
+        action = tasks.get_action_item(user_id, action_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="action_not_found")
+    
+    # Get thread_id from action or request
+    thread_id = body.thread_id
+    if not thread_id and action.get("thread_id"):
+        thread_id = action["thread_id"]
+    
+    # Aggregate pending user messages if thread_id provided
+    input_messages = None
+    if thread_id:
+        # Acquire lock for this thread to prevent concurrent processing
+        thread_lock = await _get_thread_lock(thread_id)
+        async with thread_lock:
+            # Get pending user messages since last assistant response
+            pending_messages = workroom.get_pending_user_messages(thread_id, user_id)
+            if pending_messages:
+                input_messages = [msg.get("content", "") for msg in pending_messages]
+    
+    # Fallback to single message if no thread_id or no pending messages
+    if not input_messages:
+        if not body.message:
+            raise HTTPException(status_code=400, detail="Either message or thread_id must be provided")
+        input_messages = [body.message]
+    
+    # Build context for resolution
+    from core.services.llm_context_builder import build_context_for_user
+    
+    context = build_context_for_user(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        focus_action_id=action_id,
+    )
+
+    # Propose operations with aggregated messages
+    operations = llm_service.propose_ops_for_user(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        input_messages=input_messages,
+        focus_action_id=action_id,
+    )
+
+    # Convert to typed operations for executor
+    from core.domain.llm_ops import validate_operation
+    typed_ops = []
+    for op_dict in operations:
+        try:
+            op = validate_operation(op_dict)
+            typed_ops.append(op)
+        except ValueError as e:
+            logger.warning(f"Invalid operation skipped: {e}")
+
+    # Execute with trust gating and context for resolution
+    result = execute_ops(
+        typed_ops,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        trust_mode=trust_mode,
+        thread_id=thread_id,
+        context=context,
+    )
+    
+    # Refresh action item
+    try:
+        refreshed_action = tasks.get_action_item(user_id, action_id)
+    except ValueError:
+        refreshed_action = action
+    
+    request_id = getattr(request.state, "request_id", None)
+    
+    # Write audit log
+    audit_log.write_audit(
+        "assistant_suggest",
+        {
+            "action_id": action_id,
+            "user_id": user_id,
+            "thread_id": thread_id,
+            "message_count": len(input_messages),
+            "operations_count": len(operations),
+            "applied_count": len(result["applied"]),
+            "pending_count": len(result["pending"]),
+        },
+        request_id=request_id,
+    )
+    
+    return {
+        "ok": True,
+        "operations": operations,
+        "applied": result["applied"],
+        "pending": result["pending"],
+        "errors": result["errors"],
+        "action": refreshed_action,
+    }
+
+
+class ApproveOperationRequest(BaseModel):
+    operation: Dict[str, Any] = Field(..., description="Operation to approve")
+
+
+@router.post("/api/queue/{action_id}/assistant-approve")
+async def assistant_approve_operation(
+    action_id: str,
+    body: ApproveOperationRequest,
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Approve and execute a pending operation for an action item."""
+    from core.services.llm_executor import execute_single_op_approved
+    from core.domain.llm_ops import validate_operation
+    from presentation.api.repos.workroom import _resolve_identity
+    from presentation.api.repos import tasks
+    
+    tenant_id, _ = _resolve_identity(user_id)
+    
+    # Validate operation (convert to dict if it's a Pydantic model)
+    try:
+        operation_dict = body.operation
+        if hasattr(operation_dict, 'dict'):
+            operation_dict = operation_dict.dict()
+        elif hasattr(operation_dict, 'model_dump'):
+            operation_dict = operation_dict.model_dump()
+        op = validate_operation(operation_dict)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid operation: {e}")
+    
+    # Get thread_id from action
+    try:
+        action = tasks.get_action_item(user_id, action_id)
+        thread_id = action.get("thread_id")
+    except ValueError:
+        thread_id = None
+    
+    # Build context for resolution
+    from core.services.llm_context_builder import build_context_for_user
+    
+    context = build_context_for_user(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        focus_action_id=action_id,
+    )
+    
+    # Execute approved operation (bypasses trust gating) with context
+    result = execute_single_op_approved(
+        op,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        thread_id=thread_id,
+        context=context,
+    )
+    
+    # Check for duplicate errors and return 409 with stock message
+    if not result.get("ok") and result.get("stock_message"):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": result.get("error"),
+                "stock_message": result.get("stock_message"),
+                "operation": body.operation,
+            }
+        )
+    
+    # Refresh action
+    try:
+        refreshed_action = tasks.get_action_item(user_id, action_id)
+    except ValueError:
+        refreshed_action = None
+    
+    request_id = getattr(request.state, "request_id", None)
+    audit_log.write_audit(
+        "assistant_approve",
+        {
+            "action_id": action_id,
+            "operation": body.operation,
+            "result": result,
+        },
+        request_id=request_id,
+    )
+    
+    return {
+        "ok": result.get("ok", False),
+        "result": result,
+        "action": refreshed_action,
+    }
+
+
+class EditOperationRequest(BaseModel):
+    operation: Dict[str, Any] = Field(..., description="Original operation")
+    edited_params: Dict[str, Any] = Field(..., description="Edited parameters")
+
+
+@router.post("/api/queue/{action_id}/assistant-edit")
+async def assistant_edit_operation(
+    action_id: str,
+    body: EditOperationRequest,
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Edit and execute a pending operation for an action item."""
+    from core.services.llm_executor import execute_single_op_approved
+    from core.domain.llm_ops import validate_operation
+    from presentation.api.repos.workroom import _resolve_identity
+    from presentation.api.repos import tasks
+    
+    tenant_id, _ = _resolve_identity(user_id)
+    
+    # Create edited operation
+    edited_op_dict = {
+        "op": body.operation.get("op"),
+        "params": {**body.operation.get("params", {}), **body.edited_params},
+    }
+    
+    # Validate edited operation
+    try:
+        op = validate_operation(edited_op_dict)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid edited operation: {e}")
+    
+    # Get thread_id from action
+    try:
+        action = tasks.get_action_item(user_id, action_id)
+        thread_id = action.get("thread_id")
+    except ValueError:
+        thread_id = None
+    
+    # Execute edited operation
+    result = execute_single_op_approved(
+        op,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        thread_id=thread_id,
+    )
+    
+    # Refresh action
+    try:
+        refreshed_action = tasks.get_action_item(user_id, action_id)
+    except ValueError:
+        refreshed_action = None
+    
+    request_id = getattr(request.state, "request_id", None)
+    audit_log.write_audit(
+        "assistant_edit",
+        {
+            "action_id": action_id,
+            "original_operation": body.operation,
+            "edited_operation": edited_op_dict,
+            "result": result,
+        },
+        request_id=request_id,
+    )
+    
+    return {
+        "ok": result.get("ok", False),
+        "result": result,
+        "action": refreshed_action,
+    }
+
+
+class DeclineOperationRequest(BaseModel):
+    operation: Dict[str, Any] = Field(..., description="Operation to decline")
+
+
+@router.post("/api/queue/{action_id}/assistant-decline")
+async def assistant_decline_operation(
+    action_id: str,
+    body: DeclineOperationRequest,
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Decline a pending operation for an action item."""
+    from presentation.api.repos.workroom import _resolve_identity
+    from presentation.api.repos import tasks
+    
+    tenant_id, _ = _resolve_identity(user_id)
+    
+    # Just log the decline - no execution needed
+    request_id = getattr(request.state, "request_id", None)
+    audit_log.write_audit(
+        "assistant_decline",
+        {
+            "action_id": action_id,
+            "operation": body.operation,
+        },
+        request_id=request_id,
+    )
+    
+    # Refresh action
+    try:
+        refreshed_action = tasks.get_action_item(user_id, action_id)
+    except ValueError:
+        refreshed_action = None
+    
+    return {
+        "ok": True,
+        "action": refreshed_action,
+    }
+
+
+class UndoOperationRequest(BaseModel):
+    operation: Dict[str, Any] = Field(..., description="Operation to undo")
+    original_state: Optional[Dict[str, Any]] = Field(None, description="Original state before operation")
+
+
+@router.post("/api/queue/{action_id}/assistant-undo")
+async def assistant_undo_operation(
+    action_id: str,
+    body: UndoOperationRequest,
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Undo a previously applied operation for an action item."""
+    from core.services.llm_executor import undo_operation
+    from core.domain.llm_ops import validate_operation
+    from presentation.api.repos.workroom import _resolve_identity
+    from presentation.api.repos import tasks
+    
+    tenant_id, _ = _resolve_identity(user_id)
+    
+    # Validate operation (convert to dict if it's a Pydantic model)
+    try:
+        operation_dict = body.operation
+        if hasattr(operation_dict, 'dict'):
+            operation_dict = operation_dict.dict()
+        elif hasattr(operation_dict, 'model_dump'):
+            operation_dict = operation_dict.model_dump()
+        op = validate_operation(operation_dict)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid operation: {e}")
+    
+    # Undo operation
+    result = undo_operation(
+        op,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        original_state=body.original_state,
+    )
+    
+    # Refresh action
+    try:
+        refreshed_action = tasks.get_action_item(user_id, action_id)
+    except ValueError:
+        refreshed_action = None
+    
+    request_id = getattr(request.state, "request_id", None)
+    audit_log.write_audit(
+        "assistant_undo",
+        {
+            "action_id": action_id,
+            "operation": body.operation,
+            "result": result,
+        },
+        request_id=request_id,
+    )
+    
+    return {
+        "ok": result.get("ok", False),
+        "result": result,
+        "action": refreshed_action,
     }

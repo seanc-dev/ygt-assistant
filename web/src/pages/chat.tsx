@@ -11,6 +11,7 @@ import {
   Text,
 } from "@ygt-assistant/ui";
 import { api } from "../lib/api";
+import { buildApiUrl } from "../lib/apiBase";
 import { Layout } from "../components/Layout";
 import { Toast } from "../components/Toast";
 import { Textarea } from "../components/Form/Textarea";
@@ -68,16 +69,11 @@ export default function ChatPage() {
     setPending(true);
 
     try {
-      const res = await fetch(
-        `${
-          process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000"
-        }/chat`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
-        }
-      );
+      const res = await fetch(buildApiUrl("/chat"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
       const data = await res.json();
       const entries: TimelineEntry[] = [];
 

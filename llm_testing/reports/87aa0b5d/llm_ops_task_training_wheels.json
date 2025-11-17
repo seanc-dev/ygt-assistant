@@ -1,0 +1,1311 @@
+{
+  "scenario": {
+    "name": "llm_ops_task_training_wheels",
+    "mode": "mock",
+    "snapshot": "llm_ops_task_training_wheels.json",
+    "steps": [
+      {
+        "action": "reset_state"
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/dev/workroom/seed",
+        "expect": {
+          "status": 200,
+          "jsonpath": {
+            "ok": true
+          }
+        }
+      },
+      {
+        "action": "http",
+        "method": "PUT",
+        "url": "/api/settings",
+        "json": {
+          "trust_level": "training_wheels"
+        },
+        "expect": {
+          "status": 200
+        }
+      },
+      {
+        "action": "http",
+        "method": "GET",
+        "url": "/api/workroom/tree",
+        "expect": {
+          "status": 200
+        },
+        "extract": {
+          "task_id": "tree.0.children.0.id"
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/api/workroom/tasks/<task_id>/assistant-suggest",
+        "json": {
+          "message": "Can you help me update this task status and create a follow-up?"
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "operations",
+            "applied",
+            "pending"
+          ]
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/api/workroom/tasks/<task_id>/assistant-approve",
+        "json": {
+          "operation": {
+            "op": "update_task_status",
+            "params": {
+              "task_id": "<task_id>",
+              "status": "doing"
+            }
+          }
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "ok"
+          ]
+        }
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "operations",
+        "applied",
+        "pending"
+      ],
+      "must_not_contain": [
+        "error"
+      ]
+    }
+  },
+  "transcript": {
+    "scenario": "llm_ops_task_training_wheels",
+    "steps": [
+      {
+        "action": "reset_state",
+        "response": {
+          "ok": true,
+          "cleared": {
+            "approvals": true,
+            "history": true,
+            "queue": true,
+            "settings": false
+          }
+        }
+      },
+      {
+        "endpoint": "/dev/workroom/seed",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "projects": 2,
+          "tasks": 5,
+          "threads": 2
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/settings",
+        "method": "PUT",
+        "response": {
+          "ok": true,
+          "work_hours": {
+            "start": "09:00",
+            "end": "17:00"
+          },
+          "time_zone": "UTC",
+          "day_shape": {
+            "morning_focus": true,
+            "focus_block_lengths_min": [
+              90,
+              60
+            ],
+            "focus_block_max_minutes": 120,
+            "lunch_window": {
+              "start": "12:00",
+              "end": "14:00",
+              "min_minutes": 45,
+              "max_minutes": 60
+            },
+            "meeting_avoid_windows": [
+              {
+                "start": "16:00",
+                "end": "23:59"
+              }
+            ],
+            "buffer_minutes": {
+              "min": 5,
+              "max": 10
+            }
+          },
+          "translation": {
+            "default": "llm",
+            "fallback": "azure",
+            "rules": {
+              "outbound": "auto",
+              "inbound": "prompt",
+              "internal": "off",
+              "external": "auto"
+            }
+          },
+          "trust_level": "training_wheels",
+          "ui_prefs": {
+            "thread_open_behavior": "new_tab",
+            "brief": {
+              "weather": false,
+              "news": false,
+              "tone": "neutral"
+            },
+            "hotkeys": {
+              "approve": "a",
+              "edit": "e",
+              "defer": "d",
+              "add_to_today": "t",
+              "open_workroom": "o",
+              "collapse": "Escape",
+              "kanban_toggle": "Meta+k",
+              "settings": "Meta+,"
+            }
+          }
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/workroom/tree",
+        "method": "GET",
+        "response": {
+          "ok": true,
+          "tree": [
+            {
+              "id": "13f12897-8340-495e-a3db-3c331acb0cf0",
+              "created_at": "2025-11-14T03:34:18.66264+00:00",
+              "updated_at": "2025-11-14T03:34:18.66264+00:00",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Launch Readiness",
+              "description": "Prep work for LucidWork beta launch",
+              "status": "active",
+              "priority": "high",
+              "order_index": 0,
+              "metadata": {
+                "color": "blue"
+              },
+              "children": [
+                {
+                  "id": "9d63a861-eb14-43da-9122-981294bb77d2",
+                  "created_at": "2025-11-14T03:34:18.66264+00:00",
+                  "updated_at": "2025-11-15T02:39:13.459037+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "13f12897-8340-495e-a3db-3c331acb0cf0",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Finalize onboarding flow",
+                  "description": "Tighten copy and task doc before rollout.",
+                  "status": "doing",
+                  "priority": "urgent",
+                  "due_at": "2025-11-19T03:34:18.66264+00:00",
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": [
+                    {
+                      "id": "30b39ca3-a8f6-4ea8-8e51-e13a59f03917",
+                      "created_at": "2025-11-14T03:37:15.76755+00:00",
+                      "updated_at": "2025-11-15T02:34:49.703227+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "9d63a861-eb14-43da-9122-981294bb77d2",
+                      "source_action_id": null,
+                      "title": "Chat 2",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": "2025-11-15T02:34:49.703227+00:00",
+                      "prefs": {},
+                      "context_refs": [],
+                      "status": "open",
+                      "messages": []
+                    },
+                    {
+                      "id": "7eb116f3-5afd-46c8-af21-92d74615dbf6",
+                      "created_at": "2025-11-15T02:02:56.083711+00:00",
+                      "updated_at": "2025-11-15T02:05:23.324264+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "9d63a861-eb14-43da-9122-981294bb77d2",
+                      "source_action_id": null,
+                      "title": "Chat 3",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": "2025-11-15T02:05:23.324264+00:00",
+                      "prefs": {},
+                      "context_refs": [],
+                      "status": "open",
+                      "messages": []
+                    },
+                    {
+                      "id": "b2a4b0e0-cff8-4a30-a2dc-9eb99ca8c7a1",
+                      "created_at": "2025-11-14T03:34:18.66264+00:00",
+                      "updated_at": "2025-11-14T03:38:41.434259+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "9d63a861-eb14-43da-9122-981294bb77d2",
+                      "source_action_id": null,
+                      "title": "Inline chat polish",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": "2025-11-14T03:38:41.434259+00:00",
+                      "prefs": {},
+                      "context_refs": [],
+                      "status": "open",
+                      "messages": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "86be9167-5d7e-4c76-9ef2-f8f02bbb2cb1",
+              "created_at": "2025-11-14T03:34:31.626986+00:00",
+              "updated_at": "2025-11-14T03:34:31.626986+00:00",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "UI QA Project",
+              "description": "Temporary project to verify chat UI against live Supabase data",
+              "status": "active",
+              "priority": "high",
+              "order_index": 0,
+              "metadata": {
+                "source": "manual-test"
+              },
+              "children": [
+                {
+                  "id": "2922d462-2f30-4555-b473-de6408ac3a9e",
+                  "created_at": "2025-11-14T03:34:31.767275+00:00",
+                  "updated_at": "2025-11-14T03:34:31.767275+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "86be9167-5d7e-4c76-9ef2-f8f02bbb2cb1",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Inline chat smoke test",
+                  "description": "Use this task/thread to validate scroll + typing behaviour",
+                  "status": "ready",
+                  "priority": "urgent",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {
+                    "ticket": "UI-qa"
+                  },
+                  "children": [
+                    {
+                      "id": "db345c4f-e6cf-4ae2-8523-ec330d6f1efa",
+                      "created_at": "2025-11-14T03:34:31.923572+00:00",
+                      "updated_at": "2025-11-14T03:34:32.072754+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "2922d462-2f30-4555-b473-de6408ac3a9e",
+                      "source_action_id": null,
+                      "title": "UI verification thread",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": "2025-11-14T03:34:32.072754+00:00",
+                      "prefs": {
+                        "typing": "staged"
+                      },
+                      "context_refs": [
+                        "seed:ui"
+                      ],
+                      "status": "open",
+                      "messages": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "ce12dfca-7cdf-4015-976f-c3be14068ba6",
+              "created_at": "2025-11-15T02:38:31.527477+00:00",
+              "updated_at": "2025-11-15T02:38:31.527477+00:00",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Product Launch",
+              "description": "Q4 product launch planning and execution",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "children": [
+                {
+                  "id": "6177379e-145f-4146-80ee-0736e89196eb",
+                  "created_at": "2025-11-15T02:38:32.858313+00:00",
+                  "updated_at": "2025-11-15T02:38:32.858313+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "ce12dfca-7cdf-4015-976f-c3be14068ba6",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Set up analytics",
+                  "description": null,
+                  "status": "backlog",
+                  "priority": "low",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                },
+                {
+                  "id": "89f270e4-de70-43ec-8b52-7f59091b57dd",
+                  "created_at": "2025-11-15T02:38:32.516919+00:00",
+                  "updated_at": "2025-11-15T02:38:32.516919+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "ce12dfca-7cdf-4015-976f-c3be14068ba6",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Write product copy",
+                  "description": null,
+                  "status": "ready",
+                  "priority": "medium",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": [
+                    {
+                      "id": "6aa038a2-1911-40e9-936e-a49f5901d9a5",
+                      "created_at": "2025-11-15T02:38:34.125765+00:00",
+                      "updated_at": "2025-11-15T02:38:34.125765+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "89f270e4-de70-43ec-8b52-7f59091b57dd",
+                      "source_action_id": null,
+                      "title": "Copy review",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": null,
+                      "prefs": {},
+                      "context_refs": [],
+                      "status": "open",
+                      "messages": []
+                    }
+                  ]
+                },
+                {
+                  "id": "829c9dfd-d90e-4d06-903c-18e8ee4e94bf",
+                  "created_at": "2025-11-15T02:38:32.167529+00:00",
+                  "updated_at": "2025-11-15T02:38:32.167529+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "ce12dfca-7cdf-4015-976f-c3be14068ba6",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Design landing page",
+                  "description": null,
+                  "status": "doing",
+                  "priority": "high",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": [
+                    {
+                      "id": "a9b3e19a-568f-4ba7-b10f-3f0ad051792a",
+                      "created_at": "2025-11-15T02:38:33.84098+00:00",
+                      "updated_at": "2025-11-15T02:38:34.968063+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "829c9dfd-d90e-4d06-903c-18e8ee4e94bf",
+                      "source_action_id": null,
+                      "title": "Design discussion",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": "2025-11-15T02:38:34.968063+00:00",
+                      "prefs": {},
+                      "context_refs": [],
+                      "status": "open",
+                      "messages": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "17011620-d280-4533-aabc-ea770aeacefa",
+              "created_at": "2025-11-15T02:38:31.842488+00:00",
+              "updated_at": "2025-11-15T02:38:31.842488+00:00",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Marketing Campaign",
+              "description": "Social media and email marketing campaign",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "children": [
+                {
+                  "id": "f9d80aee-5b48-4188-b2bd-bbd4df115303",
+                  "created_at": "2025-11-15T02:38:33.539616+00:00",
+                  "updated_at": "2025-11-15T02:38:33.539616+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "17011620-d280-4533-aabc-ea770aeacefa",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Schedule social posts",
+                  "description": null,
+                  "status": "blocked",
+                  "priority": "medium",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                },
+                {
+                  "id": "80b447f2-39aa-4cd4-ba11-4a8406c52e86",
+                  "created_at": "2025-11-15T02:38:33.221758+00:00",
+                  "updated_at": "2025-11-15T02:38:33.221758+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "17011620-d280-4533-aabc-ea770aeacefa",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Create email templates",
+                  "description": null,
+                  "status": "doing",
+                  "priority": "high",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "926531c7-2c27-40eb-aceb-affd4abd5f83",
+              "created_at": "2025-11-15T02:38:40.617696+00:00",
+              "updated_at": "2025-11-15T02:38:40.617696+00:00",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Product Launch",
+              "description": "Q4 product launch planning and execution",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "children": [
+                {
+                  "id": "80648304-0e06-4f48-8f32-a2533c2041f5",
+                  "created_at": "2025-11-15T02:38:42.057365+00:00",
+                  "updated_at": "2025-11-15T02:38:42.057365+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "926531c7-2c27-40eb-aceb-affd4abd5f83",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Set up analytics",
+                  "description": null,
+                  "status": "backlog",
+                  "priority": "low",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                },
+                {
+                  "id": "2f58041a-cbf1-4360-bb8d-fa590511d56a",
+                  "created_at": "2025-11-15T02:38:41.72954+00:00",
+                  "updated_at": "2025-11-15T02:38:41.72954+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "926531c7-2c27-40eb-aceb-affd4abd5f83",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Write product copy",
+                  "description": null,
+                  "status": "ready",
+                  "priority": "medium",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": [
+                    {
+                      "id": "4ee977db-1d31-419d-a4e0-bc6634d71c4e",
+                      "created_at": "2025-11-15T02:38:43.225065+00:00",
+                      "updated_at": "2025-11-15T02:38:43.225065+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "2f58041a-cbf1-4360-bb8d-fa590511d56a",
+                      "source_action_id": null,
+                      "title": "Copy review",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": null,
+                      "prefs": {},
+                      "context_refs": [],
+                      "status": "open",
+                      "messages": []
+                    }
+                  ]
+                },
+                {
+                  "id": "67391c32-aa1a-40ba-b343-4eeb8664f6f9",
+                  "created_at": "2025-11-15T02:38:41.422385+00:00",
+                  "updated_at": "2025-11-15T02:38:41.422385+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "926531c7-2c27-40eb-aceb-affd4abd5f83",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Design landing page",
+                  "description": null,
+                  "status": "doing",
+                  "priority": "high",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": [
+                    {
+                      "id": "662050d8-fdf1-45cb-9c89-2673baae7d1b",
+                      "created_at": "2025-11-15T02:38:42.941459+00:00",
+                      "updated_at": "2025-11-15T02:38:44.078466+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "67391c32-aa1a-40ba-b343-4eeb8664f6f9",
+                      "source_action_id": null,
+                      "title": "Design discussion",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": "2025-11-15T02:38:44.078466+00:00",
+                      "prefs": {},
+                      "context_refs": [],
+                      "status": "open",
+                      "messages": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "ccbeeca5-053c-473b-991c-6d8ed75ff185",
+              "created_at": "2025-11-15T02:38:41.115432+00:00",
+              "updated_at": "2025-11-15T02:38:41.115432+00:00",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Marketing Campaign",
+              "description": "Social media and email marketing campaign",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "children": [
+                {
+                  "id": "8cb165d4-04ba-481b-9819-2641cc4b3c6a",
+                  "created_at": "2025-11-15T02:38:42.610953+00:00",
+                  "updated_at": "2025-11-15T02:38:42.610953+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "ccbeeca5-053c-473b-991c-6d8ed75ff185",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Schedule social posts",
+                  "description": null,
+                  "status": "blocked",
+                  "priority": "medium",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                },
+                {
+                  "id": "07d670dc-b010-4dd1-a9c9-85fe83398cb9",
+                  "created_at": "2025-11-15T02:38:42.336378+00:00",
+                  "updated_at": "2025-11-15T02:38:42.336378+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "ccbeeca5-053c-473b-991c-6d8ed75ff185",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Create email templates",
+                  "description": null,
+                  "status": "doing",
+                  "priority": "high",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "ed781cb0-0ff8-4f0a-8edc-8e8911ee38ca",
+              "created_at": "2025-11-15T02:38:56.98381+00:00",
+              "updated_at": "2025-11-15T02:38:56.98381+00:00",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Product Launch",
+              "description": "Q4 product launch planning and execution",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "children": [
+                {
+                  "id": "b7503bc7-b00c-4d0a-8ae6-cc2157b900e9",
+                  "created_at": "2025-11-15T02:38:58.212444+00:00",
+                  "updated_at": "2025-11-15T02:38:58.212444+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "ed781cb0-0ff8-4f0a-8edc-8e8911ee38ca",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Set up analytics",
+                  "description": null,
+                  "status": "backlog",
+                  "priority": "low",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                },
+                {
+                  "id": "d3851742-7638-46f5-87e1-67c4a376dae6",
+                  "created_at": "2025-11-15T02:38:57.897029+00:00",
+                  "updated_at": "2025-11-15T02:38:57.897029+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "ed781cb0-0ff8-4f0a-8edc-8e8911ee38ca",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Write product copy",
+                  "description": null,
+                  "status": "ready",
+                  "priority": "medium",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": [
+                    {
+                      "id": "b9a0cf48-9adc-4e22-a857-048680053c6d",
+                      "created_at": "2025-11-15T02:38:59.371032+00:00",
+                      "updated_at": "2025-11-15T02:38:59.371032+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "d3851742-7638-46f5-87e1-67c4a376dae6",
+                      "source_action_id": null,
+                      "title": "Copy review",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": null,
+                      "prefs": {},
+                      "context_refs": [],
+                      "status": "open",
+                      "messages": []
+                    }
+                  ]
+                },
+                {
+                  "id": "e5394bff-e2fb-418f-a5cd-6a15f37c4c17",
+                  "created_at": "2025-11-15T02:38:57.595777+00:00",
+                  "updated_at": "2025-11-15T02:38:57.595777+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "ed781cb0-0ff8-4f0a-8edc-8e8911ee38ca",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Design landing page",
+                  "description": null,
+                  "status": "doing",
+                  "priority": "high",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": [
+                    {
+                      "id": "378a57a8-75e0-49b9-b6ee-9bf0cbef138b",
+                      "created_at": "2025-11-15T02:38:59.068174+00:00",
+                      "updated_at": "2025-11-15T02:39:00.330296+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "e5394bff-e2fb-418f-a5cd-6a15f37c4c17",
+                      "source_action_id": null,
+                      "title": "Design discussion",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": "2025-11-15T02:39:00.330296+00:00",
+                      "prefs": {},
+                      "context_refs": [],
+                      "status": "open",
+                      "messages": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "0e78e03e-dae2-4d6f-8c3c-42f747131d29",
+              "created_at": "2025-11-15T02:38:57.305631+00:00",
+              "updated_at": "2025-11-15T02:38:57.305631+00:00",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Marketing Campaign",
+              "description": "Social media and email marketing campaign",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "children": [
+                {
+                  "id": "808e41bb-755e-4392-91ed-efa4e14aded5",
+                  "created_at": "2025-11-15T02:38:58.799413+00:00",
+                  "updated_at": "2025-11-15T02:38:58.799413+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "0e78e03e-dae2-4d6f-8c3c-42f747131d29",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Schedule social posts",
+                  "description": null,
+                  "status": "blocked",
+                  "priority": "medium",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                },
+                {
+                  "id": "94f04120-8756-46e0-98fd-fb1da8d22d32",
+                  "created_at": "2025-11-15T02:38:58.487374+00:00",
+                  "updated_at": "2025-11-15T02:38:58.487374+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "0e78e03e-dae2-4d6f-8c3c-42f747131d29",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Create email templates",
+                  "description": null,
+                  "status": "doing",
+                  "priority": "high",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "d2369c45-65cb-462c-817e-30cb8bdc5cc0",
+              "created_at": "2025-11-15T02:39:07.029759+00:00",
+              "updated_at": "2025-11-15T02:39:07.029759+00:00",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Product Launch",
+              "description": "Q4 product launch planning and execution",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "children": [
+                {
+                  "id": "c32a47dc-52d9-42b7-b836-31d8b130f9b6",
+                  "created_at": "2025-11-15T02:39:08.189157+00:00",
+                  "updated_at": "2025-11-15T02:39:08.189157+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "d2369c45-65cb-462c-817e-30cb8bdc5cc0",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Set up analytics",
+                  "description": null,
+                  "status": "backlog",
+                  "priority": "low",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                },
+                {
+                  "id": "47b6027a-310b-42b0-8bfb-1ed38041ca83",
+                  "created_at": "2025-11-15T02:39:07.907852+00:00",
+                  "updated_at": "2025-11-15T02:39:07.907852+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "d2369c45-65cb-462c-817e-30cb8bdc5cc0",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Write product copy",
+                  "description": null,
+                  "status": "ready",
+                  "priority": "medium",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": [
+                    {
+                      "id": "a2eea582-f6eb-40f4-bcdc-7e8d651d78a1",
+                      "created_at": "2025-11-15T02:39:09.343588+00:00",
+                      "updated_at": "2025-11-15T02:39:09.343588+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "47b6027a-310b-42b0-8bfb-1ed38041ca83",
+                      "source_action_id": null,
+                      "title": "Copy review",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": null,
+                      "prefs": {},
+                      "context_refs": [],
+                      "status": "open",
+                      "messages": []
+                    }
+                  ]
+                },
+                {
+                  "id": "0ac78539-83fb-483b-8f98-628f762b32c8",
+                  "created_at": "2025-11-15T02:39:07.659555+00:00",
+                  "updated_at": "2025-11-15T02:39:07.659555+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "d2369c45-65cb-462c-817e-30cb8bdc5cc0",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Design landing page",
+                  "description": null,
+                  "status": "doing",
+                  "priority": "high",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": [
+                    {
+                      "id": "7df9f5b4-bcbd-46de-8470-885a5f277132",
+                      "created_at": "2025-11-15T02:39:09.014175+00:00",
+                      "updated_at": "2025-11-15T02:39:10.248685+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "0ac78539-83fb-483b-8f98-628f762b32c8",
+                      "source_action_id": null,
+                      "title": "Design discussion",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": "2025-11-15T02:39:10.248685+00:00",
+                      "prefs": {},
+                      "context_refs": [],
+                      "status": "open",
+                      "messages": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "5df75425-31fb-4b07-a811-1884ee02acd7",
+              "created_at": "2025-11-15T02:39:07.37628+00:00",
+              "updated_at": "2025-11-15T02:39:07.37628+00:00",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Marketing Campaign",
+              "description": "Social media and email marketing campaign",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "children": [
+                {
+                  "id": "9d21c690-1946-427e-a242-9bbe8ce1a751",
+                  "created_at": "2025-11-15T02:39:08.723016+00:00",
+                  "updated_at": "2025-11-15T02:39:08.723016+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "5df75425-31fb-4b07-a811-1884ee02acd7",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Schedule social posts",
+                  "description": null,
+                  "status": "blocked",
+                  "priority": "medium",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                },
+                {
+                  "id": "db665a44-b6c7-44be-af99-2ebe239f6017",
+                  "created_at": "2025-11-15T02:39:08.442712+00:00",
+                  "updated_at": "2025-11-15T02:39:08.442712+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "5df75425-31fb-4b07-a811-1884ee02acd7",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Create email templates",
+                  "description": null,
+                  "status": "doing",
+                  "priority": "high",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "65c027b2-14e7-4340-9702-bc9dd517d0ea",
+              "created_at": "2025-11-15T02:57:04.721635+00:00",
+              "updated_at": "2025-11-15T02:57:04.721635+00:00",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Product Launch",
+              "description": "Q4 product launch planning and execution",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "children": [
+                {
+                  "id": "9e728a70-9595-4e0c-9a28-b8d7ffae06ea",
+                  "created_at": "2025-11-15T02:57:05.774363+00:00",
+                  "updated_at": "2025-11-15T02:57:05.774363+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "65c027b2-14e7-4340-9702-bc9dd517d0ea",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Set up analytics",
+                  "description": null,
+                  "status": "backlog",
+                  "priority": "low",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                },
+                {
+                  "id": "5c73e061-ea60-43ca-88dd-4047d5b64fac",
+                  "created_at": "2025-11-15T02:57:05.540295+00:00",
+                  "updated_at": "2025-11-15T02:57:05.540295+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "65c027b2-14e7-4340-9702-bc9dd517d0ea",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Write product copy",
+                  "description": null,
+                  "status": "ready",
+                  "priority": "medium",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": [
+                    {
+                      "id": "f3956bbe-54f4-4006-8517-732e7bfe5cc4",
+                      "created_at": "2025-11-15T02:57:06.779987+00:00",
+                      "updated_at": "2025-11-15T02:57:06.779987+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "5c73e061-ea60-43ca-88dd-4047d5b64fac",
+                      "source_action_id": null,
+                      "title": "Copy review",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": null,
+                      "prefs": {},
+                      "context_refs": [],
+                      "status": "open",
+                      "messages": []
+                    }
+                  ]
+                },
+                {
+                  "id": "f5776117-396c-480e-9db9-391b6370d4db",
+                  "created_at": "2025-11-15T02:57:05.280786+00:00",
+                  "updated_at": "2025-11-15T02:57:05.280786+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "65c027b2-14e7-4340-9702-bc9dd517d0ea",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Design landing page",
+                  "description": null,
+                  "status": "doing",
+                  "priority": "high",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": [
+                    {
+                      "id": "7d887d2e-da71-4641-8534-f7c8fe401b5c",
+                      "created_at": "2025-11-15T02:57:06.528479+00:00",
+                      "updated_at": "2025-11-15T02:57:07.602837+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "f5776117-396c-480e-9db9-391b6370d4db",
+                      "source_action_id": null,
+                      "title": "Design discussion",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": "2025-11-15T02:57:07.602837+00:00",
+                      "prefs": {},
+                      "context_refs": [],
+                      "status": "open",
+                      "messages": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "b20394c0-d8c0-4636-b679-60f578949a24",
+              "created_at": "2025-11-15T02:57:05.018731+00:00",
+              "updated_at": "2025-11-15T02:57:05.018731+00:00",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Marketing Campaign",
+              "description": "Social media and email marketing campaign",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "children": [
+                {
+                  "id": "1368c311-eb74-4119-87ee-b92cdb965992",
+                  "created_at": "2025-11-15T02:57:06.289748+00:00",
+                  "updated_at": "2025-11-15T02:57:06.289748+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "b20394c0-d8c0-4636-b679-60f578949a24",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Schedule social posts",
+                  "description": null,
+                  "status": "blocked",
+                  "priority": "medium",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                },
+                {
+                  "id": "338b8118-0b3c-4c3e-9ba1-3bd1d70b6499",
+                  "created_at": "2025-11-15T02:57:06.020447+00:00",
+                  "updated_at": "2025-11-15T02:57:06.020447+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "b20394c0-d8c0-4636-b679-60f578949a24",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Create email templates",
+                  "description": null,
+                  "status": "doing",
+                  "priority": "high",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "b8434e33-f777-45c5-9cea-c697e1c6b805",
+              "created_at": "2025-11-15T02:57:31.645472+00:00",
+              "updated_at": "2025-11-15T02:57:31.645472+00:00",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Product Launch",
+              "description": "Q4 product launch planning and execution",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "children": [
+                {
+                  "id": "ef05be54-5350-4af0-af16-8807de91e5f9",
+                  "created_at": "2025-11-15T02:57:32.735407+00:00",
+                  "updated_at": "2025-11-15T02:57:32.735407+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "b8434e33-f777-45c5-9cea-c697e1c6b805",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Set up analytics",
+                  "description": null,
+                  "status": "backlog",
+                  "priority": "low",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                },
+                {
+                  "id": "5ac93a80-8207-4b6c-8e8c-29d8d9793e74",
+                  "created_at": "2025-11-15T02:57:32.491358+00:00",
+                  "updated_at": "2025-11-15T02:57:32.491358+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "b8434e33-f777-45c5-9cea-c697e1c6b805",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Write product copy",
+                  "description": null,
+                  "status": "ready",
+                  "priority": "medium",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": [
+                    {
+                      "id": "c49f30c6-dfd9-43ff-b490-08319971ba8e",
+                      "created_at": "2025-11-15T02:57:33.845974+00:00",
+                      "updated_at": "2025-11-15T02:57:33.845974+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "5ac93a80-8207-4b6c-8e8c-29d8d9793e74",
+                      "source_action_id": null,
+                      "title": "Copy review",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": null,
+                      "prefs": {},
+                      "context_refs": [],
+                      "status": "open",
+                      "messages": []
+                    }
+                  ]
+                },
+                {
+                  "id": "656b430b-57ac-4917-9b69-2a52baa245fa",
+                  "created_at": "2025-11-15T02:57:32.190205+00:00",
+                  "updated_at": "2025-11-15T02:57:32.190205+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "b8434e33-f777-45c5-9cea-c697e1c6b805",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Design landing page",
+                  "description": null,
+                  "status": "doing",
+                  "priority": "high",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": [
+                    {
+                      "id": "72207620-1846-4636-a5d2-79a36a51c70e",
+                      "created_at": "2025-11-15T02:57:33.577748+00:00",
+                      "updated_at": "2025-11-15T02:57:34.715205+00:00",
+                      "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                      "task_id": "656b430b-57ac-4917-9b69-2a52baa245fa",
+                      "source_action_id": null,
+                      "title": "Design discussion",
+                      "created_by": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                      "last_message_at": "2025-11-15T02:57:34.715205+00:00",
+                      "prefs": {},
+                      "context_refs": [],
+                      "status": "open",
+                      "messages": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "628931f9-6f8f-4919-91fe-507d74e209b8",
+              "created_at": "2025-11-15T02:57:31.929379+00:00",
+              "updated_at": "2025-11-15T02:57:31.929379+00:00",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Marketing Campaign",
+              "description": "Social media and email marketing campaign",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "children": [
+                {
+                  "id": "2491ea0b-3f7e-4ce8-a14e-02ae07cce621",
+                  "created_at": "2025-11-15T02:57:33.287872+00:00",
+                  "updated_at": "2025-11-15T02:57:33.287872+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "628931f9-6f8f-4919-91fe-507d74e209b8",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Schedule social posts",
+                  "description": null,
+                  "status": "blocked",
+                  "priority": "medium",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                },
+                {
+                  "id": "1de2f760-623d-44ee-b173-b16d6120962b",
+                  "created_at": "2025-11-15T02:57:33.019488+00:00",
+                  "updated_at": "2025-11-15T02:57:33.019488+00:00",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "628931f9-6f8f-4919-91fe-507d74e209b8",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Create email templates",
+                  "description": null,
+                  "status": "doing",
+                  "priority": "high",
+                  "due_at": null,
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/workroom/tasks/9d63a861-eb14-43da-9122-981294bb77d2/assistant-suggest",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "operations": [
+            {
+              "op": "update_task_status",
+              "params": {
+                "task_id": "9d63a861-eb14-43da-9122-981294bb77d2",
+                "status": "doing"
+              }
+            },
+            {
+              "op": "create_task",
+              "params": {
+                "title": "Follow-up on onboarding flow",
+                "project_id": "project_id_placeholder",
+                "description": "Check progress and address any issues related to the onboarding flow.",
+                "priority": "medium",
+                "from_action_id": "action_id_placeholder"
+              }
+            }
+          ],
+          "applied": [],
+          "pending": [
+            {
+              "op": "update_task_status",
+              "params": {
+                "task_id": "9d63a861-eb14-43da-9122-981294bb77d2",
+                "status": "doing"
+              }
+            },
+            {
+              "op": "create_task",
+              "params": {
+                "title": "Follow-up on onboarding flow",
+                "project_id": "project_id_placeholder",
+                "description": "Check progress and address any issues related to the onboarding flow.",
+                "priority": "medium",
+                "from_action_id": "action_id_placeholder"
+              }
+            }
+          ],
+          "errors": [],
+          "task": {
+            "id": "9d63a861-eb14-43da-9122-981294bb77d2",
+            "created_at": "2025-11-14T03:34:18.66264+00:00",
+            "updated_at": "2025-11-15T02:39:13.459037+00:00",
+            "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+            "project_id": "13f12897-8340-495e-a3db-3c331acb0cf0",
+            "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+            "title": "Finalize onboarding flow",
+            "description": "Tighten copy and task doc before rollout.",
+            "status": "doing",
+            "priority": "urgent",
+            "due_at": "2025-11-19T03:34:18.66264+00:00",
+            "order_index": 0,
+            "source_type": "manual",
+            "source_ref": {}
+          }
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/workroom/tasks/9d63a861-eb14-43da-9122-981294bb77d2/assistant-approve",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "result": {
+            "ok": true,
+            "op": "update_task_status",
+            "params": {
+              "task_id": "9d63a861-eb14-43da-9122-981294bb77d2",
+              "status": "doing"
+            }
+          },
+          "task": {
+            "id": "9d63a861-eb14-43da-9122-981294bb77d2",
+            "created_at": "2025-11-14T03:34:18.66264+00:00",
+            "updated_at": "2025-11-15T02:57:40.121001+00:00",
+            "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+            "project_id": "13f12897-8340-495e-a3db-3c331acb0cf0",
+            "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+            "title": "Finalize onboarding flow",
+            "description": "Tighten copy and task doc before rollout.",
+            "status": "doing",
+            "priority": "urgent",
+            "due_at": "2025-11-19T03:34:18.66264+00:00",
+            "order_index": 0,
+            "source_type": "manual",
+            "source_ref": {}
+          }
+        },
+        "status": 200
+      }
+    ],
+    "text": "{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': False}}\n{'ok': True, 'projects': 2, 'tasks': 5, 'threads': 2}\n{'ok': True, 'work_hours': {'start': '09:00', 'end': '17:00'}, 'time_zone': 'UTC', 'day_shape': {'morning_focus': True, 'focus_block_lengths_min': [90, 60], 'focus_block_max_minutes': 120, 'lunch_window': {'start': '12:00', 'end': '14:00', 'min_minutes': 45, 'max_minutes': 60}, 'meeting_avoid_windows': [{'start': '16:00', 'end': '23:59'}], 'buffer_minutes': {'min': 5, 'max': 10}}, 'translation': {'default': 'llm', 'fallback': 'azure', 'rules': {'outbound': 'auto', 'inbound': 'prompt', 'internal': 'off', 'external': 'auto'}}, 'trust_level': 'training_wheels', 'ui_prefs': {'thread_open_behavior': 'new_tab', 'brief': {'weather': False, 'news': False, 'tone': 'neutral'}, 'hotkeys': {'approve': 'a', 'edit': 'e', 'defer': 'd', 'add_to_today': 't', 'open_workroom': 'o', 'collapse': 'Escape', 'kanban_toggle': 'Meta+k', 'settings': 'Meta+,'}}}\n{'ok': True, 'tree': [{'id': '13f12897-8340-495e-a3db-3c331acb0cf0', 'created_at': '2025-11-14T03:34:18.66264+00:00', 'updated_at': '2025-11-14T03:34:18.66264+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Launch Readiness', 'description': 'Prep work for LucidWork beta launch', 'status': 'active', 'priority': 'high', 'order_index': 0, 'metadata': {'color': 'blue'}, 'children': [{'id': '9d63a861-eb14-43da-9122-981294bb77d2', 'created_at': '2025-11-14T03:34:18.66264+00:00', 'updated_at': '2025-11-15T02:39:13.459037+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '13f12897-8340-495e-a3db-3c331acb0cf0', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Finalize onboarding flow', 'description': 'Tighten copy and task doc before rollout.', 'status': 'doing', 'priority': 'urgent', 'due_at': '2025-11-19T03:34:18.66264+00:00', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '30b39ca3-a8f6-4ea8-8e51-e13a59f03917', 'created_at': '2025-11-14T03:37:15.76755+00:00', 'updated_at': '2025-11-15T02:34:49.703227+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': '9d63a861-eb14-43da-9122-981294bb77d2', 'source_action_id': None, 'title': 'Chat 2', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': '2025-11-15T02:34:49.703227+00:00', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}, {'id': '7eb116f3-5afd-46c8-af21-92d74615dbf6', 'created_at': '2025-11-15T02:02:56.083711+00:00', 'updated_at': '2025-11-15T02:05:23.324264+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': '9d63a861-eb14-43da-9122-981294bb77d2', 'source_action_id': None, 'title': 'Chat 3', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': '2025-11-15T02:05:23.324264+00:00', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}, {'id': 'b2a4b0e0-cff8-4a30-a2dc-9eb99ca8c7a1', 'created_at': '2025-11-14T03:34:18.66264+00:00', 'updated_at': '2025-11-14T03:38:41.434259+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': '9d63a861-eb14-43da-9122-981294bb77d2', 'source_action_id': None, 'title': 'Inline chat polish', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': '2025-11-14T03:38:41.434259+00:00', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '86be9167-5d7e-4c76-9ef2-f8f02bbb2cb1', 'created_at': '2025-11-14T03:34:31.626986+00:00', 'updated_at': '2025-11-14T03:34:31.626986+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'UI QA Project', 'description': 'Temporary project to verify chat UI against live Supabase data', 'status': 'active', 'priority': 'high', 'order_index': 0, 'metadata': {'source': 'manual-test'}, 'children': [{'id': '2922d462-2f30-4555-b473-de6408ac3a9e', 'created_at': '2025-11-14T03:34:31.767275+00:00', 'updated_at': '2025-11-14T03:34:31.767275+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '86be9167-5d7e-4c76-9ef2-f8f02bbb2cb1', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Inline chat smoke test', 'description': 'Use this task/thread to validate scroll + typing behaviour', 'status': 'ready', 'priority': 'urgent', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {'ticket': 'UI-qa'}, 'children': [{'id': 'db345c4f-e6cf-4ae2-8523-ec330d6f1efa', 'created_at': '2025-11-14T03:34:31.923572+00:00', 'updated_at': '2025-11-14T03:34:32.072754+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': '2922d462-2f30-4555-b473-de6408ac3a9e', 'source_action_id': None, 'title': 'UI verification thread', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': '2025-11-14T03:34:32.072754+00:00', 'prefs': {'typing': 'staged'}, 'context_refs': ['seed:ui'], 'status': 'open', 'messages': []}]}]}, {'id': 'ce12dfca-7cdf-4015-976f-c3be14068ba6', 'created_at': '2025-11-15T02:38:31.527477+00:00', 'updated_at': '2025-11-15T02:38:31.527477+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '6177379e-145f-4146-80ee-0736e89196eb', 'created_at': '2025-11-15T02:38:32.858313+00:00', 'updated_at': '2025-11-15T02:38:32.858313+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'ce12dfca-7cdf-4015-976f-c3be14068ba6', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '89f270e4-de70-43ec-8b52-7f59091b57dd', 'created_at': '2025-11-15T02:38:32.516919+00:00', 'updated_at': '2025-11-15T02:38:32.516919+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'ce12dfca-7cdf-4015-976f-c3be14068ba6', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '6aa038a2-1911-40e9-936e-a49f5901d9a5', 'created_at': '2025-11-15T02:38:34.125765+00:00', 'updated_at': '2025-11-15T02:38:34.125765+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': '89f270e4-de70-43ec-8b52-7f59091b57dd', 'source_action_id': None, 'title': 'Copy review', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '829c9dfd-d90e-4d06-903c-18e8ee4e94bf', 'created_at': '2025-11-15T02:38:32.167529+00:00', 'updated_at': '2025-11-15T02:38:32.167529+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'ce12dfca-7cdf-4015-976f-c3be14068ba6', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': 'a9b3e19a-568f-4ba7-b10f-3f0ad051792a', 'created_at': '2025-11-15T02:38:33.84098+00:00', 'updated_at': '2025-11-15T02:38:34.968063+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': '829c9dfd-d90e-4d06-903c-18e8ee4e94bf', 'source_action_id': None, 'title': 'Design discussion', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': '2025-11-15T02:38:34.968063+00:00', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '17011620-d280-4533-aabc-ea770aeacefa', 'created_at': '2025-11-15T02:38:31.842488+00:00', 'updated_at': '2025-11-15T02:38:31.842488+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': 'f9d80aee-5b48-4188-b2bd-bbd4df115303', 'created_at': '2025-11-15T02:38:33.539616+00:00', 'updated_at': '2025-11-15T02:38:33.539616+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '17011620-d280-4533-aabc-ea770aeacefa', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '80b447f2-39aa-4cd4-ba11-4a8406c52e86', 'created_at': '2025-11-15T02:38:33.221758+00:00', 'updated_at': '2025-11-15T02:38:33.221758+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '17011620-d280-4533-aabc-ea770aeacefa', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '926531c7-2c27-40eb-aceb-affd4abd5f83', 'created_at': '2025-11-15T02:38:40.617696+00:00', 'updated_at': '2025-11-15T02:38:40.617696+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '80648304-0e06-4f48-8f32-a2533c2041f5', 'created_at': '2025-11-15T02:38:42.057365+00:00', 'updated_at': '2025-11-15T02:38:42.057365+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '926531c7-2c27-40eb-aceb-affd4abd5f83', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '2f58041a-cbf1-4360-bb8d-fa590511d56a', 'created_at': '2025-11-15T02:38:41.72954+00:00', 'updated_at': '2025-11-15T02:38:41.72954+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '926531c7-2c27-40eb-aceb-affd4abd5f83', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '4ee977db-1d31-419d-a4e0-bc6634d71c4e', 'created_at': '2025-11-15T02:38:43.225065+00:00', 'updated_at': '2025-11-15T02:38:43.225065+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': '2f58041a-cbf1-4360-bb8d-fa590511d56a', 'source_action_id': None, 'title': 'Copy review', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '67391c32-aa1a-40ba-b343-4eeb8664f6f9', 'created_at': '2025-11-15T02:38:41.422385+00:00', 'updated_at': '2025-11-15T02:38:41.422385+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '926531c7-2c27-40eb-aceb-affd4abd5f83', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '662050d8-fdf1-45cb-9c89-2673baae7d1b', 'created_at': '2025-11-15T02:38:42.941459+00:00', 'updated_at': '2025-11-15T02:38:44.078466+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': '67391c32-aa1a-40ba-b343-4eeb8664f6f9', 'source_action_id': None, 'title': 'Design discussion', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': '2025-11-15T02:38:44.078466+00:00', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': 'ccbeeca5-053c-473b-991c-6d8ed75ff185', 'created_at': '2025-11-15T02:38:41.115432+00:00', 'updated_at': '2025-11-15T02:38:41.115432+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '8cb165d4-04ba-481b-9819-2641cc4b3c6a', 'created_at': '2025-11-15T02:38:42.610953+00:00', 'updated_at': '2025-11-15T02:38:42.610953+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'ccbeeca5-053c-473b-991c-6d8ed75ff185', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '07d670dc-b010-4dd1-a9c9-85fe83398cb9', 'created_at': '2025-11-15T02:38:42.336378+00:00', 'updated_at': '2025-11-15T02:38:42.336378+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'ccbeeca5-053c-473b-991c-6d8ed75ff185', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': 'ed781cb0-0ff8-4f0a-8edc-8e8911ee38ca', 'created_at': '2025-11-15T02:38:56.98381+00:00', 'updated_at': '2025-11-15T02:38:56.98381+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': 'b7503bc7-b00c-4d0a-8ae6-cc2157b900e9', 'created_at': '2025-11-15T02:38:58.212444+00:00', 'updated_at': '2025-11-15T02:38:58.212444+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'ed781cb0-0ff8-4f0a-8edc-8e8911ee38ca', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': 'd3851742-7638-46f5-87e1-67c4a376dae6', 'created_at': '2025-11-15T02:38:57.897029+00:00', 'updated_at': '2025-11-15T02:38:57.897029+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'ed781cb0-0ff8-4f0a-8edc-8e8911ee38ca', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': 'b9a0cf48-9adc-4e22-a857-048680053c6d', 'created_at': '2025-11-15T02:38:59.371032+00:00', 'updated_at': '2025-11-15T02:38:59.371032+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': 'd3851742-7638-46f5-87e1-67c4a376dae6', 'source_action_id': None, 'title': 'Copy review', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': 'e5394bff-e2fb-418f-a5cd-6a15f37c4c17', 'created_at': '2025-11-15T02:38:57.595777+00:00', 'updated_at': '2025-11-15T02:38:57.595777+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'ed781cb0-0ff8-4f0a-8edc-8e8911ee38ca', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '378a57a8-75e0-49b9-b6ee-9bf0cbef138b', 'created_at': '2025-11-15T02:38:59.068174+00:00', 'updated_at': '2025-11-15T02:39:00.330296+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': 'e5394bff-e2fb-418f-a5cd-6a15f37c4c17', 'source_action_id': None, 'title': 'Design discussion', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': '2025-11-15T02:39:00.330296+00:00', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '0e78e03e-dae2-4d6f-8c3c-42f747131d29', 'created_at': '2025-11-15T02:38:57.305631+00:00', 'updated_at': '2025-11-15T02:38:57.305631+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '808e41bb-755e-4392-91ed-efa4e14aded5', 'created_at': '2025-11-15T02:38:58.799413+00:00', 'updated_at': '2025-11-15T02:38:58.799413+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '0e78e03e-dae2-4d6f-8c3c-42f747131d29', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '94f04120-8756-46e0-98fd-fb1da8d22d32', 'created_at': '2025-11-15T02:38:58.487374+00:00', 'updated_at': '2025-11-15T02:38:58.487374+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '0e78e03e-dae2-4d6f-8c3c-42f747131d29', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': 'd2369c45-65cb-462c-817e-30cb8bdc5cc0', 'created_at': '2025-11-15T02:39:07.029759+00:00', 'updated_at': '2025-11-15T02:39:07.029759+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': 'c32a47dc-52d9-42b7-b836-31d8b130f9b6', 'created_at': '2025-11-15T02:39:08.189157+00:00', 'updated_at': '2025-11-15T02:39:08.189157+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'd2369c45-65cb-462c-817e-30cb8bdc5cc0', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '47b6027a-310b-42b0-8bfb-1ed38041ca83', 'created_at': '2025-11-15T02:39:07.907852+00:00', 'updated_at': '2025-11-15T02:39:07.907852+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'd2369c45-65cb-462c-817e-30cb8bdc5cc0', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': 'a2eea582-f6eb-40f4-bcdc-7e8d651d78a1', 'created_at': '2025-11-15T02:39:09.343588+00:00', 'updated_at': '2025-11-15T02:39:09.343588+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': '47b6027a-310b-42b0-8bfb-1ed38041ca83', 'source_action_id': None, 'title': 'Copy review', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '0ac78539-83fb-483b-8f98-628f762b32c8', 'created_at': '2025-11-15T02:39:07.659555+00:00', 'updated_at': '2025-11-15T02:39:07.659555+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'd2369c45-65cb-462c-817e-30cb8bdc5cc0', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '7df9f5b4-bcbd-46de-8470-885a5f277132', 'created_at': '2025-11-15T02:39:09.014175+00:00', 'updated_at': '2025-11-15T02:39:10.248685+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': '0ac78539-83fb-483b-8f98-628f762b32c8', 'source_action_id': None, 'title': 'Design discussion', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': '2025-11-15T02:39:10.248685+00:00', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '5df75425-31fb-4b07-a811-1884ee02acd7', 'created_at': '2025-11-15T02:39:07.37628+00:00', 'updated_at': '2025-11-15T02:39:07.37628+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '9d21c690-1946-427e-a242-9bbe8ce1a751', 'created_at': '2025-11-15T02:39:08.723016+00:00', 'updated_at': '2025-11-15T02:39:08.723016+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '5df75425-31fb-4b07-a811-1884ee02acd7', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': 'db665a44-b6c7-44be-af99-2ebe239f6017', 'created_at': '2025-11-15T02:39:08.442712+00:00', 'updated_at': '2025-11-15T02:39:08.442712+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '5df75425-31fb-4b07-a811-1884ee02acd7', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '65c027b2-14e7-4340-9702-bc9dd517d0ea', 'created_at': '2025-11-15T02:57:04.721635+00:00', 'updated_at': '2025-11-15T02:57:04.721635+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '9e728a70-9595-4e0c-9a28-b8d7ffae06ea', 'created_at': '2025-11-15T02:57:05.774363+00:00', 'updated_at': '2025-11-15T02:57:05.774363+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '65c027b2-14e7-4340-9702-bc9dd517d0ea', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '5c73e061-ea60-43ca-88dd-4047d5b64fac', 'created_at': '2025-11-15T02:57:05.540295+00:00', 'updated_at': '2025-11-15T02:57:05.540295+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '65c027b2-14e7-4340-9702-bc9dd517d0ea', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': 'f3956bbe-54f4-4006-8517-732e7bfe5cc4', 'created_at': '2025-11-15T02:57:06.779987+00:00', 'updated_at': '2025-11-15T02:57:06.779987+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': '5c73e061-ea60-43ca-88dd-4047d5b64fac', 'source_action_id': None, 'title': 'Copy review', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': 'f5776117-396c-480e-9db9-391b6370d4db', 'created_at': '2025-11-15T02:57:05.280786+00:00', 'updated_at': '2025-11-15T02:57:05.280786+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '65c027b2-14e7-4340-9702-bc9dd517d0ea', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '7d887d2e-da71-4641-8534-f7c8fe401b5c', 'created_at': '2025-11-15T02:57:06.528479+00:00', 'updated_at': '2025-11-15T02:57:07.602837+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': 'f5776117-396c-480e-9db9-391b6370d4db', 'source_action_id': None, 'title': 'Design discussion', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': '2025-11-15T02:57:07.602837+00:00', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': 'b20394c0-d8c0-4636-b679-60f578949a24', 'created_at': '2025-11-15T02:57:05.018731+00:00', 'updated_at': '2025-11-15T02:57:05.018731+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '1368c311-eb74-4119-87ee-b92cdb965992', 'created_at': '2025-11-15T02:57:06.289748+00:00', 'updated_at': '2025-11-15T02:57:06.289748+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'b20394c0-d8c0-4636-b679-60f578949a24', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '338b8118-0b3c-4c3e-9ba1-3bd1d70b6499', 'created_at': '2025-11-15T02:57:06.020447+00:00', 'updated_at': '2025-11-15T02:57:06.020447+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'b20394c0-d8c0-4636-b679-60f578949a24', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': 'b8434e33-f777-45c5-9cea-c697e1c6b805', 'created_at': '2025-11-15T02:57:31.645472+00:00', 'updated_at': '2025-11-15T02:57:31.645472+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': 'ef05be54-5350-4af0-af16-8807de91e5f9', 'created_at': '2025-11-15T02:57:32.735407+00:00', 'updated_at': '2025-11-15T02:57:32.735407+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'b8434e33-f777-45c5-9cea-c697e1c6b805', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '5ac93a80-8207-4b6c-8e8c-29d8d9793e74', 'created_at': '2025-11-15T02:57:32.491358+00:00', 'updated_at': '2025-11-15T02:57:32.491358+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'b8434e33-f777-45c5-9cea-c697e1c6b805', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': 'c49f30c6-dfd9-43ff-b490-08319971ba8e', 'created_at': '2025-11-15T02:57:33.845974+00:00', 'updated_at': '2025-11-15T02:57:33.845974+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': '5ac93a80-8207-4b6c-8e8c-29d8d9793e74', 'source_action_id': None, 'title': 'Copy review', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '656b430b-57ac-4917-9b69-2a52baa245fa', 'created_at': '2025-11-15T02:57:32.190205+00:00', 'updated_at': '2025-11-15T02:57:32.190205+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'b8434e33-f777-45c5-9cea-c697e1c6b805', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '72207620-1846-4636-a5d2-79a36a51c70e', 'created_at': '2025-11-15T02:57:33.577748+00:00', 'updated_at': '2025-11-15T02:57:34.715205+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'task_id': '656b430b-57ac-4917-9b69-2a52baa245fa', 'source_action_id': None, 'title': 'Design discussion', 'created_by': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'last_message_at': '2025-11-15T02:57:34.715205+00:00', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '628931f9-6f8f-4919-91fe-507d74e209b8', 'created_at': '2025-11-15T02:57:31.929379+00:00', 'updated_at': '2025-11-15T02:57:31.929379+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '2491ea0b-3f7e-4ce8-a14e-02ae07cce621', 'created_at': '2025-11-15T02:57:33.287872+00:00', 'updated_at': '2025-11-15T02:57:33.287872+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '628931f9-6f8f-4919-91fe-507d74e209b8', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '1de2f760-623d-44ee-b173-b16d6120962b', 'created_at': '2025-11-15T02:57:33.019488+00:00', 'updated_at': '2025-11-15T02:57:33.019488+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '628931f9-6f8f-4919-91fe-507d74e209b8', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}]}\n{'ok': True, 'operations': [{'op': 'update_task_status', 'params': {'task_id': '9d63a861-eb14-43da-9122-981294bb77d2', 'status': 'doing'}}, {'op': 'create_task', 'params': {'title': 'Follow-up on onboarding flow', 'project_id': 'project_id_placeholder', 'description': 'Check progress and address any issues related to the onboarding flow.', 'priority': 'medium', 'from_action_id': 'action_id_placeholder'}}], 'applied': [], 'pending': [{'op': 'update_task_status', 'params': {'task_id': '9d63a861-eb14-43da-9122-981294bb77d2', 'status': 'doing'}}, {'op': 'create_task', 'params': {'title': 'Follow-up on onboarding flow', 'project_id': 'project_id_placeholder', 'description': 'Check progress and address any issues related to the onboarding flow.', 'priority': 'medium', 'from_action_id': 'action_id_placeholder'}}], 'errors': [], 'task': {'id': '9d63a861-eb14-43da-9122-981294bb77d2', 'created_at': '2025-11-14T03:34:18.66264+00:00', 'updated_at': '2025-11-15T02:39:13.459037+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '13f12897-8340-495e-a3db-3c331acb0cf0', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Finalize onboarding flow', 'description': 'Tighten copy and task doc before rollout.', 'status': 'doing', 'priority': 'urgent', 'due_at': '2025-11-19T03:34:18.66264+00:00', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}}}\n{'ok': True, 'result': {'ok': True, 'op': 'update_task_status', 'params': {'task_id': '9d63a861-eb14-43da-9122-981294bb77d2', 'status': 'doing'}}, 'task': {'id': '9d63a861-eb14-43da-9122-981294bb77d2', 'created_at': '2025-11-14T03:34:18.66264+00:00', 'updated_at': '2025-11-15T02:57:40.121001+00:00', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '13f12897-8340-495e-a3db-3c331acb0cf0', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Finalize onboarding flow', 'description': 'Tighten copy and task doc before rollout.', 'status': 'doing', 'priority': 'urgent', 'due_at': '2025-11-19T03:34:18.66264+00:00', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}}}"
+  },
+  "ts": 1763175460.172891
+}

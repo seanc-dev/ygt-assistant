@@ -76,7 +76,7 @@ export function ContextPane({
 
   return (
     <div
-      className="flex-1 flex flex-col border-l border-slate-200 bg-slate-50 min-h-0"
+      className="flex-1 flex flex-col border-l border-slate-200 bg-slate-50 min-h-0 h-100"
       style={{ width: "260px" }}
     >
       {/* Header */}
@@ -87,7 +87,10 @@ export function ContextPane({
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200">
+      <div
+        className="flex border-b border-slate-200"
+        style={{ overflowX: "auto" }}
+      >
         {[
           { id: "referenced", label: "Referenced" },
           { id: "suggested", label: "Suggested" },

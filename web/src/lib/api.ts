@@ -1,27 +1,70 @@
-// Default to production API; use localhost only in development
-// In production, NEXT_PUBLIC_ADMIN_API_BASE should always be set
-const BASE =
-  process.env.NEXT_PUBLIC_ADMIN_API_BASE ||
-  (process.env.NODE_ENV === "development"
-    ? "http://localhost:8000"
-    : "https://api.coachflow.nz");
+import { buildApiUrl, logApiBaseOnce } from "./apiBase";
+
+logApiBaseOnce("api");
+
+function createNetworkError(url: string, cause: unknown) {
+  const error = new Error(
+    `Failed to reach API at ${url}. ${
+      cause instanceof Error ? cause.message : "Network request did not complete."
+    }`
+  );
+  (error as any).cause = cause;
+  return error;
+}
 
 async function req(path: string, opts: RequestInit = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    ...opts,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(opts.headers || {}),
-    },
-  });
+  const url = buildApiUrl(path);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...opts,
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(opts.headers || {}),
+      },
+    });
+  } catch (err) {
+    throw createNetworkError(url, err);
+  }
+  const contentType = res.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
+
   if (!res.ok) {
+    let errorBody: any = null;
+    if (isJson) {
+      try {
+        errorBody = await res.json();
+      } catch (err) {
+        try {
+          errorBody = await res.text();
+        } catch {
+          errorBody = null;
+        }
+      }
+    } else {
+      try {
+        errorBody = await res.text();
+      } catch {
+        errorBody = null;
+      }
+    }
+
     const error = new Error(`${res.status} ${res.statusText}`);
-    // Store status code for easier error handling
     (error as any).status = res.status;
+    (error as any).body = errorBody;
     throw error;
   }
-  return res.json();
+
+  if (res.status === 204) {
+    return null;
+  }
+
+  if (isJson) {
+    return res.json();
+  }
+
+  return res.text();
 }
 
 export const api = {
@@ -119,7 +162,7 @@ export const api = {
     // Use custom fetch to avoid console errors for expected 404s
     try {
       const res = await fetch(
-        `${BASE}/api/workroom/thread/${encodeURIComponent(threadId)}`,
+        buildApiUrl(`/api/workroom/thread/${encodeURIComponent(threadId)}`),
         {
           credentials: "include",
           headers: {
@@ -228,9 +271,55 @@ export const api = {
   seedSchedule: () => req("/dev/schedule/seed", { method: "POST" }),
   // Workload summary
   getWorkloadSummary: () => req("/api/workload/summary"),
-  // Notion sync
-  notionSync: (body: any) =>
-    req("/api/notion/sync", {
+  // Assistant suggest
+  assistantSuggestForAction: (actionId: string, body: { message?: string; thread_id?: string }) =>
+    req(`/api/queue/${encodeURIComponent(actionId)}/assistant-suggest`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  assistantSuggestForTask: (taskId: string, body: { message?: string; thread_id?: string }) =>
+    req(`/api/workroom/tasks/${encodeURIComponent(taskId)}/assistant-suggest`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  // Assistant operation handlers
+  assistantApproveForAction: (actionId: string, body: { operation: any }) =>
+    req(`/api/queue/${encodeURIComponent(actionId)}/assistant-approve`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  assistantEditForAction: (actionId: string, body: { operation: any; edited_params: any }) =>
+    req(`/api/queue/${encodeURIComponent(actionId)}/assistant-edit`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  assistantDeclineForAction: (actionId: string, body: { operation: any }) =>
+    req(`/api/queue/${encodeURIComponent(actionId)}/assistant-decline`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  assistantUndoForAction: (actionId: string, body: { operation: any; original_state?: any }) =>
+    req(`/api/queue/${encodeURIComponent(actionId)}/assistant-undo`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  assistantApproveForTask: (taskId: string, body: { operation: any }) =>
+    req(`/api/workroom/tasks/${encodeURIComponent(taskId)}/assistant-approve`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  assistantEditForTask: (taskId: string, body: { operation: any; edited_params: any }) =>
+    req(`/api/workroom/tasks/${encodeURIComponent(taskId)}/assistant-edit`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  assistantDeclineForTask: (taskId: string, body: { operation: any }) =>
+    req(`/api/workroom/tasks/${encodeURIComponent(taskId)}/assistant-decline`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  assistantUndoForTask: (taskId: string, body: { operation: any; original_state?: any }) =>
+    req(`/api/workroom/tasks/${encodeURIComponent(taskId)}/assistant-undo`, {
       method: "POST",
       body: JSON.stringify(body),
     }),

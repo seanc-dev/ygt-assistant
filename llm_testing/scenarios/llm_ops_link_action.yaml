@@ -1,0 +1,49 @@
+name: llm_ops_link_action
+mode: mock
+steps:
+  - action: reset_state
+  - action: http
+    method: POST
+    url: /dev/queue/seed
+    params:
+      count: 1
+    expect:
+      status: 200
+  - action: http
+    method: GET
+    url: /api/queue
+    expect:
+      status: 200
+    extract:
+      action_id: "items.0.action_id"
+  - action: http
+    method: POST
+    url: /dev/workroom/seed
+    expect:
+      status: 200
+  - action: http
+    method: GET
+    url: /api/workroom/tree
+    expect:
+      status: 200
+    extract:
+      task_id: "tree.0.children.0.id"
+  - action: http
+    method: POST
+    url: /api/queue/<action_id>/assistant-suggest
+    json:
+      message: "Link this action to the first task"
+    expect:
+      status: 200
+      contains:
+        - "operations"
+expectations:
+  must_contain:
+    - "operations"
+  must_not_contain:
+    - "error"
+  function_calling:
+    check_operations: true
+    # Note: With fixtures, operations may vary. We validate structure, not specific ops.
+    snapshot_operations: "llm_ops_link_action_operations.json"
+

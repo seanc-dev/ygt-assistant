@@ -2,6 +2,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { api } from "../../../lib/api";
+import { buildApiUrl } from "../../../lib/apiBase";
 import { normalizeNotionIdFromString } from "../../../lib/notionId";
 import { Button } from "../../../components/Button";
 import { Label } from "../../../components/Form/Label";
@@ -57,9 +58,6 @@ notion:
 defaults:
   task_status_new: "Inbox"
   session_value_round: 0            # 0 or 2 typical`;
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_ADMIN_API_BASE || "https://api.ygt-assistant.com";
 
 type ValidationResult = {
   ok?: boolean;
@@ -354,7 +352,7 @@ export default function TenantConfig() {
                         </div>
                         <a
                           className="focus-outline inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-2 font-medium text-slate-700 shadow-sm transition hover:border-primary-300 hover:text-primary-700"
-                          href={`${API_BASE}/oauth/notion/start?tenant_id=${tenantId}`}
+                href={buildApiUrl(`/oauth/notion/start?tenant_id=${tenantId}`)}
                         >
                           Connect Notion
                         </a>

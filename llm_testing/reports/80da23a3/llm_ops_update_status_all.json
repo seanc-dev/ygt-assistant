@@ -1,0 +1,346 @@
+{
+  "scenario": {
+    "name": "llm_ops_update_status_all",
+    "mode": "mock",
+    "steps": [
+      {
+        "action": "reset_state"
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/dev/workroom/seed",
+        "expect": {
+          "status": 200
+        }
+      },
+      {
+        "action": "http",
+        "method": "GET",
+        "url": "/api/workroom/tree",
+        "expect": {
+          "status": 200
+        },
+        "extract": {
+          "task_id": "tree.0.children.0.id"
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/api/workroom/tasks/<task_id>/assistant-suggest",
+        "json": {
+          "message": "Mark this task as done"
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "operations"
+          ]
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/api/workroom/tasks/<task_id>/assistant-suggest",
+        "json": {
+          "message": "Actually, set it to doing instead"
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "operations"
+          ]
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/api/workroom/tasks/<task_id>/assistant-suggest",
+        "json": {
+          "message": "Change status back to todo"
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "operations"
+          ]
+        }
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "operations"
+      ],
+      "must_not_contain": [
+        "error"
+      ],
+      "function_calling": {
+        "check_operations": true,
+        "snapshot_operations": "llm_ops_update_status_all_operations.json"
+      }
+    }
+  },
+  "transcript": {
+    "scenario": "llm_ops_update_status_all",
+    "steps": [
+      {
+        "action": "reset_state",
+        "response": {
+          "ok": true,
+          "cleared": {
+            "approvals": true,
+            "history": true,
+            "queue": true,
+            "settings": false
+          }
+        }
+      },
+      {
+        "endpoint": "/dev/workroom/seed",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "projects": 2,
+          "tasks": 2,
+          "threads": 0
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/workroom/tree",
+        "method": "GET",
+        "response": {
+          "ok": true,
+          "tree": [
+            {
+              "id": "8e0a33f9-3181-41b8-b602-a0658b723ff9",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Product Launch",
+              "description": "Q4 product launch planning and execution",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "children": [
+                {
+                  "id": "4897cc71-5394-4768-b88b-dcf741f11dce",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "8e0a33f9-3181-41b8-b602-a0658b723ff9",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Write product copy",
+                  "status": "ready",
+                  "priority": "medium",
+                  "order_index": 1,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                },
+                {
+                  "id": "2bfba39f-c6e6-4214-9782-8fe796eca523",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "8e0a33f9-3181-41b8-b602-a0658b723ff9",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Design landing page",
+                  "status": "doing",
+                  "priority": "high",
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "c5652c3e-4337-4427-971c-5ee8ea235977",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Marketing Campaign",
+              "description": "Social media and email marketing campaign",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 1,
+              "metadata": {},
+              "children": []
+            }
+          ]
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/workroom/tasks/4897cc71-5394-4768-b88b-dcf741f11dce/assistant-suggest",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "operations": [
+            {
+              "op": "chat",
+              "params": {
+                "message": "I understand you want to update the task status. I can help with that!"
+              }
+            },
+            {
+              "op": "update_task_status",
+              "params": {
+                "task_id": "4897cc71-5394-4768-b88b-dcf741f11dce",
+                "status": "doing"
+              }
+            }
+          ],
+          "applied": [
+            {
+              "op": "chat",
+              "params": {
+                "message": "I understand you want to update the task status. I can help with that!"
+              }
+            }
+          ],
+          "pending": [
+            {
+              "op": "update_task_status",
+              "params": {
+                "task_id": "4897cc71-5394-4768-b88b-dcf741f11dce",
+                "status": "doing"
+              }
+            }
+          ],
+          "errors": [],
+          "task": {
+            "id": "4897cc71-5394-4768-b88b-dcf741f11dce",
+            "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+            "project_id": "8e0a33f9-3181-41b8-b602-a0658b723ff9",
+            "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+            "title": "Write product copy",
+            "status": "ready",
+            "priority": "medium",
+            "order_index": 1,
+            "source_type": "manual",
+            "source_ref": {},
+            "children": []
+          }
+        },
+        "status": 200,
+        "request_body": {
+          "message": "Mark this task as done"
+        }
+      },
+      {
+        "endpoint": "/api/workroom/tasks/4897cc71-5394-4768-b88b-dcf741f11dce/assistant-suggest",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "operations": [
+            {
+              "op": "chat",
+              "params": {
+                "message": "I understand you want to update the task status. I can help with that!"
+              }
+            },
+            {
+              "op": "update_task_status",
+              "params": {
+                "task_id": "4897cc71-5394-4768-b88b-dcf741f11dce",
+                "status": "doing"
+              }
+            }
+          ],
+          "applied": [
+            {
+              "op": "chat",
+              "params": {
+                "message": "I understand you want to update the task status. I can help with that!"
+              }
+            }
+          ],
+          "pending": [
+            {
+              "op": "update_task_status",
+              "params": {
+                "task_id": "4897cc71-5394-4768-b88b-dcf741f11dce",
+                "status": "doing"
+              }
+            }
+          ],
+          "errors": [],
+          "task": {
+            "id": "4897cc71-5394-4768-b88b-dcf741f11dce",
+            "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+            "project_id": "8e0a33f9-3181-41b8-b602-a0658b723ff9",
+            "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+            "title": "Write product copy",
+            "status": "ready",
+            "priority": "medium",
+            "order_index": 1,
+            "source_type": "manual",
+            "source_ref": {},
+            "children": []
+          }
+        },
+        "status": 200,
+        "request_body": {
+          "message": "Actually, set it to doing instead"
+        }
+      },
+      {
+        "endpoint": "/api/workroom/tasks/4897cc71-5394-4768-b88b-dcf741f11dce/assistant-suggest",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "operations": [
+            {
+              "op": "chat",
+              "params": {
+                "message": "I understand you want to update the task status. I can help with that!"
+              }
+            },
+            {
+              "op": "update_task_status",
+              "params": {
+                "task_id": "4897cc71-5394-4768-b88b-dcf741f11dce",
+                "status": "doing"
+              }
+            }
+          ],
+          "applied": [
+            {
+              "op": "chat",
+              "params": {
+                "message": "I understand you want to update the task status. I can help with that!"
+              }
+            }
+          ],
+          "pending": [
+            {
+              "op": "update_task_status",
+              "params": {
+                "task_id": "4897cc71-5394-4768-b88b-dcf741f11dce",
+                "status": "doing"
+              }
+            }
+          ],
+          "errors": [],
+          "task": {
+            "id": "4897cc71-5394-4768-b88b-dcf741f11dce",
+            "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+            "project_id": "8e0a33f9-3181-41b8-b602-a0658b723ff9",
+            "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+            "title": "Write product copy",
+            "status": "ready",
+            "priority": "medium",
+            "order_index": 1,
+            "source_type": "manual",
+            "source_ref": {},
+            "children": []
+          }
+        },
+        "status": 200,
+        "request_body": {
+          "message": "Change status back to todo"
+        }
+      }
+    ],
+    "text": "{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': False}}\n{'ok': True, 'projects': 2, 'tasks': 2, 'threads': 0}\n{'ok': True, 'tree': [{'id': '8e0a33f9-3181-41b8-b602-a0658b723ff9', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '4897cc71-5394-4768-b88b-dcf741f11dce', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '8e0a33f9-3181-41b8-b602-a0658b723ff9', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '2bfba39f-c6e6-4214-9782-8fe796eca523', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '8e0a33f9-3181-41b8-b602-a0658b723ff9', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Design landing page', 'status': 'doing', 'priority': 'high', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': 'c5652c3e-4337-4427-971c-5ee8ea235977', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 1, 'metadata': {}, 'children': []}]}\n{'ok': True, 'operations': [{'op': 'chat', 'params': {'message': 'I understand you want to update the task status. I can help with that!'}}, {'op': 'update_task_status', 'params': {'task_id': '4897cc71-5394-4768-b88b-dcf741f11dce', 'status': 'doing'}}], 'applied': [{'op': 'chat', 'params': {'message': 'I understand you want to update the task status. I can help with that!'}}], 'pending': [{'op': 'update_task_status', 'params': {'task_id': '4897cc71-5394-4768-b88b-dcf741f11dce', 'status': 'doing'}}], 'errors': [], 'task': {'id': '4897cc71-5394-4768-b88b-dcf741f11dce', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '8e0a33f9-3181-41b8-b602-a0658b723ff9', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'children': []}}\n{'ok': True, 'operations': [{'op': 'chat', 'params': {'message': 'I understand you want to update the task status. I can help with that!'}}, {'op': 'update_task_status', 'params': {'task_id': '4897cc71-5394-4768-b88b-dcf741f11dce', 'status': 'doing'}}], 'applied': [{'op': 'chat', 'params': {'message': 'I understand you want to update the task status. I can help with that!'}}], 'pending': [{'op': 'update_task_status', 'params': {'task_id': '4897cc71-5394-4768-b88b-dcf741f11dce', 'status': 'doing'}}], 'errors': [], 'task': {'id': '4897cc71-5394-4768-b88b-dcf741f11dce', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '8e0a33f9-3181-41b8-b602-a0658b723ff9', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'children': []}}\n{'ok': True, 'operations': [{'op': 'chat', 'params': {'message': 'I understand you want to update the task status. I can help with that!'}}, {'op': 'update_task_status', 'params': {'task_id': '4897cc71-5394-4768-b88b-dcf741f11dce', 'status': 'doing'}}], 'applied': [{'op': 'chat', 'params': {'message': 'I understand you want to update the task status. I can help with that!'}}], 'pending': [{'op': 'update_task_status', 'params': {'task_id': '4897cc71-5394-4768-b88b-dcf741f11dce', 'status': 'doing'}}], 'errors': [], 'task': {'id': '4897cc71-5394-4768-b88b-dcf741f11dce', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '8e0a33f9-3181-41b8-b602-a0658b723ff9', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'children': []}}"
+  },
+  "ts": 1763183704.2296178
+}

@@ -1,0 +1,195 @@
+{
+  "scenario": {
+    "name": "llm_ops_delete_task_autonomous",
+    "mode": "mock",
+    "steps": [
+      {
+        "action": "reset_state"
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/dev/workroom/seed",
+        "expect": {
+          "status": 200
+        }
+      },
+      {
+        "action": "http",
+        "method": "GET",
+        "url": "/api/workroom/tree",
+        "expect": {
+          "status": 200
+        },
+        "extract": {
+          "task_id_1": "tree.0.children.0.id"
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/api/workroom/tasks/<task_id_1>/assistant-suggest",
+        "json": {
+          "message": "Delete this task",
+          "trust_level": "autonomous"
+        },
+        "expect": {
+          "status": 200
+        }
+      }
+    ],
+    "expectations": {
+      "function_calling": {
+        "check_operations": true,
+        "expected_operations": [
+          "delete_task"
+        ],
+        "expected_behavior": "operations_should_be_applied"
+      }
+    }
+  },
+  "transcript": {
+    "scenario": "llm_ops_delete_task_autonomous",
+    "steps": [
+      {
+        "action": "reset_state",
+        "response": {
+          "ok": true,
+          "cleared": {
+            "approvals": true,
+            "history": true,
+            "queue": true,
+            "settings": false
+          }
+        }
+      },
+      {
+        "endpoint": "/dev/workroom/seed",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "projects": 2,
+          "tasks": 2,
+          "threads": 0
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/workroom/tree",
+        "method": "GET",
+        "response": {
+          "ok": true,
+          "tree": [
+            {
+              "id": "6db6dfd4-ea97-43d8-92fb-7f63c5daf353",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Product Launch",
+              "description": "Q4 product launch planning and execution",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "deleted_at": null,
+              "children": [
+                {
+                  "id": "7453ffae-989e-4bcb-813e-495bcb56de48",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "6db6dfd4-ea97-43d8-92fb-7f63c5daf353",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Write product copy",
+                  "status": "ready",
+                  "priority": "medium",
+                  "order_index": 1,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "deleted_at": null,
+                  "children": []
+                },
+                {
+                  "id": "151e03d8-7889-4cda-85d3-403c384588a8",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "6db6dfd4-ea97-43d8-92fb-7f63c5daf353",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Design landing page",
+                  "status": "doing",
+                  "priority": "high",
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "deleted_at": null,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "a4997f23-a047-40cd-ba87-ff55020fd3f8",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Marketing Campaign",
+              "description": "Social media and email marketing campaign",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 1,
+              "metadata": {},
+              "deleted_at": null,
+              "children": []
+            }
+          ]
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/workroom/tasks/7453ffae-989e-4bcb-813e-495bcb56de48/assistant-suggest",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "operations": [
+            {
+              "op": "delete_task",
+              "params": {
+                "tasks": [
+                  "Write product copy"
+                ]
+              }
+            }
+          ],
+          "applied": [
+            {
+              "op": "delete_task",
+              "params": {
+                "tasks": [
+                  "Write product copy"
+                ]
+              }
+            }
+          ],
+          "pending": [],
+          "errors": [],
+          "task": {
+            "id": "7453ffae-989e-4bcb-813e-495bcb56de48",
+            "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+            "project_id": "6db6dfd4-ea97-43d8-92fb-7f63c5daf353",
+            "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+            "title": "Write product copy",
+            "status": "ready",
+            "priority": "medium",
+            "order_index": 1,
+            "source_type": "manual",
+            "source_ref": {},
+            "deleted_at": "2025-11-17T00:31:12.160142+00:00",
+            "children": [],
+            "updated_at": "2025-11-17T00:31:12.160178+00:00"
+          }
+        },
+        "status": 200,
+        "request_body": {
+          "message": "Delete this task",
+          "trust_level": "autonomous"
+        }
+      }
+    ],
+    "text": "{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': False}}\n{'ok': True, 'projects': 2, 'tasks': 2, 'threads': 0}\n{'ok': True, 'tree': [{'id': '6db6dfd4-ea97-43d8-92fb-7f63c5daf353', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'deleted_at': None, 'children': [{'id': '7453ffae-989e-4bcb-813e-495bcb56de48', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '6db6dfd4-ea97-43d8-92fb-7f63c5daf353', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'deleted_at': None, 'children': []}, {'id': '151e03d8-7889-4cda-85d3-403c384588a8', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '6db6dfd4-ea97-43d8-92fb-7f63c5daf353', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Design landing page', 'status': 'doing', 'priority': 'high', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'deleted_at': None, 'children': []}]}, {'id': 'a4997f23-a047-40cd-ba87-ff55020fd3f8', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 1, 'metadata': {}, 'deleted_at': None, 'children': []}]}\n{'ok': True, 'operations': [{'op': 'delete_task', 'params': {'tasks': ['Write product copy']}}], 'applied': [{'op': 'delete_task', 'params': {'tasks': ['Write product copy']}}], 'pending': [], 'errors': [], 'task': {'id': '7453ffae-989e-4bcb-813e-495bcb56de48', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': '6db6dfd4-ea97-43d8-92fb-7f63c5daf353', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'deleted_at': '2025-11-17T00:31:12.160142+00:00', 'children': [], 'updated_at': '2025-11-17T00:31:12.160178+00:00'}}"
+  },
+  "ts": 1763339472.162426
+}

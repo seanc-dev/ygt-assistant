@@ -1,0 +1,65 @@
+name: llm_ops_create_task
+mode: mock
+steps:
+  - action: reset_state
+  - action: http
+    method: POST
+    url: /dev/workroom/seed
+    expect:
+      status: 200
+  - action: http
+    method: PUT
+    url: /api/settings
+    json:
+      trust_level: "training_wheels"
+    expect:
+      status: 200
+  - action: http
+    method: GET
+    url: /api/workroom/tree
+    expect:
+      status: 200
+    extract:
+      task_id: "tree.0.children.0.id"
+      project_id: "tree.0.id"
+  - action: http
+    method: POST
+    url: /api/workroom/tasks/<task_id>/assistant-suggest
+    json:
+      message: "Create a new task called 'Review Q4 metrics' with high priority in the current project"
+    expect:
+      status: 200
+      contains:
+        - "operations"
+      jsonpath:
+        "pending[?(@.op == 'create_task')].op": "create_task"
+    extract:
+      create_op: "pending[?(@.op == 'create_task')]"
+  - action: http
+    method: POST
+    url: /api/workroom/tasks/<task_id>/assistant-approve
+    json:
+      operation:
+        __var__: create_op
+    expect:
+      status: 200
+      jsonpath:
+        "result.ok": true
+        "result.op": "create_task"
+  - action: http
+    method: GET
+    url: /api/workroom/tree
+    expect:
+      status: 200
+      contains:
+        - "Review Q4 metrics"
+        - "<project_id>"
+expectations:
+  must_contain:
+    - "operations"
+  must_not_contain:
+    - "error"
+  function_calling:
+    check_operations: true
+    # Note: With fixtures, operations may vary. We validate structure, not specific ops.
+    snapshot_operations: "llm_ops_create_task_operations.json"

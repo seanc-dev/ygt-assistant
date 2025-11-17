@@ -1,0 +1,11 @@
+{
+  "evaluation": {
+    "scores": {
+      "factual": 0.0,
+      "clarity": 0.0,
+      "safety": 0.0
+    },
+    "ok": false,
+    "rationale": "operation_snapshot_mismatch: --- stored\n+++ current\n@@ -11,7 +11,7 @@\n       {\n         \"op\": \"update_task_status\",\n         \"params\": {\n-          \"task_id\": \"<uuid>\",\n+          \"task\": \"this task\",\n           \"status\": \"doing\""
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "scenario": {
+    "name": "assistant_chat_edge_cases",
+    "mode": "mock",
+    "snapshot": "assistant_chat_edge_cases.json",
+    "steps": [
+      {
+        "action": "reset_state"
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/chat",
+        "json": {
+          "text": "unknown command"
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "Unknown",
+            "Try"
+          ]
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/chat",
+        "json": {
+          "text": "approve invalid-id"
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "Not found"
+          ]
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/chat",
+        "json": {
+          "text": "scan"
+        },
+        "expect": {
+          "status": 200
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/chat",
+        "json": {
+          "text": "scan"
+        },
+        "expect": {
+          "status": 200
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/chat",
+        "json": {
+          "text": "scan agenda"
+        },
+        "expect": {
+          "status": 200
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/chat",
+        "json": {
+          "text": "skip appr-1"
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "Skipped"
+          ]
+        }
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "messages"
+      ],
+      "must_not_contain": [
+        "Traceback",
+        "500"
+      ]
+    }
+  },
+  "transcript": {
+    "scenario": "assistant_chat_edge_cases",
+    "steps": [
+      {
+        "action": "reset_state",
+        "response": {
+          "ok": true,
+          "cleared": {
+            "approvals": true,
+            "history": true,
+            "queue": true,
+            "settings": false
+          }
+        }
+      },
+      {
+        "endpoint": "/chat",
+        "method": "POST",
+        "response": {
+          "messages": [
+            {
+              "role": "assistant",
+              "content": "Unknown command. Try: 'scan', 'approve <id>', or 'skip <id>'."
+            }
+          ]
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/chat",
+        "method": "POST",
+        "response": {
+          "messages": [
+            {
+              "role": "assistant",
+              "content": "Not found."
+            }
+          ]
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/chat",
+        "method": "POST",
+        "response": {
+          "messages": [
+            {
+              "role": "assistant",
+              "content": "Proposed 1 approval(s). Reply 'approve <id>' or 'skip <id>'."
+            }
+          ],
+          "approvals": [
+            {
+              "id": "appr-1",
+              "title": "Follow up on top email",
+              "kind": "email",
+              "status": "proposed"
+            }
+          ]
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/chat",
+        "method": "POST",
+        "response": {
+          "messages": [
+            {
+              "role": "assistant",
+              "content": "Proposed 1 approval(s). Reply 'approve <id>' or 'skip <id>'."
+            }
+          ],
+          "approvals": [
+            {
+              "id": "appr-1",
+              "title": "Follow up on top email",
+              "kind": "email",
+              "status": "proposed"
+            }
+          ]
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/chat",
+        "method": "POST",
+        "response": {
+          "messages": [
+            {
+              "role": "assistant",
+              "content": "Proposed 1 approval(s). Reply 'approve <id>' or 'skip <id>'."
+            }
+          ],
+          "approvals": [
+            {
+              "id": "appr-1",
+              "title": "Follow up on top email",
+              "kind": "email",
+              "status": "proposed"
+            }
+          ]
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/chat",
+        "method": "POST",
+        "response": {
+          "messages": [
+            {
+              "role": "assistant",
+              "content": "Skipped appr-1."
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "text": "{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': False}}\n{'messages': [{'role': 'assistant', 'content': \"Unknown command. Try: 'scan', 'approve <id>', or 'skip <id>'.\"}]}\n{'messages': [{'role': 'assistant', 'content': 'Not found.'}]}\n{'messages': [{'role': 'assistant', 'content': \"Proposed 1 approval(s). Reply 'approve <id>' or 'skip <id>'.\"}], 'approvals': [{'id': 'appr-1', 'title': 'Follow up on top email', 'kind': 'email', 'status': 'proposed'}]}\n{'messages': [{'role': 'assistant', 'content': \"Proposed 1 approval(s). Reply 'approve <id>' or 'skip <id>'.\"}], 'approvals': [{'id': 'appr-1', 'title': 'Follow up on top email', 'kind': 'email', 'status': 'proposed'}]}\n{'messages': [{'role': 'assistant', 'content': \"Proposed 1 approval(s). Reply 'approve <id>' or 'skip <id>'.\"}], 'approvals': [{'id': 'appr-1', 'title': 'Follow up on top email', 'kind': 'email', 'status': 'proposed'}]}\n{'messages': [{'role': 'assistant', 'content': 'Skipped appr-1.'}]}"
+  },
+  "ts": 1763175451.1745842
+}

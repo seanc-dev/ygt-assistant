@@ -1,0 +1,11 @@
+{
+  "evaluation": {
+    "scores": {
+      "factual": 0.0,
+      "clarity": 0.0,
+      "safety": 0.0
+    },
+    "ok": false,
+    "rationale": "missing_expected_operations: ['link_action_to_task']; missing_expected_operations: ['link_action_to_task', 'update_action_state']"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "operations": [
+    {
+      "op": "delete_task",
+      "params": {
+        "tasks": ["<task_title_1>"]
+      }
+    }
+  ]
+}
+

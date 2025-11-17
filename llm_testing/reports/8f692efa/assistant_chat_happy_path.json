@@ -1,0 +1,192 @@
+{
+  "scenario": {
+    "name": "assistant_chat_happy_path",
+    "mode": "mock",
+    "snapshot": "assistant_chat_happy_path.json",
+    "steps": [
+      {
+        "action": "reset_state"
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/chat",
+        "json": {
+          "text": ""
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "scan",
+            "Say"
+          ]
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/chat",
+        "json": {
+          "text": "scan"
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "approval",
+            "messages"
+          ]
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/chat",
+        "json": {
+          "text": "approve appr-1"
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "Approved"
+          ]
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/chat",
+        "json": {
+          "text": "thanks!"
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "Unknown"
+          ]
+        }
+      },
+      {
+        "action": "http",
+        "method": "GET",
+        "url": "/history",
+        "expect": {
+          "status": 200
+        }
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "messages",
+        "approval"
+      ],
+      "must_not_contain": [
+        "error",
+        "Error"
+      ]
+    }
+  },
+  "transcript": {
+    "scenario": "assistant_chat_happy_path",
+    "steps": [
+      {
+        "action": "reset_state",
+        "response": {
+          "ok": true,
+          "cleared": {
+            "approvals": true,
+            "history": true,
+            "queue": true,
+            "settings": false
+          }
+        }
+      },
+      {
+        "endpoint": "/chat",
+        "method": "POST",
+        "response": {
+          "messages": [
+            {
+              "role": "assistant",
+              "content": "Say 'scan' to propose actions."
+            }
+          ]
+        },
+        "status": 200,
+        "request_body": {
+          "text": ""
+        }
+      },
+      {
+        "endpoint": "/chat",
+        "method": "POST",
+        "response": {
+          "messages": [
+            {
+              "role": "assistant",
+              "content": "Proposed 1 approval(s). Reply 'approve <id>' or 'skip <id>'."
+            }
+          ],
+          "approvals": [
+            {
+              "id": "appr-1",
+              "title": "Follow up on top email",
+              "kind": "email",
+              "status": "proposed"
+            }
+          ]
+        },
+        "status": 200,
+        "request_body": {
+          "text": "scan"
+        }
+      },
+      {
+        "endpoint": "/chat",
+        "method": "POST",
+        "response": {
+          "messages": [
+            {
+              "role": "assistant",
+              "content": "Approved appr-1. Type 'undo appr-1' in the UI if needed."
+            }
+          ]
+        },
+        "status": 200,
+        "request_body": {
+          "text": "approve appr-1"
+        }
+      },
+      {
+        "endpoint": "/chat",
+        "method": "POST",
+        "response": {
+          "messages": [
+            {
+              "role": "assistant",
+              "content": "Unknown command. Try: 'scan', 'approve <id>', or 'skip <id>'."
+            }
+          ]
+        },
+        "status": 200,
+        "request_body": {
+          "text": "thanks!"
+        }
+      },
+      {
+        "endpoint": "/history",
+        "method": "GET",
+        "response": [
+          {
+            "ts": "now",
+            "verb": "approve",
+            "object": "approval",
+            "id": "appr-1"
+          }
+        ],
+        "status": 200
+      }
+    ],
+    "text": "{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': False}}\n{'messages': [{'role': 'assistant', 'content': \"Say 'scan' to propose actions.\"}]}\n{'messages': [{'role': 'assistant', 'content': \"Proposed 1 approval(s). Reply 'approve <id>' or 'skip <id>'.\"}], 'approvals': [{'id': 'appr-1', 'title': 'Follow up on top email', 'kind': 'email', 'status': 'proposed'}]}\n{'messages': [{'role': 'assistant', 'content': \"Approved appr-1. Type 'undo appr-1' in the UI if needed.\"}]}\n{'messages': [{'role': 'assistant', 'content': \"Unknown command. Try: 'scan', 'approve <id>', or 'skip <id>'.\"}]}\n[{'ts': 'now', 'verb': 'approve', 'object': 'approval', 'id': 'appr-1'}]"
+  },
+  "ts": 1763185796.7134871
+}

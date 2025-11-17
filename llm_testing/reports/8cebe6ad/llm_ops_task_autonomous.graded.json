@@ -1,0 +1,1351 @@
+{
+  "evaluation": {
+    "scores": {
+      "factual": 0.0,
+      "clarity": 0.0,
+      "safety": 0.0
+    },
+    "ok": false,
+    "rationale": "forbidden:error; snapshot_mismatch: --- stored\n+++ current\n@@ -19,8 +19,8 @@\n       \"response\": {\n         \"ok\": true,\n         \"projects\": 2,\n-        \"tasks\": 2,\n-        \"threads\": 0\n+        \"tasks\": 5,\n+        \"threads\": 2\n       ",
+    "snapshot": {
+      "match": false,
+      "diff": "--- stored\n+++ current\n@@ -19,8 +19,8 @@\n       \"response\": {\n         \"ok\": true,\n         \"projects\": 2,\n-        \"tasks\": 2,\n-        \"threads\": 0\n+        \"tasks\": 5,\n+        \"threads\": 2\n       },\n       \"status\": 200\n     },\n@@ -98,6 +98,144 @@\n         \"tree\": [\n           {\n             \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n+            \"tenant_id\": \"<uuid>\",\n+            \"owner_id\": \"<uuid>\",\n+            \"name\": \"Launch Readiness\",\n+            \"description\": \"Prep work for LucidWork beta launch\",\n+            \"status\": \"active\",\n+            \"priority\": \"high\",\n+            \"order_index\": 0,\n+            \"metadata\": {\n+              \"color\": \"blue\"\n+            },\n+            \"children\": [\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Finalize onboarding flow\",\n+                \"description\": \"Tighten copy and task doc before rollout.\",\n+                \"status\": \"doing\",\n+                \"priority\": \"urgent\",\n+                \"due_at\": \"<timestamp>\",\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Chat 2\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": \"<timestamp>\",\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  },\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Chat 3\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": \"<timestamp>\",\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  },\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Inline chat polish\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": \"<timestamp>\",\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              }\n+            ]\n+          },\n+          {\n+            \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n+            \"tenant_id\": \"<uuid>\",\n+            \"owner_id\": \"<uuid>\",\n+            \"name\": \"UI QA Project\",\n+            \"description\": \"Temporary project to verify chat UI against live Supabase data\",\n+            \"status\": \"active\",\n+            \"priority\": \"high\",\n+            \"order_index\": 0,\n+            \"metadata\": {\n+              \"source\": \"manual-test\"\n+            },\n+            \"children\": [\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Inline chat smoke test\",\n+                \"description\": \"Use this task/thread to validate scroll + typing behaviour\",\n+                \"status\": \"ready\",\n+                \"priority\": \"urgent\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {\n+                  \"ticket\": \"UI-qa\"\n+                },\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"UI verification thread\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": \"<timestamp>\",\n+                    \"prefs\": {\n+                      \"typing\": \"staged\"\n+                    },\n+                    \"context_refs\": [\n+                      \"seed:ui\"\n+                    ],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              }\n+            ]\n+          },\n+          {\n+            \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n             \"tenant_id\": \"<uuid>\",\n             \"owner_id\": \"<uuid>\",\n             \"name\": \"Product Launch\",\n@@ -109,43 +247,1019 @@\n             \"children\": [\n               {\n                 \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Set up analytics\",\n+                \"description\": null,\n+                \"status\": \"backlog\",\n+                \"priority\": \"low\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n                 \"tenant_id\": \"<uuid>\",\n                 \"project_id\": \"<uuid>\",\n                 \"owner_id\": \"<uuid>\",\n                 \"title\": \"Write product copy\",\n+                \"description\": null,\n                 \"status\": \"ready\",\n                 \"priority\": \"medium\",\n-                \"order_index\": 1,\n-                \"source_type\": \"manual\",\n-                \"source_ref\": {},\n-                \"children\": []\n-              },\n-              {\n-                \"id\": \"<uuid>\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Copy review\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": null,\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n                 \"tenant_id\": \"<uuid>\",\n                 \"project_id\": \"<uuid>\",\n                 \"owner_id\": \"<uuid>\",\n                 \"title\": \"Design landing page\",\n+                \"description\": null,\n                 \"status\": \"doing\",\n                 \"priority\": \"high\",\n-                \"order_index\": 0,\n-                \"source_type\": \"manual\",\n-                \"source_ref\": {},\n-                \"children\": []\n-              }\n-            ]\n-          },\n-          {\n-            \"id\": \"<uuid>\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Design discussion\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": \"<timestamp>\",\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              }\n+            ]\n+          },\n+          {\n+            \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n             \"tenant_id\": \"<uuid>\",\n             \"owner_id\": \"<uuid>\",\n             \"name\": \"Marketing Campaign\",\n             \"description\": \"Social media and email marketing campaign\",\n             \"status\": \"active\",\n             \"priority\": \"medium\",\n-            \"order_index\": 1,\n+            \"order_index\": 0,\n             \"metadata\": {},\n-            \"children\": []\n+            \"children\": [\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Schedule social posts\",\n+                \"description\": null,\n+                \"status\": \"blocked\",\n+                \"priority\": \"medium\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Create email templates\",\n+                \"description\": null,\n+                \"status\": \"doing\",\n+                \"priority\": \"high\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              }\n+            ]\n+          },\n+          {\n+            \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n+            \"tenant_id\": \"<uuid>\",\n+            \"owner_id\": \"<uuid>\",\n+            \"name\": \"Product Launch\",\n+            \"description\": \"Q4 product launch planning and execution\",\n+            \"status\": \"active\",\n+            \"priority\": \"medium\",\n+            \"order_index\": 0,\n+            \"metadata\": {},\n+            \"children\": [\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Set up analytics\",\n+                \"description\": null,\n+                \"status\": \"backlog\",\n+                \"priority\": \"low\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Write product copy\",\n+                \"description\": null,\n+                \"status\": \"ready\",\n+                \"priority\": \"medium\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Copy review\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": null,\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Design landing page\",\n+                \"description\": null,\n+                \"status\": \"doing\",\n+                \"priority\": \"high\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Design discussion\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": \"<timestamp>\",\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              }\n+            ]\n+          },\n+          {\n+            \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n+            \"tenant_id\": \"<uuid>\",\n+            \"owner_id\": \"<uuid>\",\n+            \"name\": \"Marketing Campaign\",\n+            \"description\": \"Social media and email marketing campaign\",\n+            \"status\": \"active\",\n+            \"priority\": \"medium\",\n+            \"order_index\": 0,\n+            \"metadata\": {},\n+            \"children\": [\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Schedule social posts\",\n+                \"description\": null,\n+                \"status\": \"blocked\",\n+                \"priority\": \"medium\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Create email templates\",\n+                \"description\": null,\n+                \"status\": \"doing\",\n+                \"priority\": \"high\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              }\n+            ]\n+          },\n+          {\n+            \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n+            \"tenant_id\": \"<uuid>\",\n+            \"owner_id\": \"<uuid>\",\n+            \"name\": \"Product Launch\",\n+            \"description\": \"Q4 product launch planning and execution\",\n+            \"status\": \"active\",\n+            \"priority\": \"medium\",\n+            \"order_index\": 0,\n+            \"metadata\": {},\n+            \"children\": [\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Set up analytics\",\n+                \"description\": null,\n+                \"status\": \"backlog\",\n+                \"priority\": \"low\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Write product copy\",\n+                \"description\": null,\n+                \"status\": \"ready\",\n+                \"priority\": \"medium\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Copy review\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": null,\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Design landing page\",\n+                \"description\": null,\n+                \"status\": \"doing\",\n+                \"priority\": \"high\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Design discussion\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": \"<timestamp>\",\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              }\n+            ]\n+          },\n+          {\n+            \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n+            \"tenant_id\": \"<uuid>\",\n+            \"owner_id\": \"<uuid>\",\n+            \"name\": \"Marketing Campaign\",\n+            \"description\": \"Social media and email marketing campaign\",\n+            \"status\": \"active\",\n+            \"priority\": \"medium\",\n+            \"order_index\": 0,\n+            \"metadata\": {},\n+            \"children\": [\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Schedule social posts\",\n+                \"description\": null,\n+                \"status\": \"blocked\",\n+                \"priority\": \"medium\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Create email templates\",\n+                \"description\": null,\n+                \"status\": \"doing\",\n+                \"priority\": \"high\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              }\n+            ]\n+          },\n+          {\n+            \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n+            \"tenant_id\": \"<uuid>\",\n+            \"owner_id\": \"<uuid>\",\n+            \"name\": \"Product Launch\",\n+            \"description\": \"Q4 product launch planning and execution\",\n+            \"status\": \"active\",\n+            \"priority\": \"medium\",\n+            \"order_index\": 0,\n+            \"metadata\": {},\n+            \"children\": [\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Set up analytics\",\n+                \"description\": null,\n+                \"status\": \"backlog\",\n+                \"priority\": \"low\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Write product copy\",\n+                \"description\": null,\n+                \"status\": \"ready\",\n+                \"priority\": \"medium\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Copy review\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": null,\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Design landing page\",\n+                \"description\": null,\n+                \"status\": \"doing\",\n+                \"priority\": \"high\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Design discussion\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": \"<timestamp>\",\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              }\n+            ]\n+          },\n+          {\n+            \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n+            \"tenant_id\": \"<uuid>\",\n+            \"owner_id\": \"<uuid>\",\n+            \"name\": \"Marketing Campaign\",\n+            \"description\": \"Social media and email marketing campaign\",\n+            \"status\": \"active\",\n+            \"priority\": \"medium\",\n+            \"order_index\": 0,\n+            \"metadata\": {},\n+            \"children\": [\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Schedule social posts\",\n+                \"description\": null,\n+                \"status\": \"blocked\",\n+                \"priority\": \"medium\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Create email templates\",\n+                \"description\": null,\n+                \"status\": \"doing\",\n+                \"priority\": \"high\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              }\n+            ]\n+          },\n+          {\n+            \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n+            \"tenant_id\": \"<uuid>\",\n+            \"owner_id\": \"<uuid>\",\n+            \"name\": \"Product Launch\",\n+            \"description\": \"Q4 product launch planning and execution\",\n+            \"status\": \"active\",\n+            \"priority\": \"medium\",\n+            \"order_index\": 0,\n+            \"metadata\": {},\n+            \"children\": [\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Set up analytics\",\n+                \"description\": null,\n+                \"status\": \"backlog\",\n+                \"priority\": \"low\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Write product copy\",\n+                \"description\": null,\n+                \"status\": \"ready\",\n+                \"priority\": \"medium\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Copy review\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": null,\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Design landing page\",\n+                \"description\": null,\n+                \"status\": \"doing\",\n+                \"priority\": \"high\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Design discussion\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": \"<timestamp>\",\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              }\n+            ]\n+          },\n+          {\n+            \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n+            \"tenant_id\": \"<uuid>\",\n+            \"owner_id\": \"<uuid>\",\n+            \"name\": \"Marketing Campaign\",\n+            \"description\": \"Social media and email marketing campaign\",\n+            \"status\": \"active\",\n+            \"priority\": \"medium\",\n+            \"order_index\": 0,\n+            \"metadata\": {},\n+            \"children\": [\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Schedule social posts\",\n+                \"description\": null,\n+                \"status\": \"blocked\",\n+                \"priority\": \"medium\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Create email templates\",\n+                \"description\": null,\n+                \"status\": \"doing\",\n+                \"priority\": \"high\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              }\n+            ]\n+          },\n+          {\n+            \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n+            \"tenant_id\": \"<uuid>\",\n+            \"owner_id\": \"<uuid>\",\n+            \"name\": \"Product Launch\",\n+            \"description\": \"Q4 product launch planning and execution\",\n+            \"status\": \"active\",\n+            \"priority\": \"medium\",\n+            \"order_index\": 0,\n+            \"metadata\": {},\n+            \"children\": [\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Set up analytics\",\n+                \"description\": null,\n+                \"status\": \"backlog\",\n+                \"priority\": \"low\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Write product copy\",\n+                \"description\": null,\n+                \"status\": \"ready\",\n+                \"priority\": \"medium\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Copy review\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": null,\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Design landing page\",\n+                \"description\": null,\n+                \"status\": \"doing\",\n+                \"priority\": \"high\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Design discussion\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": \"<timestamp>\",\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              }\n+            ]\n+          },\n+          {\n+            \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n+            \"tenant_id\": \"<uuid>\",\n+            \"owner_id\": \"<uuid>\",\n+            \"name\": \"Marketing Campaign\",\n+            \"description\": \"Social media and email marketing campaign\",\n+            \"status\": \"active\",\n+            \"priority\": \"medium\",\n+            \"order_index\": 0,\n+            \"metadata\": {},\n+            \"children\": [\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Schedule social posts\",\n+                \"description\": null,\n+                \"status\": \"blocked\",\n+                \"priority\": \"medium\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Create email templates\",\n+                \"description\": null,\n+                \"status\": \"doing\",\n+                \"priority\": \"high\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              }\n+            ]\n+          },\n+          {\n+            \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n+            \"tenant_id\": \"<uuid>\",\n+            \"owner_id\": \"<uuid>\",\n+            \"name\": \"Product Launch\",\n+            \"description\": \"Q4 product launch planning and execution\",\n+            \"status\": \"active\",\n+            \"priority\": \"medium\",\n+            \"order_index\": 0,\n+            \"metadata\": {},\n+            \"children\": [\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Set up analytics\",\n+                \"description\": null,\n+                \"status\": \"backlog\",\n+                \"priority\": \"low\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Write product copy\",\n+                \"description\": null,\n+                \"status\": \"ready\",\n+                \"priority\": \"medium\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Copy review\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": null,\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Design landing page\",\n+                \"description\": null,\n+                \"status\": \"doing\",\n+                \"priority\": \"high\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": [\n+                  {\n+                    \"id\": \"<uuid>\",\n+                    \"created_at\": \"<timestamp>\",\n+                    \"updated_at\": \"<timestamp>\",\n+                    \"tenant_id\": \"<uuid>\",\n+                    \"task_id\": \"<uuid>\",\n+                    \"source_action_id\": null,\n+                    \"title\": \"Design discussion\",\n+                    \"created_by\": \"<uuid>\",\n+                    \"last_message_at\": \"<timestamp>\",\n+                    \"prefs\": {},\n+                    \"context_refs\": [],\n+                    \"status\": \"open\",\n+                    \"messages\": []\n+                  }\n+                ]\n+              }\n+            ]\n+          },\n+          {\n+            \"id\": \"<uuid>\",\n+            \"created_at\": \"<timestamp>\",\n+            \"updated_at\": \"<timestamp>\",\n+            \"tenant_id\": \"<uuid>\",\n+            \"owner_id\": \"<uuid>\",\n+            \"name\": \"Marketing Campaign\",\n+            \"description\": \"Social media and email marketing campaign\",\n+            \"status\": \"active\",\n+            \"priority\": \"medium\",\n+            \"order_index\": 0,\n+            \"metadata\": {},\n+            \"children\": [\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Schedule social posts\",\n+                \"description\": null,\n+                \"status\": \"blocked\",\n+                \"priority\": \"medium\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              },\n+              {\n+                \"id\": \"<uuid>\",\n+                \"created_at\": \"<timestamp>\",\n+                \"updated_at\": \"<timestamp>\",\n+                \"tenant_id\": \"<uuid>\",\n+                \"project_id\": \"<uuid>\",\n+                \"owner_id\": \"<uuid>\",\n+                \"title\": \"Create email templates\",\n+                \"description\": null,\n+                \"status\": \"doing\",\n+                \"priority\": \"high\",\n+                \"due_at\": null,\n+                \"order_index\": 0,\n+                \"source_type\": \"manual\",\n+                \"source_ref\": {},\n+                \"children\": []\n+              }\n+            ]\n           }\n         ]\n       },\n@@ -158,26 +1272,24 @@\n         \"ok\": true,\n         \"operations\": [\n           {\n-            \"op\": \"chat\",\n-            \"params\": {\n-              \"message\": \"I understand you want to update the task status. I can help with that!\"\n-            }\n-          },\n-          {\n             \"op\": \"update_task_status\",\n             \"params\": {\n               \"task_id\": \"<uuid>\",\n               \"status\": \"doing\"\n             }\n+          },\n+          {\n+            \"op\": \"create_task\",\n+            \"params\": {\n+              \"title\": \"Follow-up on onboarding flow\",\n+              \"project_id\": \"16\",\n+              \"description\": \"Check on the progress of the onboarding flow implementation and address any blockers.\",\n+              \"priority\": \"medium\",\n+              \"from_action_id\": \"\"\n+            }\n           }\n         ],\n         \"applied\": [\n-          {\n-            \"op\": \"chat\",\n-            \"params\": {\n-              \"message\": \"I understand you want to update the task status. I can help with that!\"\n-            }\n-          },\n           {\n             \"op\": \"update_task_status\",\n             \"params\": {\n@@ -187,23 +1299,38 @@\n           }\n         ],\n         \"pending\": [],\n-        \"errors\": [],\n+        \"errors\": [\n+          {\n+            \"op\": \"create_task\",\n+            \"params\": {\n+              \"title\": \"Follow-up on onboarding flow\",\n+              \"project_id\": \"16\",\n+              \"description\": \"Check on the progress of the onboarding flow implementation and address any blockers.\",\n+              \"priority\": \"medium\",\n+              \"from_action_id\": \"\"\n+            },\n+            \"error\": \"Client error '400 Bad Request' for url 'https://ympffwpecionqhaloufr.supabase.co/rest/v1/tasks'\\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400\"\n+          }\n+        ],\n         \"task\": {\n           \"id\": \"<uuid>\",\n+          \"created_at\": \"<timestamp>\",\n+          \"updated_at\": \"<timestamp>\",\n           \"tenant_id\": \"<uuid>\",\n           \"project_id\": \"<uuid>\",\n           \"owner_id\": \"<uuid>\",\n-          \"title\": \"Write product copy\",\n-          \"status\": \"ready\",\n-          \"priority\": \"medium\",\n-          \"order_index\": 1,\n+          \"title\": \"Finalize onboarding flow\",\n+          \"description\": \"Tighten copy and task doc before rollout.\",\n+          \"status\": \"doing\",\n+          \"priority\": \"urgent\",\n+          \"due_at\": \"<timestamp>\",\n+          \"order_index\": 0,\n           \"source_type\": \"manual\",\n-          \"source_ref\": {},\n-          \"children\": []\n+          \"source_ref\": {}\n         }\n       },\n       \"status\": 200\n     }\n   ],\n-  \"text\": \"{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': True}}\\n{'ok': True, 'projects': 2, 'tasks': 2, 'threads': 0}\\n{'ok': True, 'work_hours': {'start': '09:00', 'end': '17:00'}, 'time_zone': 'UTC', 'day_shape': {'morning_focus': True, 'focus_block_lengths_min': [90, 60], 'focus_block_max_minutes': 120, 'lunch_window': {'start': '12:00', 'end': '14:00', 'min_minutes': 45, 'max_minutes': 60}, 'meeting_avoid_windows': [{'start': '16:00', 'end': '23:59'}], 'buffer_minutes': {'min': 5, 'max': 10}}, 'translation': {'default': 'llm', 'fallback': 'azure', 'rules': {'outbound': 'auto', 'inbound': 'prompt', 'internal': 'off', 'external': 'auto'}}, 'trust_level': 'autonomous', 'ui_prefs': {'thread_open_behavior': 'new_tab', 'brief': {'weather': False, 'news': False, 'tone': 'neutral'}, 'hotkeys': {'approve': 'a', 'edit': 'e', 'defer': 'd', 'add_to_today': 't', 'open_workroom': 'o', 'collapse': 'Escape', 'kanban_toggle': 'Meta+k', 'settings': 'Meta+,'}}}\\n{'ok': True, 'tree': [{'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'status': 'doing', 'priority': 'high', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 1, 'metadata': {}, 'children': []}]}\\n{'ok': True, 'operations': [{'op': 'chat', 'params': {'message': 'I understand you want to update the task status. I can help with that!'}}, {'op': 'update_task_status', 'params': {'task_id': '<uuid>', 'status': 'doing'}}], 'applied': [{'op': 'chat', 'params': {'message': 'I understand you want to update the task status. I can help with that!'}}, {'op': 'update_task_status', 'params': {'task_id': '<uuid>', 'status': 'doing'}}], 'pending': [], 'errors': [], 'task': {'id': '<uuid>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'children': []}}\"\n+  \"text\": \"{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': True}}\\n{'ok': True, 'projects': 2, 'tasks': 5, 'threads': 2}\\n{'ok': True, 'work_hours': {'start': '09:00', 'end': '17:00'}, 'time_zone': 'UTC', 'day_shape': {'morning_focus': True, 'focus_block_lengths_min': [90, 60], 'focus_block_max_minutes': 120, 'lunch_window': {'start': '12:00', 'end': '14:00', 'min_minutes': 45, 'max_minutes': 60}, 'meeting_avoid_windows': [{'start': '16:00', 'end': '23:59'}], 'buffer_minutes': {'min': 5, 'max': 10}}, 'translation': {'default': 'llm', 'fallback': 'azure', 'rules': {'outbound': 'auto', 'inbound': 'prompt', 'internal': 'off', 'external': 'auto'}}, 'trust_level': 'autonomous', 'ui_prefs': {'thread_open_behavior': 'new_tab', 'brief': {'weather': False, 'news': False, 'tone': 'neutral'}, 'hotkeys': {'approve': 'a', 'edit': 'e', 'defer': 'd', 'add_to_today': 't', 'open_workroom': 'o', 'collapse': 'Escape', 'kanban_toggle': 'Meta+k', 'settings': 'Meta+,'}}}\\n{'ok': True, 'tree': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Launch Readiness', 'description': 'Prep work for LucidWork beta launch', 'status': 'active', 'priority': 'high', 'order_index': 0, 'metadata': {'color': 'blue'}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Finalize onboarding flow', 'description': 'Tighten copy and task doc before rollout.', 'status': 'doing', 'priority': 'urgent', 'due_at': '<timestamp>', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Chat 2', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Chat 3', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Inline chat polish', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'UI QA Project', 'description': 'Temporary project to verify chat UI against live Supabase data', 'status': 'active', 'priority': 'high', 'order_index': 0, 'metadata': {'source': 'manual-test'}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Inline chat smoke test', 'description': 'Use this task/thread to validate scroll + typing behaviour', 'status': 'ready', 'priority': 'urgent', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {'ticket': 'UI-qa'}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'UI verification thread', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {'typing': 'staged'}, 'context_refs': ['seed:ui'], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Copy review', 'created_by': '<uuid>', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Design discussion', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Copy review', 'created_by': '<uuid>', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Design discussion', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Copy review', 'created_by': '<uuid>', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Design discussion', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Copy review', 'created_by': '<uuid>', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Design discussion', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Copy review', 'created_by': '<uuid>', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Design discussion', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Copy review', 'created_by': '<uuid>', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Design discussion', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Copy review', 'created_by': '<uuid>', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Design discussion', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}]}\\n{'ok': True, 'operations': [{'op': 'update_task_status', 'params': {'task_id': '<uuid>', 'status': 'doing'}}, {'op': 'create_task', 'params': {'title': 'Follow-up on onboarding flow', 'project_id': '16', 'description': 'Check on the progress of the onboarding flow implementation and address any blockers.', 'priority': 'medium', 'from_action_id': ''}}], 'applied': [{'op': 'update_task_status', 'params': {'task_id': '<uuid>', 'status': 'doing'}}], 'pending': [], 'errors': [{'op': 'create_task', 'params': {'title': 'Follow-up on onboarding flow', 'project_id': '16', 'description': 'Check on the progress of the onboarding flow implementation and address any blockers.', 'priority': 'medium', 'from_action_id': ''}, 'error': \\\"Client error '400 Bad Request' for url 'https://ympffwpecionqhaloufr.supabase.co/rest/v1/tasks'\\\\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400\\\"}], 'task': {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Finalize onboarding flow', 'description': 'Tighten copy and task doc before rollout.', 'status': 'doing', 'priority': 'urgent', 'due_at': '<timestamp>', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}}}\"\n }",
+      "normalized": {
+        "scenario": "llm_ops_task_autonomous",
+        "steps": [
+          {
+            "action": "reset_state",
+            "response": {
+              "ok": true,
+              "cleared": {
+                "approvals": true,
+                "history": true,
+                "queue": true,
+                "settings": true
+              }
+            }
+          },
+          {
+            "endpoint": "/dev/workroom/seed",
+            "method": "POST",
+            "response": {
+              "ok": true,
+              "projects": 2,
+              "tasks": 5,
+              "threads": 2
+            },
+            "status": 200
+          },
+          {
+            "endpoint": "/api/settings",
+            "method": "PUT",
+            "response": {
+              "ok": true,
+              "work_hours": {
+                "start": "09:00",
+                "end": "17:00"
+              },
+              "time_zone": "UTC",
+              "day_shape": {
+                "morning_focus": true,
+                "focus_block_lengths_min": [
+                  90,
+                  60
+                ],
+                "focus_block_max_minutes": 120,
+                "lunch_window": {
+                  "start": "12:00",
+                  "end": "14:00",
+                  "min_minutes": 45,
+                  "max_minutes": 60
+                },
+                "meeting_avoid_windows": [
+                  {
+                    "start": "16:00",
+                    "end": "23:59"
+                  }
+                ],
+                "buffer_minutes": {
+                  "min": 5,
+                  "max": 10
+                }
+              },
+              "translation": {
+                "default": "llm",
+                "fallback": "azure",
+                "rules": {
+                  "outbound": "auto",
+                  "inbound": "prompt",
+                  "internal": "off",
+                  "external": "auto"
+                }
+              },
+              "trust_level": "autonomous",
+              "ui_prefs": {
+                "thread_open_behavior": "new_tab",
+                "brief": {
+                  "weather": false,
+                  "news": false,
+                  "tone": "neutral"
+                },
+                "hotkeys": {
+                  "approve": "a",
+                  "edit": "e",
+                  "defer": "d",
+                  "add_to_today": "t",
+                  "open_workroom": "o",
+                  "collapse": "Escape",
+                  "kanban_toggle": "Meta+k",
+                  "settings": "Meta+,"
+                }
+              }
+            },
+            "status": 200
+          },
+          {
+            "endpoint": "/api/workroom/tree",
+            "method": "GET",
+            "response": {
+              "ok": true,
+              "tree": [
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Launch Readiness",
+                  "description": "Prep work for LucidWork beta launch",
+                  "status": "active",
+                  "priority": "high",
+                  "order_index": 0,
+                  "metadata": {
+                    "color": "blue"
+                  },
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Finalize onboarding flow",
+                      "description": "Tighten copy and task doc before rollout.",
+                      "status": "doing",
+                      "priority": "urgent",
+                      "due_at": "<timestamp>",
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Chat 2",
+                          "created_by": "<uuid>",
+                          "last_message_at": "<timestamp>",
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        },
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Chat 3",
+                          "created_by": "<uuid>",
+                          "last_message_at": "<timestamp>",
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        },
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Inline chat polish",
+                          "created_by": "<uuid>",
+                          "last_message_at": "<timestamp>",
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "UI QA Project",
+                  "description": "Temporary project to verify chat UI against live Supabase data",
+                  "status": "active",
+                  "priority": "high",
+                  "order_index": 0,
+                  "metadata": {
+                    "source": "manual-test"
+                  },
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Inline chat smoke test",
+                      "description": "Use this task/thread to validate scroll + typing behaviour",
+                      "status": "ready",
+                      "priority": "urgent",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {
+                        "ticket": "UI-qa"
+                      },
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "UI verification thread",
+                          "created_by": "<uuid>",
+                          "last_message_at": "<timestamp>",
+                          "prefs": {
+                            "typing": "staged"
+                          },
+                          "context_refs": [
+                            "seed:ui"
+                          ],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Product Launch",
+                  "description": "Q4 product launch planning and execution",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 0,
+                  "metadata": {},
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Set up analytics",
+                      "description": null,
+                      "status": "backlog",
+                      "priority": "low",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Write product copy",
+                      "description": null,
+                      "status": "ready",
+                      "priority": "medium",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Copy review",
+                          "created_by": "<uuid>",
+                          "last_message_at": null,
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Design landing page",
+                      "description": null,
+                      "status": "doing",
+                      "priority": "high",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Design discussion",
+                          "created_by": "<uuid>",
+                          "last_message_at": "<timestamp>",
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Marketing Campaign",
+                  "description": "Social media and email marketing campaign",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 0,
+                  "metadata": {},
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Schedule social posts",
+                      "description": null,
+                      "status": "blocked",
+                      "priority": "medium",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Create email templates",
+                      "description": null,
+                      "status": "doing",
+                      "priority": "high",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Product Launch",
+                  "description": "Q4 product launch planning and execution",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 0,
+                  "metadata": {},
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Set up analytics",
+                      "description": null,
+                      "status": "backlog",
+                      "priority": "low",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Write product copy",
+                      "description": null,
+                      "status": "ready",
+                      "priority": "medium",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Copy review",
+                          "created_by": "<uuid>",
+                          "last_message_at": null,
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Design landing page",
+                      "description": null,
+                      "status": "doing",
+                      "priority": "high",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Design discussion",
+                          "created_by": "<uuid>",
+                          "last_message_at": "<timestamp>",
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Marketing Campaign",
+                  "description": "Social media and email marketing campaign",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 0,
+                  "metadata": {},
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Schedule social posts",
+                      "description": null,
+                      "status": "blocked",
+                      "priority": "medium",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Create email templates",
+                      "description": null,
+                      "status": "doing",
+                      "priority": "high",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Product Launch",
+                  "description": "Q4 product launch planning and execution",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 0,
+                  "metadata": {},
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Set up analytics",
+                      "description": null,
+                      "status": "backlog",
+                      "priority": "low",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Write product copy",
+                      "description": null,
+                      "status": "ready",
+                      "priority": "medium",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Copy review",
+                          "created_by": "<uuid>",
+                          "last_message_at": null,
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Design landing page",
+                      "description": null,
+                      "status": "doing",
+                      "priority": "high",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Design discussion",
+                          "created_by": "<uuid>",
+                          "last_message_at": "<timestamp>",
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Marketing Campaign",
+                  "description": "Social media and email marketing campaign",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 0,
+                  "metadata": {},
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Schedule social posts",
+                      "description": null,
+                      "status": "blocked",
+                      "priority": "medium",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Create email templates",
+                      "description": null,
+                      "status": "doing",
+                      "priority": "high",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Product Launch",
+                  "description": "Q4 product launch planning and execution",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 0,
+                  "metadata": {},
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Set up analytics",
+                      "description": null,
+                      "status": "backlog",
+                      "priority": "low",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Write product copy",
+                      "description": null,
+                      "status": "ready",
+                      "priority": "medium",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Copy review",
+                          "created_by": "<uuid>",
+                          "last_message_at": null,
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Design landing page",
+                      "description": null,
+                      "status": "doing",
+                      "priority": "high",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Design discussion",
+                          "created_by": "<uuid>",
+                          "last_message_at": "<timestamp>",
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Marketing Campaign",
+                  "description": "Social media and email marketing campaign",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 0,
+                  "metadata": {},
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Schedule social posts",
+                      "description": null,
+                      "status": "blocked",
+                      "priority": "medium",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Create email templates",
+                      "description": null,
+                      "status": "doing",
+                      "priority": "high",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Product Launch",
+                  "description": "Q4 product launch planning and execution",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 0,
+                  "metadata": {},
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Set up analytics",
+                      "description": null,
+                      "status": "backlog",
+                      "priority": "low",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Write product copy",
+                      "description": null,
+                      "status": "ready",
+                      "priority": "medium",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Copy review",
+                          "created_by": "<uuid>",
+                          "last_message_at": null,
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Design landing page",
+                      "description": null,
+                      "status": "doing",
+                      "priority": "high",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Design discussion",
+                          "created_by": "<uuid>",
+                          "last_message_at": "<timestamp>",
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Marketing Campaign",
+                  "description": "Social media and email marketing campaign",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 0,
+                  "metadata": {},
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Schedule social posts",
+                      "description": null,
+                      "status": "blocked",
+                      "priority": "medium",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Create email templates",
+                      "description": null,
+                      "status": "doing",
+                      "priority": "high",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Product Launch",
+                  "description": "Q4 product launch planning and execution",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 0,
+                  "metadata": {},
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Set up analytics",
+                      "description": null,
+                      "status": "backlog",
+                      "priority": "low",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Write product copy",
+                      "description": null,
+                      "status": "ready",
+                      "priority": "medium",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Copy review",
+                          "created_by": "<uuid>",
+                          "last_message_at": null,
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Design landing page",
+                      "description": null,
+                      "status": "doing",
+                      "priority": "high",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Design discussion",
+                          "created_by": "<uuid>",
+                          "last_message_at": "<timestamp>",
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Marketing Campaign",
+                  "description": "Social media and email marketing campaign",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 0,
+                  "metadata": {},
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Schedule social posts",
+                      "description": null,
+                      "status": "blocked",
+                      "priority": "medium",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Create email templates",
+                      "description": null,
+                      "status": "doing",
+                      "priority": "high",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Product Launch",
+                  "description": "Q4 product launch planning and execution",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 0,
+                  "metadata": {},
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Set up analytics",
+                      "description": null,
+                      "status": "backlog",
+                      "priority": "low",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Write product copy",
+                      "description": null,
+                      "status": "ready",
+                      "priority": "medium",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Copy review",
+                          "created_by": "<uuid>",
+                          "last_message_at": null,
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Design landing page",
+                      "description": null,
+                      "status": "doing",
+                      "priority": "high",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": [
+                        {
+                          "id": "<uuid>",
+                          "created_at": "<timestamp>",
+                          "updated_at": "<timestamp>",
+                          "tenant_id": "<uuid>",
+                          "task_id": "<uuid>",
+                          "source_action_id": null,
+                          "title": "Design discussion",
+                          "created_by": "<uuid>",
+                          "last_message_at": "<timestamp>",
+                          "prefs": {},
+                          "context_refs": [],
+                          "status": "open",
+                          "messages": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "<uuid>",
+                  "created_at": "<timestamp>",
+                  "updated_at": "<timestamp>",
+                  "tenant_id": "<uuid>",
+                  "owner_id": "<uuid>",
+                  "name": "Marketing Campaign",
+                  "description": "Social media and email marketing campaign",
+                  "status": "active",
+                  "priority": "medium",
+                  "order_index": 0,
+                  "metadata": {},
+                  "children": [
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Schedule social posts",
+                      "description": null,
+                      "status": "blocked",
+                      "priority": "medium",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    },
+                    {
+                      "id": "<uuid>",
+                      "created_at": "<timestamp>",
+                      "updated_at": "<timestamp>",
+                      "tenant_id": "<uuid>",
+                      "project_id": "<uuid>",
+                      "owner_id": "<uuid>",
+                      "title": "Create email templates",
+                      "description": null,
+                      "status": "doing",
+                      "priority": "high",
+                      "due_at": null,
+                      "order_index": 0,
+                      "source_type": "manual",
+                      "source_ref": {},
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            "status": 200
+          },
+          {
+            "endpoint": "/api/workroom/tasks/<uuid>/assistant-suggest",
+            "method": "POST",
+            "response": {
+              "ok": true,
+              "operations": [
+                {
+                  "op": "update_task_status",
+                  "params": {
+                    "task_id": "<uuid>",
+                    "status": "doing"
+                  }
+                },
+                {
+                  "op": "create_task",
+                  "params": {
+                    "title": "Follow-up on onboarding flow",
+                    "project_id": "16",
+                    "description": "Check on the progress of the onboarding flow implementation and address any blockers.",
+                    "priority": "medium",
+                    "from_action_id": ""
+                  }
+                }
+              ],
+              "applied": [
+                {
+                  "op": "update_task_status",
+                  "params": {
+                    "task_id": "<uuid>",
+                    "status": "doing"
+                  }
+                }
+              ],
+              "pending": [],
+              "errors": [
+                {
+                  "op": "create_task",
+                  "params": {
+                    "title": "Follow-up on onboarding flow",
+                    "project_id": "16",
+                    "description": "Check on the progress of the onboarding flow implementation and address any blockers.",
+                    "priority": "medium",
+                    "from_action_id": ""
+                  },
+                  "error": "Client error '400 Bad Request' for url 'https://ympffwpecionqhaloufr.supabase.co/rest/v1/tasks'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+                }
+              ],
+              "task": {
+                "id": "<uuid>",
+                "created_at": "<timestamp>",
+                "updated_at": "<timestamp>",
+                "tenant_id": "<uuid>",
+                "project_id": "<uuid>",
+                "owner_id": "<uuid>",
+                "title": "Finalize onboarding flow",
+                "description": "Tighten copy and task doc before rollout.",
+                "status": "doing",
+                "priority": "urgent",
+                "due_at": "<timestamp>",
+                "order_index": 0,
+                "source_type": "manual",
+                "source_ref": {}
+              }
+            },
+            "status": 200
+          }
+        ],
+        "text": "{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': True}}\n{'ok': True, 'projects': 2, 'tasks': 5, 'threads': 2}\n{'ok': True, 'work_hours': {'start': '09:00', 'end': '17:00'}, 'time_zone': 'UTC', 'day_shape': {'morning_focus': True, 'focus_block_lengths_min': [90, 60], 'focus_block_max_minutes': 120, 'lunch_window': {'start': '12:00', 'end': '14:00', 'min_minutes': 45, 'max_minutes': 60}, 'meeting_avoid_windows': [{'start': '16:00', 'end': '23:59'}], 'buffer_minutes': {'min': 5, 'max': 10}}, 'translation': {'default': 'llm', 'fallback': 'azure', 'rules': {'outbound': 'auto', 'inbound': 'prompt', 'internal': 'off', 'external': 'auto'}}, 'trust_level': 'autonomous', 'ui_prefs': {'thread_open_behavior': 'new_tab', 'brief': {'weather': False, 'news': False, 'tone': 'neutral'}, 'hotkeys': {'approve': 'a', 'edit': 'e', 'defer': 'd', 'add_to_today': 't', 'open_workroom': 'o', 'collapse': 'Escape', 'kanban_toggle': 'Meta+k', 'settings': 'Meta+,'}}}\n{'ok': True, 'tree': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Launch Readiness', 'description': 'Prep work for LucidWork beta launch', 'status': 'active', 'priority': 'high', 'order_index': 0, 'metadata': {'color': 'blue'}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Finalize onboarding flow', 'description': 'Tighten copy and task doc before rollout.', 'status': 'doing', 'priority': 'urgent', 'due_at': '<timestamp>', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Chat 2', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Chat 3', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Inline chat polish', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'UI QA Project', 'description': 'Temporary project to verify chat UI against live Supabase data', 'status': 'active', 'priority': 'high', 'order_index': 0, 'metadata': {'source': 'manual-test'}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Inline chat smoke test', 'description': 'Use this task/thread to validate scroll + typing behaviour', 'status': 'ready', 'priority': 'urgent', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {'ticket': 'UI-qa'}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'UI verification thread', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {'typing': 'staged'}, 'context_refs': ['seed:ui'], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Copy review', 'created_by': '<uuid>', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Design discussion', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Copy review', 'created_by': '<uuid>', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Design discussion', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Copy review', 'created_by': '<uuid>', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Design discussion', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Copy review', 'created_by': '<uuid>', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Design discussion', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Copy review', 'created_by': '<uuid>', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Design discussion', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Copy review', 'created_by': '<uuid>', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Design discussion', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Set up analytics', 'description': None, 'status': 'backlog', 'priority': 'low', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Write product copy', 'description': None, 'status': 'ready', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Copy review', 'created_by': '<uuid>', 'last_message_at': None, 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Design landing page', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'task_id': '<uuid>', 'source_action_id': None, 'title': 'Design discussion', 'created_by': '<uuid>', 'last_message_at': '<timestamp>', 'prefs': {}, 'context_refs': [], 'status': 'open', 'messages': []}]}]}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'children': [{'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Schedule social posts', 'description': None, 'status': 'blocked', 'priority': 'medium', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}, {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Create email templates', 'description': None, 'status': 'doing', 'priority': 'high', 'due_at': None, 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'children': []}]}]}\n{'ok': True, 'operations': [{'op': 'update_task_status', 'params': {'task_id': '<uuid>', 'status': 'doing'}}, {'op': 'create_task', 'params': {'title': 'Follow-up on onboarding flow', 'project_id': '16', 'description': 'Check on the progress of the onboarding flow implementation and address any blockers.', 'priority': 'medium', 'from_action_id': ''}}], 'applied': [{'op': 'update_task_status', 'params': {'task_id': '<uuid>', 'status': 'doing'}}], 'pending': [], 'errors': [{'op': 'create_task', 'params': {'title': 'Follow-up on onboarding flow', 'project_id': '16', 'description': 'Check on the progress of the onboarding flow implementation and address any blockers.', 'priority': 'medium', 'from_action_id': ''}, 'error': \"Client error '400 Bad Request' for url 'https://ympffwpecionqhaloufr.supabase.co/rest/v1/tasks'\\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400\"}], 'task': {'id': '<uuid>', 'created_at': '<timestamp>', 'updated_at': '<timestamp>', 'tenant_id': '<uuid>', 'project_id': '<uuid>', 'owner_id': '<uuid>', 'title': 'Finalize onboarding flow', 'description': 'Tighten copy and task doc before rollout.', 'status': 'doing', 'priority': 'urgent', 'due_at': '<timestamp>', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}}}"
+      }
+    }
+  }
+}

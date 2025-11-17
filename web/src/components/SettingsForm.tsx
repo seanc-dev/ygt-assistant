@@ -308,6 +308,71 @@ export function SettingsForm({ settings, onSave, saving }: SettingsFormProps) {
                 />
               </div>
             </div>
+
+            <div>
+              <label className="text-xs text-gray-600 mb-2 block">
+                Meeting Avoid Windows
+              </label>
+              <div className="space-y-2">
+                {formData.day_shape.meeting_avoid_windows.map((window, idx) => (
+                  <div key={idx} className="grid grid-cols-2 gap-2 items-end">
+                    <div>
+                      <label className="text-xs text-gray-600 mb-1 block">Start</label>
+                      <input
+                        type="time"
+                        value={window.start}
+                        onChange={(e) => {
+                          const newWindows = [...formData.day_shape.meeting_avoid_windows];
+                          newWindows[idx] = { ...window, start: e.target.value };
+                          updateField(["day_shape", "meeting_avoid_windows"], newWindows);
+                        }}
+                        className="w-full border rounded px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600 mb-1 block">End</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="time"
+                          value={window.end}
+                          onChange={(e) => {
+                            const newWindows = [...formData.day_shape.meeting_avoid_windows];
+                            newWindows[idx] = { ...window, end: e.target.value };
+                            updateField(["day_shape", "meeting_avoid_windows"], newWindows);
+                          }}
+                          className="flex-1 border rounded px-3 py-2 text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newWindows = formData.day_shape.meeting_avoid_windows.filter(
+                              (_, i) => i !== idx
+                            );
+                            updateField(["day_shape", "meeting_avoid_windows"], newWindows);
+                          }}
+                          className="px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newWindows = [
+                      ...formData.day_shape.meeting_avoid_windows,
+                      { start: "16:00", end: "17:00" },
+                    ];
+                    updateField(["day_shape", "meeting_avoid_windows"], newWindows);
+                  }}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  + Add Window
+                </button>
+              </div>
+            </div>
           </Stack>
         </Panel>
 

@@ -24,8 +24,33 @@ async def seed_queue(
     Query params:
     - count: Number of items to seed (default: 10, max: 20)
     """
+    import os
+
     if count > 20:
         count = 20
+
+    # If mock DB is available (for testing), seed it directly
+    try:
+        from llm_testing.mock_db import get_mock_client
+        from presentation.api.repos.queue import _resolve_identity
+
+        tenant_id, resolved_user_id = _resolve_identity(user_id)
+        mock_db = get_mock_client()
+        items = mock_db.seed_queue(resolved_user_id, tenant_id, count)
+        # Also add to queue_store for compatibility
+        for item in items:
+            queue_store[item["id"]] = {
+                "action_id": item["id"],
+                "source": item["source_type"],
+                "category": "needs_response",
+                "priority": item["priority"],
+                "preview": item["payload"].get("preview", ""),
+                "created_at": item.get("created_at", datetime.now().isoformat()),
+            }
+        return {"ok": True, "seeded": len(items), "total": len(queue_store)}
+    except (ImportError, AttributeError, RuntimeError):
+        # Mock DB not available - fall through to in-memory seeding
+        pass
 
     test_items = [
         {
@@ -334,3 +359,39 @@ async def clear_schedule(
     proposed_blocks_store.clear()
     proposed_blocks_store.extend(existing_blocks)
     return {"ok": True, "cleared": True}
+
+
+@router.post("/dev/state/reset")
+async def reset_state(
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Reset all in-memory state stores (dev only).
+
+    Clears:
+    - approvals_store
+    - history_log
+    - queue_store
+    - user settings (for test user)
+    """
+    from presentation.api.state import approvals_store, history_log
+    from presentation.api.repos.user_settings import _settings_store
+
+    approvals_store.clear()
+    history_log.clear()
+    queue_store.clear()
+
+    # Clear settings for test user only
+    settings_cleared = user_id in _settings_store
+    if settings_cleared:
+        del _settings_store[user_id]
+
+    return {
+        "ok": True,
+        "cleared": {
+            "approvals": True,
+            "history": True,
+            "queue": True,
+            "settings": settings_cleared,
+        },
+    }

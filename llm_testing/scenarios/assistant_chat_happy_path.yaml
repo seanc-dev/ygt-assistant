@@ -1,0 +1,55 @@
+name: assistant_chat_happy_path
+mode: mock
+snapshot: assistant_chat_happy_path.json
+steps:
+  - action: reset_state
+  - action: http
+    method: POST
+    url: /chat
+    json:
+      text: ""
+    expect:
+      status: 200
+      contains:
+        - "scan"
+        - "Say"
+  - action: http
+    method: POST
+    url: /chat
+    json:
+      text: "scan"
+    expect:
+      status: 200
+      contains:
+        - "approval"
+        - "messages"
+  - action: http
+    method: POST
+    url: /chat
+    json:
+      text: "approve appr-1"
+    expect:
+      status: 200
+      contains:
+        - "Approved"
+  - action: http
+    method: POST
+    url: /chat
+    json:
+      text: "thanks!"
+    expect:
+      status: 200
+      contains:
+        - "Unknown"
+  - action: http
+    method: GET
+    url: /history
+    expect:
+      status: 200
+expectations:
+  must_contain:
+    - "messages"
+    - "approval"
+  must_not_contain:
+    - "error"
+    - "Error"

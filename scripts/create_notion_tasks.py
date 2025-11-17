@@ -29,35 +29,53 @@ from utils.notion_helper import create_task
 
 
 def main():
-    """Example usage - can be customized for specific use cases."""
-    # Schedule Alternatives project ID
-    project_id = "29f79538-3d90-80e2-926e-f4582cdea037"
-
-    # Example tasks (customize as needed)
+    """Create LLM ops protocol backlog tasks."""
+    # LLM Ops Protocol backlog tasks
     tasks = [
-        (
-            "Build smart command flow with approval/edit/decline",
-            project_id,
-            "Add a way for users to approve/edit/decline the LLM's interpretation of their command before it's implemented.",
-        ),
-        (
-            "Implement schedule block types with colors",
-            project_id,
-            "Add different colors for meetings vs work vs external vs personal, or whichever categories we decide to include.",
-        ),
-        (
-            "Define schedule items relationship to tasks/threads",
-            project_id,
-            "Decide on how schedule items relate to tasks/threads. Could be they relate to a thread themselves, which is what workroom opens when Open in Workroom is clicked. Whatever is decided this needs to be implemented.",
-        ),
+        {
+            "title": "Support multi-task linking from a single action (schema + UI + LLM behaviour)",
+            "tags": ["LLM Ops", "Schema", "UI"],
+            "priority": "Medium",
+            "notes": "Extend task_action_links and task_sources to support multiple tasks per action. Update UI to allow multi-select and LLM to propose multiple task links.",
+        },
+        {
+            "title": "Robust JSON-only fallback for LLM operations (parsing + tests)",
+            "tags": ["LLM Ops", "Testing"],
+            "priority": "High",
+            "notes": "Enhance JSON extraction to handle edge cases: nested code fences, multiple JSON objects, partial JSON recovery. Add comprehensive test coverage.",
+        },
+        {
+            "title": "Context builder must support swap between full context and summarised context (for cost optimisation)",
+            "tags": ["LLM Ops", "Cost Optimization"],
+            "priority": "High",
+            "notes": "The context builder in core/services/llm_context_builder.py currently has a summary_mode parameter stub. Implement summarised mode that returns compact views (id, title, status only) instead of full objects to reduce token usage.",
+        },
+        {
+            "title": "Fine-grained trust rules by surface and recipient type (Queue vs Workroom, internal vs external, team vs wider org)",
+            "tags": ["LLM Ops", "Trust Gating"],
+            "priority": "Medium",
+            "notes": "Extend trust gating beyond simple mode-based rules. Add context-aware risk assessment based on: surface (Queue vs Workroom), recipient type (internal vs external), and org scope (team vs wider org).",
+        },
+        {
+            "title": "Contextual history surfaces (task/queue/today) backed by audit_log; global history deprioritised",
+            "tags": ["History", "UI"],
+            "priority": "Low",
+            "notes": "Build contextual history views for tasks, queue items, and today's activities using audit_log. Deprioritise global history page expansion in favor of these contextual views.",
+        },
     ]
 
-    for title, pid, notes in tasks:
+    for task in tasks:
         try:
-            create_task(title, pid, notes)
-            print(f"✓ Created: {title}")
+            create_task(
+                title=task["title"],
+                project_id=None,  # No project link for these tasks
+                notes=task["notes"],
+                priority=task["priority"],
+                tags=task["tags"],
+            )
+            print(f"✓ Created: {task['title']}")
         except Exception as e:
-            print(f"✗ Error creating '{title}': {e}")
+            print(f"✗ Error creating '{task['title']}': {e}")
 
 
 if __name__ == "__main__":

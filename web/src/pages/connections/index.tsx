@@ -12,6 +12,7 @@ import {
 import { Layout } from "../../components/Layout";
 import LiveModeBanner from "../../components/LiveModeBanner";
 import { Toast } from "../../components/Toast";
+import { buildApiUrl } from "../../lib/apiBase";
 
 type ConnectionStatus =
   | { connected: false; reason?: string }
@@ -35,15 +36,11 @@ export default function ConnectionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState("");
 
-  const apiBase =
-    process.env.NEXT_PUBLIC_ADMIN_API_BASE || "http://localhost:8000";
-  const userId = ""; // cookie-based after OAuth
-
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${apiBase}/connections/ms/status`, {
+      const res = await fetch(buildApiUrl("/connections/ms/status"), {
         credentials: "include",
       });
       const data = await res.json();
@@ -53,7 +50,7 @@ export default function ConnectionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [apiBase, userId]);
+  }, []);
 
   useEffect(() => {
     refresh();
@@ -73,11 +70,11 @@ export default function ConnectionsPage() {
   }, [status]);
 
   const handleConnect = () => {
-    window.location.href = `${apiBase}/connections/ms/oauth/start`;
+    window.location.href = buildApiUrl("/connections/ms/oauth/start");
   };
 
   const handleDisconnect = async () => {
-    await fetch(`${apiBase}/connections/ms/disconnect`, {
+    await fetch(buildApiUrl("/connections/ms/disconnect"), {
       method: "POST",
       credentials: "include",
     });
@@ -86,7 +83,7 @@ export default function ConnectionsPage() {
   };
 
   const handleTest = async () => {
-    const res = await fetch(`${apiBase}/connections/ms/test`, {
+    const res = await fetch(buildApiUrl("/connections/ms/test"), {
       method: "POST",
       credentials: "include",
     });

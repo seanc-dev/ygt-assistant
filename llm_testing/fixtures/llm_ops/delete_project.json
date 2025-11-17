@@ -1,0 +1,11 @@
+{
+  "operations": [
+    {
+      "op": "delete_project",
+      "params": {
+        "projects": ["<project_name_1>"]
+      }
+    }
+  ]
+}
+

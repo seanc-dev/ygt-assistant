@@ -6,7 +6,7 @@ export default class MyDocument extends Document {
     return (
       <Html lang="en">
         <Head />
-        <body className="min-h-screen antialiased">
+        <body className="antialiased">
           <ThemeScript />
           <Main />
           <NextScript />

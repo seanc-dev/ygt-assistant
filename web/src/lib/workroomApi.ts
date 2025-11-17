@@ -1,19 +1,31 @@
 import { api } from "./api";
+import { buildApiUrl, logApiBaseOnce } from "./apiBase";
 import type { Task, Project, ChatMeta, TaskDoc } from "../hooks/useWorkroomStore";
 import type { ActionEmbed } from "./actionEmbeds";
 
-const BASE = process.env.NEXT_PUBLIC_ADMIN_API_BASE || 
-  (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "https://api.coachflow.nz");
+logApiBaseOnce("workroomApi");
 
 async function req(path: string, opts: RequestInit = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    ...opts,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(opts.headers || {}),
-    },
-  });
+  const url = buildApiUrl(path);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...opts,
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(opts.headers || {}),
+      },
+    });
+  } catch (err) {
+    const networkError = new Error(
+      `Failed to reach Workroom API at ${url}. ${
+        err instanceof Error ? err.message : "Network request did not complete."
+      }`
+    );
+    (networkError as any).cause = err;
+    throw networkError;
+  }
   if (!res.ok) {
     let errorMessage = `${res.status} ${res.statusText}`;
     try {

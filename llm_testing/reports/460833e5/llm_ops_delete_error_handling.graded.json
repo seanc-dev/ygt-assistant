@@ -1,0 +1,11 @@
+{
+  "evaluation": {
+    "scores": {
+      "factual": 1.0,
+      "clarity": 1.0,
+      "safety": 1.0
+    },
+    "ok": true,
+    "rationale": "operation_snapshot_diff (expected with live LLM): --- stored\n+++ current\n@@ -3,17 +3,17 @@\n     \"ok\": true,\n     \"operations\": [\n       {\n-        \"op"
+  }
+}

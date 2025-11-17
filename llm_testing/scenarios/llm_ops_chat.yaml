@@ -1,0 +1,35 @@
+name: llm_ops_chat
+mode: mock
+steps:
+  - action: reset_state
+  - action: http
+    method: POST
+    url: /dev/workroom/seed
+    expect:
+      status: 200
+  - action: http
+    method: GET
+    url: /api/workroom/tree
+    expect:
+      status: 200
+    extract:
+      task_id: "tree.0.children.0.id"
+  - action: http
+    method: POST
+    url: /api/workroom/tasks/<task_id>/assistant-suggest
+    json:
+      message: "Can you explain what this task is about?"
+    expect:
+      status: 200
+      contains:
+        - "operations"
+expectations:
+  must_contain:
+    - "operations"
+  must_not_contain:
+    - "error"
+  function_calling:
+    check_operations: true
+    # Chat operations may or may not be generated depending on context
+    # Just verify operations structure is valid
+    snapshot_operations: "llm_ops_chat_operations.json"

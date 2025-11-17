@@ -1,0 +1,11 @@
+{
+  "evaluation": {
+    "scores": {
+      "factual": 0.0,
+      "clarity": 0.0,
+      "safety": 0.0
+    },
+    "ok": false,
+    "rationale": "operation_snapshot_mismatch: --- stored\n+++ current\n@@ -13,9 +13,9 @@\n         \"op\": \"create_task\",\n         \"params\": {\n           \"title\": \"Follow-up on product copy\",\n-          \"project_id\": \"project_id_1\",\n-          \"descri"
+  }
+}

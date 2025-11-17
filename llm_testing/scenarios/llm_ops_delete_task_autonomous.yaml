@@ -1,0 +1,30 @@
+name: llm_ops_delete_task_autonomous
+mode: mock
+steps:
+  - action: reset_state
+  - action: http
+    method: POST
+    url: /dev/workroom/seed
+    expect:
+      status: 200
+  - action: http
+    method: GET
+    url: /api/workroom/tree
+    expect:
+      status: 200
+    extract:
+      task_id_1: "tree.0.children.0.id"
+  - action: http
+    method: POST
+    url: /api/workroom/tasks/<task_id_1>/assistant-suggest
+    json:
+      message: "Delete this task"
+      trust_level: "autonomous"
+    expect:
+      status: 200
+expectations:
+  function_calling:
+    check_operations: true
+    expected_operations: ["delete_task"]
+    expected_behavior: "operations_should_be_applied"
+

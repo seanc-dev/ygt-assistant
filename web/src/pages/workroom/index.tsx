@@ -17,6 +17,7 @@ import {
   type Project,
 } from "../../hooks/useWorkroomStore";
 import { workroomApi } from "../../lib/workroomApi";
+import { buildApiUrl } from "../../lib/apiBase";
 import { Button } from "@ygt-assistant/ui/primitives/Button";
 import { Text } from "@ygt-assistant/ui";
 import {
@@ -245,13 +246,10 @@ export default function WorkroomPage() {
         } else if (response.projects && response.projects.length === 0) {
           // Auto-seed if no projects
           try {
-            const seedResponse = await fetch(
-              `${
-                process.env.NEXT_PUBLIC_ADMIN_API_BASE ||
-                "http://localhost:8000"
-              }/dev/workroom/seed`,
-              { method: "POST", credentials: "include" }
-            );
+            const seedResponse = await fetch(buildApiUrl("/dev/workroom/seed"), {
+              method: "POST",
+              credentials: "include",
+            });
             if (seedResponse.ok) {
               const reloadResponse = await workroomApi.getProjects();
               if (

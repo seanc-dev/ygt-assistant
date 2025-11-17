@@ -1,0 +1,31 @@
+name: llm_ops_delete_task_multiple
+mode: mock
+steps:
+  - action: reset_state
+  - action: http
+    method: POST
+    url: /dev/workroom/seed
+    expect:
+      status: 200
+  - action: http
+    method: GET
+    url: /api/workroom/tree
+    expect:
+      status: 200
+    extract:
+      task_id_1: "tree.0.children.0.id"
+      task_id_2: "tree.0.children.1.id"
+  - action: http
+    method: POST
+    url: /api/workroom/tasks/<task_id_1>/assistant-suggest
+    json:
+      message: "Delete both tasks in the Product Launch project"
+    expect:
+      status: 200
+expectations:
+  function_calling:
+    check_operations: true
+    expected_operations: ["delete_task"]
+    validate_deterministic: true
+    snapshot_operations: "llm_ops_delete_task_multiple_operations.json"
+

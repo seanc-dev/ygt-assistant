@@ -1,0 +1,27 @@
+[
+  {
+    "ok": true,
+    "operations": [
+      {
+        "op": "delete_project",
+        "params": {
+          "project_ids": [
+            "<uuid>"
+          ]
+        }
+      }
+    ],
+    "applied": [],
+    "pending": [
+      {
+        "op": "delete_project",
+        "params": {
+          "project_ids": [
+            "<uuid>"
+          ]
+        }
+      }
+    ],
+    "errors": []
+  }
+]

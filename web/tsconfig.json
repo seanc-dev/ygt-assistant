@@ -14,6 +14,7 @@
     "jsx": "preserve",
     "forceConsistentCasingInFileNames": true,
     "incremental": true,
+    "baseUrl": ".",
     "types": ["node", "react", "react-dom", "vitest/globals"],
     "plugins": [
       {
@@ -21,8 +22,8 @@
       }
     ],
     "paths": {
-      "@ygt-assistant/ui": ["../shared-ui/src"],
-      "@ygt-assistant/ui/*": ["../shared-ui/src/*"]
+      "@ygt-assistant/ui": ["node_modules/@ygt-assistant/ui/src"],
+      "@ygt-assistant/ui/*": ["node_modules/@ygt-assistant/ui/src/*"]
     }
   },
   "include": [

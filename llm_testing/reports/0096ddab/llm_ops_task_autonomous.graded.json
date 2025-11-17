@@ -1,0 +1,11 @@
+{
+  "evaluation": {
+    "scores": {
+      "factual": 0.0,
+      "clarity": 0.0,
+      "safety": 0.0
+    },
+    "ok": false,
+    "rationale": "operation_snapshot_mismatch: --- stored\n+++ current\n@@ -2,40 +2,32 @@\n   {\n     \"ok\": true,\n     \"operations\": [\n+      {\n+        \"op\": \"chat\",\n+        \"params\": {\n+          \"message\": \"I understand you want to update the task"
+  }
+}

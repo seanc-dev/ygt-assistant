@@ -1,0 +1,38 @@
+name: llm_ops_delete_project
+mode: mock
+steps:
+  - action: reset_state
+  - action: http
+    method: POST
+    url: /dev/workroom/seed
+    expect:
+      status: 200
+  - action: http
+    method: GET
+    url: /api/workroom/tree
+    expect:
+      status: 200
+    extract:
+      project_id_1: "tree.0.id"
+      project_id_2: "tree.1.id"
+      task_id_1: "tree.0.children.0.id"
+      task_id_2: "tree.0.children.1.id"
+  - action: http
+    method: POST
+    url: /api/workroom/tasks/<task_id_1>/assistant-suggest
+    json:
+      message: "Delete the Product Launch project"
+    expect:
+      status: 200
+      contains:
+        - "operations"
+expectations:
+  must_contain:
+    - "operations"
+  must_not_contain:
+    - "error"
+  function_calling:
+    check_operations: true
+    expected_operations: ["delete_project"]
+    expected_behavior: "operations_should_be_pending"
+    snapshot_operations: "llm_ops_delete_project_operations.json"

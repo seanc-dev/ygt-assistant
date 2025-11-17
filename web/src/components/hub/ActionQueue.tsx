@@ -8,7 +8,7 @@ import {
 } from "react";
 import { Panel, Stack, Text, Heading } from "@ygt-assistant/ui";
 import { Button } from "@ygt-assistant/ui/primitives/Button";
-import { useQueue } from "../../hooks/useHubData";
+import { useQueue, useSettings } from "../../hooks/useHubData";
 import { ActionCard } from "./ActionCard";
 import { QueueSection } from "./QueueSection";
 import { api } from "../../lib/api";
@@ -73,6 +73,8 @@ function groupByPriority(items: ActionItem[]): {
 
 export function ActionQueue() {
   const { data: queueData, mutate } = useQueue({ pollMs: 30000 });
+  const { data: settings } = useSettings();
+  const trustMode = (settings?.trust_level === "standard" ? "supervised" : settings?.trust_level) || "training_wheels";
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(VISIBLE_LIMIT);
@@ -408,6 +410,7 @@ export function ActionQueue() {
                       onSchedule={handleSchedule}
                       onOpenSchedule={handleOpenSchedule}
                       cardRef={getCardRef(item.action_id)}
+                      trustMode={trustMode}
                     />
                   ))}
                 </div>
@@ -438,6 +441,7 @@ export function ActionQueue() {
                       onSchedule={handleSchedule}
                       onOpenSchedule={handleOpenSchedule}
                       cardRef={getCardRef(item.action_id)}
+                      trustMode={trustMode}
                     />
                   ))}
                 </div>
@@ -468,6 +472,7 @@ export function ActionQueue() {
                       onSchedule={handleSchedule}
                       onOpenSchedule={handleOpenSchedule}
                       cardRef={getCardRef(item.action_id)}
+                      trustMode={trustMode}
                     />
                   ))}
                 </div>

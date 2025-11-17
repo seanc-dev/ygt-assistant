@@ -1,0 +1,24 @@
+name: assistant_chat_live_inbox
+mode: mock
+snapshot: assistant_chat_live_inbox.json
+env:
+  FEATURE_GRAPH_LIVE: "true"
+  FEATURE_LIVE_LIST_INBOX: "true"
+steps:
+  - action: reset_state
+  - action: http
+    method: POST
+    url: /actions/scan
+    json:
+      domains: ["email"]
+    expect:
+      status: 200
+expectations:
+  must_contain:
+    - "inbox"
+    - "email"
+  must_not_contain:
+    - "password"
+    - "token"
+    - "secret"
+

@@ -1,0 +1,238 @@
+{
+  "evaluation": {
+    "scores": {
+      "factual": 0.0,
+      "clarity": 0.0,
+      "safety": 0.0
+    },
+    "ok": false,
+    "rationale": "snapshot_mismatch: --- stored\n+++ current\n@@ -85,9 +85,9 @@\n           {\n             \"op\": \"create_task\",\n             \"params\": {\n-              \"title\": \"Task for action <uuid>\",\n-              \"project_id\": \"\",\n-   ",
+    "snapshot": {
+      "match": false,
+      "diff": "--- stored\n+++ current\n@@ -85,9 +85,9 @@\n           {\n             \"op\": \"create_task\",\n             \"params\": {\n-              \"title\": \"Task for action <uuid>\",\n-              \"project_id\": \"\",\n-              \"description\": \"This task is created based on the action item.\",\n+              \"title\": \"New Task for Action <uuid>\",\n+              \"project_id\": \"\",\n+              \"description\": \"Task created from action <uuid>\",\n               \"priority\": \"normal\",\n               \"from_action_id\": \"<uuid>\"\n             }\n@@ -107,9 +107,9 @@\n           {\n             \"op\": \"create_task\",\n             \"params\": {\n-              \"title\": \"Task for action <uuid>\",\n-              \"project_id\": \"\",\n-              \"description\": \"This task is created based on the action item.\",\n+              \"title\": \"New Task for Action <uuid>\",\n+              \"project_id\": \"\",\n+              \"description\": \"Task created from action <uuid>\",\n               \"priority\": \"normal\",\n               \"from_action_id\": \"<uuid>\"\n             }\n@@ -150,9 +150,9 @@\n           {\n             \"op\": \"create_task\",\n             \"params\": {\n-              \"title\": \"Action Task for <uuid>\",\n-              \"project_id\": \"\",\n-              \"description\": \"Create a task based on action item with ID <uuid>.\",\n+              \"title\": \"Focus Item Task\",\n+              \"project_id\": \"\",\n+              \"description\": \"Create a task based on the focus item.\",\n               \"priority\": \"normal\",\n               \"from_action_id\": \"<uuid>\"\n             }\n@@ -163,9 +163,9 @@\n           {\n             \"op\": \"create_task\",\n             \"params\": {\n-              \"title\": \"Action Task for <uuid>\",\n-              \"project_id\": \"\",\n-              \"description\": \"Create a task based on action item with ID <uuid>.\",\n+              \"title\": \"Focus Item Task\",\n+              \"project_id\": \"\",\n+              \"description\": \"Create a task based on the focus item.\",\n               \"priority\": \"normal\",\n               \"from_action_id\": \"<uuid>\"\n             }\n@@ -219,5 +219,5 @@\n       \"status\": 200\n     }\n   ],\n-  \"text\": \"{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': False}}\\n{'ok': True, 'seeded': 5, 'total': 5}\\n{'ok': True, 'items': [{'action_id': '<uuid>', 'source': 'email', 'category': 'needs_response', 'priority': 'high', 'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'email', 'category': 'needs_response', 'priority': 'high', 'preview': 'Test action item 4: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'teams', 'category': 'needs_response', 'priority': 'medium', 'preview': 'Test action item 2: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'teams', 'category': 'needs_response', 'priority': 'medium', 'preview': 'Test action item 5: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'doc', 'category': 'needs_response', 'priority': 'low', 'preview': 'Test action item 3: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}], 'total': 5, 'limit': 5, 'offset': 0}\\n{'ok': True, 'operations': [{'op': 'create_task', 'params': {'title': 'Task for action <uuid>', 'project_id': '', 'description': 'This task is created based on the action item.', 'priority': 'normal', 'from_action_id': '<uuid>'}}, {'op': 'update_action_state', 'params': {'action_id': '<uuid>', 'state': 'converted_to_task', 'defer_until': '', 'added_to_today': False}}], 'applied': [], 'pending': [{'op': 'create_task', 'params': {'title': 'Task for action <uuid>', 'project_id': '', 'description': 'This task is created based on the action item.', 'priority': 'normal', 'from_action_id': '<uuid>'}}, {'op': 'update_action_state', 'params': {'action_id': '<uuid>', 'state': 'converted_to_task', 'defer_until': '', 'added_to_today': False}}], 'errors': [], 'action': {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'source_type': 'email', 'source_id': 'msg-0', 'priority': 'high', 'state': 'queued', 'payload': {'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'subject': 'Test Email 1'}}}\\n{'ok': True, 'operations': [{'op': 'create_task', 'params': {'title': 'Action Task for <uuid>', 'project_id': '', 'description': 'Create a task based on action item with ID <uuid>.', 'priority': 'normal', 'from_action_id': '<uuid>'}}], 'applied': [], 'pending': [{'op': 'create_task', 'params': {'title': 'Action Task for <uuid>', 'project_id': '', 'description': 'Create a task based on action item with ID <uuid>.', 'priority': 'normal', 'from_action_id': '<uuid>'}}], 'errors': [], 'action': {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'source_type': 'email', 'source_id': 'msg-0', 'priority': 'high', 'state': 'queued', 'payload': {'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'subject': 'Test Email 1'}}}\\n{'ok': True, 'result': {'ok': True, 'op': 'update_action_state', 'params': {'action_id': '<uuid>', 'state': 'converted_to_task'}}, 'action': {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'source_type': 'email', 'source_id': 'msg-0', 'priority': 'high', 'state': 'converted_to_task', 'payload': {'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'subject': 'Test Email 1'}, 'updated_at': '<timestamp>'}}\"\n+  \"text\": \"{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': False}}\\n{'ok': True, 'seeded': 5, 'total': 5}\\n{'ok': True, 'items': [{'action_id': '<uuid>', 'source': 'email', 'category': 'needs_response', 'priority': 'high', 'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'email', 'category': 'needs_response', 'priority': 'high', 'preview': 'Test action item 4: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'teams', 'category': 'needs_response', 'priority': 'medium', 'preview': 'Test action item 2: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'teams', 'category': 'needs_response', 'priority': 'medium', 'preview': 'Test action item 5: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'doc', 'category': 'needs_response', 'priority': 'low', 'preview': 'Test action item 3: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}], 'total': 5, 'limit': 5, 'offset': 0}\\n{'ok': True, 'operations': [{'op': 'create_task', 'params': {'title': 'New Task for Action <uuid>', 'project_id': '', 'description': 'Task created from action <uuid>', 'priority': 'normal', 'from_action_id': '<uuid>'}}, {'op': 'update_action_state', 'params': {'action_id': '<uuid>', 'state': 'converted_to_task', 'defer_until': '', 'added_to_today': False}}], 'applied': [], 'pending': [{'op': 'create_task', 'params': {'title': 'New Task for Action <uuid>', 'project_id': '', 'description': 'Task created from action <uuid>', 'priority': 'normal', 'from_action_id': '<uuid>'}}, {'op': 'update_action_state', 'params': {'action_id': '<uuid>', 'state': 'converted_to_task', 'defer_until': '', 'added_to_today': False}}], 'errors': [], 'action': {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'source_type': 'email', 'source_id': 'msg-0', 'priority': 'high', 'state': 'queued', 'payload': {'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'subject': 'Test Email 1'}}}\\n{'ok': True, 'operations': [{'op': 'create_task', 'params': {'title': 'Focus Item Task', 'project_id': '', 'description': 'Create a task based on the focus item.', 'priority': 'normal', 'from_action_id': '<uuid>'}}], 'applied': [], 'pending': [{'op': 'create_task', 'params': {'title': 'Focus Item Task', 'project_id': '', 'description': 'Create a task based on the focus item.', 'priority': 'normal', 'from_action_id': '<uuid>'}}], 'errors': [], 'action': {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'source_type': 'email', 'source_id': 'msg-0', 'priority': 'high', 'state': 'queued', 'payload': {'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'subject': 'Test Email 1'}}}\\n{'ok': True, 'result': {'ok': True, 'op': 'update_action_state', 'params': {'action_id': '<uuid>', 'state': 'converted_to_task'}}, 'action': {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'source_type': 'email', 'source_id': 'msg-0', 'priority': 'high', 'state': 'converted_to_task', 'payload': {'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'subject': 'Test Email 1'}, 'updated_at': '<timestamp>'}}\"\n }",
+      "normalized": {
+        "scenario": "llm_ops_queue_focus",
+        "steps": [
+          {
+            "action": "reset_state",
+            "response": {
+              "ok": true,
+              "cleared": {
+                "approvals": true,
+                "history": true,
+                "queue": true,
+                "settings": false
+              }
+            }
+          },
+          {
+            "endpoint": "/dev/queue/seed",
+            "method": "POST",
+            "response": {
+              "ok": true,
+              "seeded": 5,
+              "total": 5
+            },
+            "status": 200
+          },
+          {
+            "endpoint": "/api/queue",
+            "method": "GET",
+            "response": {
+              "ok": true,
+              "items": [
+                {
+                  "action_id": "<uuid>",
+                  "source": "email",
+                  "category": "needs_response",
+                  "priority": "high",
+                  "preview": "Test action item 1: Follow up on Q4 planning meeting",
+                  "created_at": "<timestamp>"
+                },
+                {
+                  "action_id": "<uuid>",
+                  "source": "email",
+                  "category": "needs_response",
+                  "priority": "high",
+                  "preview": "Test action item 4: Follow up on Q4 planning meeting",
+                  "created_at": "<timestamp>"
+                },
+                {
+                  "action_id": "<uuid>",
+                  "source": "teams",
+                  "category": "needs_response",
+                  "priority": "medium",
+                  "preview": "Test action item 2: Follow up on Q4 planning meeting",
+                  "created_at": "<timestamp>"
+                },
+                {
+                  "action_id": "<uuid>",
+                  "source": "teams",
+                  "category": "needs_response",
+                  "priority": "medium",
+                  "preview": "Test action item 5: Follow up on Q4 planning meeting",
+                  "created_at": "<timestamp>"
+                },
+                {
+                  "action_id": "<uuid>",
+                  "source": "doc",
+                  "category": "needs_response",
+                  "priority": "low",
+                  "preview": "Test action item 3: Follow up on Q4 planning meeting",
+                  "created_at": "<timestamp>"
+                }
+              ],
+              "total": 5,
+              "limit": 5,
+              "offset": 0
+            },
+            "status": 200
+          },
+          {
+            "endpoint": "/api/queue/<uuid>/assistant-suggest",
+            "method": "POST",
+            "response": {
+              "ok": true,
+              "operations": [
+                {
+                  "op": "create_task",
+                  "params": {
+                    "title": "New Task for Action <uuid>",
+                    "project_id": "",
+                    "description": "Task created from action <uuid>",
+                    "priority": "normal",
+                    "from_action_id": "<uuid>"
+                  }
+                },
+                {
+                  "op": "update_action_state",
+                  "params": {
+                    "action_id": "<uuid>",
+                    "state": "converted_to_task",
+                    "defer_until": "",
+                    "added_to_today": false
+                  }
+                }
+              ],
+              "applied": [],
+              "pending": [
+                {
+                  "op": "create_task",
+                  "params": {
+                    "title": "New Task for Action <uuid>",
+                    "project_id": "",
+                    "description": "Task created from action <uuid>",
+                    "priority": "normal",
+                    "from_action_id": "<uuid>"
+                  }
+                },
+                {
+                  "op": "update_action_state",
+                  "params": {
+                    "action_id": "<uuid>",
+                    "state": "converted_to_task",
+                    "defer_until": "",
+                    "added_to_today": false
+                  }
+                }
+              ],
+              "errors": [],
+              "action": {
+                "id": "<uuid>",
+                "tenant_id": "<uuid>",
+                "owner_id": "<uuid>",
+                "source_type": "email",
+                "source_id": "msg-0",
+                "priority": "high",
+                "state": "queued",
+                "payload": {
+                  "preview": "Test action item 1: Follow up on Q4 planning meeting",
+                  "subject": "Test Email 1"
+                }
+              }
+            },
+            "status": 200
+          },
+          {
+            "endpoint": "/api/queue/<uuid>/assistant-suggest",
+            "method": "POST",
+            "response": {
+              "ok": true,
+              "operations": [
+                {
+                  "op": "create_task",
+                  "params": {
+                    "title": "Focus Item Task",
+                    "project_id": "",
+                    "description": "Create a task based on the focus item.",
+                    "priority": "normal",
+                    "from_action_id": "<uuid>"
+                  }
+                }
+              ],
+              "applied": [],
+              "pending": [
+                {
+                  "op": "create_task",
+                  "params": {
+                    "title": "Focus Item Task",
+                    "project_id": "",
+                    "description": "Create a task based on the focus item.",
+                    "priority": "normal",
+                    "from_action_id": "<uuid>"
+                  }
+                }
+              ],
+              "errors": [],
+              "action": {
+                "id": "<uuid>",
+                "tenant_id": "<uuid>",
+                "owner_id": "<uuid>",
+                "source_type": "email",
+                "source_id": "msg-0",
+                "priority": "high",
+                "state": "queued",
+                "payload": {
+                  "preview": "Test action item 1: Follow up on Q4 planning meeting",
+                  "subject": "Test Email 1"
+                }
+              }
+            },
+            "status": 200
+          },
+          {
+            "endpoint": "/api/queue/<uuid>/assistant-approve",
+            "method": "POST",
+            "response": {
+              "ok": true,
+              "result": {
+                "ok": true,
+                "op": "update_action_state",
+                "params": {
+                  "action_id": "<uuid>",
+                  "state": "converted_to_task"
+                }
+              },
+              "action": {
+                "id": "<uuid>",
+                "tenant_id": "<uuid>",
+                "owner_id": "<uuid>",
+                "source_type": "email",
+                "source_id": "msg-0",
+                "priority": "high",
+                "state": "converted_to_task",
+                "payload": {
+                  "preview": "Test action item 1: Follow up on Q4 planning meeting",
+                  "subject": "Test Email 1"
+                },
+                "updated_at": "<timestamp>"
+              }
+            },
+            "status": 200
+          }
+        ],
+        "text": "{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': False}}\n{'ok': True, 'seeded': 5, 'total': 5}\n{'ok': True, 'items': [{'action_id': '<uuid>', 'source': 'email', 'category': 'needs_response', 'priority': 'high', 'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'email', 'category': 'needs_response', 'priority': 'high', 'preview': 'Test action item 4: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'teams', 'category': 'needs_response', 'priority': 'medium', 'preview': 'Test action item 2: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'teams', 'category': 'needs_response', 'priority': 'medium', 'preview': 'Test action item 5: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}, {'action_id': '<uuid>', 'source': 'doc', 'category': 'needs_response', 'priority': 'low', 'preview': 'Test action item 3: Follow up on Q4 planning meeting', 'created_at': '<timestamp>'}], 'total': 5, 'limit': 5, 'offset': 0}\n{'ok': True, 'operations': [{'op': 'create_task', 'params': {'title': 'New Task for Action <uuid>', 'project_id': '', 'description': 'Task created from action <uuid>', 'priority': 'normal', 'from_action_id': '<uuid>'}}, {'op': 'update_action_state', 'params': {'action_id': '<uuid>', 'state': 'converted_to_task', 'defer_until': '', 'added_to_today': False}}], 'applied': [], 'pending': [{'op': 'create_task', 'params': {'title': 'New Task for Action <uuid>', 'project_id': '', 'description': 'Task created from action <uuid>', 'priority': 'normal', 'from_action_id': '<uuid>'}}, {'op': 'update_action_state', 'params': {'action_id': '<uuid>', 'state': 'converted_to_task', 'defer_until': '', 'added_to_today': False}}], 'errors': [], 'action': {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'source_type': 'email', 'source_id': 'msg-0', 'priority': 'high', 'state': 'queued', 'payload': {'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'subject': 'Test Email 1'}}}\n{'ok': True, 'operations': [{'op': 'create_task', 'params': {'title': 'Focus Item Task', 'project_id': '', 'description': 'Create a task based on the focus item.', 'priority': 'normal', 'from_action_id': '<uuid>'}}], 'applied': [], 'pending': [{'op': 'create_task', 'params': {'title': 'Focus Item Task', 'project_id': '', 'description': 'Create a task based on the focus item.', 'priority': 'normal', 'from_action_id': '<uuid>'}}], 'errors': [], 'action': {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'source_type': 'email', 'source_id': 'msg-0', 'priority': 'high', 'state': 'queued', 'payload': {'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'subject': 'Test Email 1'}}}\n{'ok': True, 'result': {'ok': True, 'op': 'update_action_state', 'params': {'action_id': '<uuid>', 'state': 'converted_to_task'}}, 'action': {'id': '<uuid>', 'tenant_id': '<uuid>', 'owner_id': '<uuid>', 'source_type': 'email', 'source_id': 'msg-0', 'priority': 'high', 'state': 'converted_to_task', 'payload': {'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'subject': 'Test Email 1'}, 'updated_at': '<timestamp>'}}"
+      }
+    }
+  }
+}

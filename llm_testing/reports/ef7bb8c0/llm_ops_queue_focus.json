@@ -1,0 +1,353 @@
+{
+  "scenario": {
+    "name": "llm_ops_queue_focus",
+    "mode": "mock",
+    "steps": [
+      {
+        "action": "reset_state"
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/dev/queue/seed",
+        "params": {
+          "count": 5
+        },
+        "expect": {
+          "status": 200
+        }
+      },
+      {
+        "action": "http",
+        "method": "GET",
+        "url": "/api/queue",
+        "expect": {
+          "status": 200
+        },
+        "extract": {
+          "action_id": "items.0.action_id"
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/api/queue/<action_id>/assistant-suggest",
+        "json": {
+          "message": "Link this action to a task and update its state"
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "operations"
+          ]
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/api/queue/<action_id>/assistant-suggest",
+        "json": {
+          "message": "Actually, can you also create a task for this?"
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "operations"
+          ]
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/api/queue/<action_id>/assistant-approve",
+        "json": {
+          "operation": {
+            "op": "update_action_state",
+            "params": {
+              "action_id": "<action_id>",
+              "state": "converted_to_task"
+            }
+          }
+        },
+        "expect": {
+          "status": 200
+        }
+      }
+    ],
+    "expectations": {
+      "must_contain": [
+        "operations"
+      ],
+      "must_not_contain": [
+        "error"
+      ],
+      "function_calling": {
+        "check_operations": true,
+        "snapshot_operations": "llm_ops_queue_focus_operations.json"
+      }
+    }
+  },
+  "transcript": {
+    "scenario": "llm_ops_queue_focus",
+    "steps": [
+      {
+        "action": "reset_state",
+        "response": {
+          "ok": true,
+          "cleared": {
+            "approvals": true,
+            "history": true,
+            "queue": true,
+            "settings": true
+          }
+        }
+      },
+      {
+        "endpoint": "/dev/queue/seed",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "seeded": 5,
+          "total": 5
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/queue",
+        "method": "GET",
+        "response": {
+          "ok": true,
+          "items": [
+            {
+              "action_id": "cfb7f993-96d1-4347-ba74-79d485da33ba",
+              "source": "email",
+              "category": "needs_response",
+              "priority": "high",
+              "preview": "Test action item 1: Follow up on Q4 planning meeting",
+              "created_at": "2025-11-15T05:49:27.402065+00:00"
+            },
+            {
+              "action_id": "07cec122-241d-4958-b6d2-207d50a667e7",
+              "source": "email",
+              "category": "needs_response",
+              "priority": "high",
+              "preview": "Test action item 4: Follow up on Q4 planning meeting",
+              "created_at": "2025-11-15T05:49:27.402075+00:00"
+            },
+            {
+              "action_id": "f2ea7810-84ee-49a9-a8b4-073905d3250a",
+              "source": "teams",
+              "category": "needs_response",
+              "priority": "medium",
+              "preview": "Test action item 2: Follow up on Q4 planning meeting",
+              "created_at": "2025-11-15T05:49:27.402071+00:00"
+            },
+            {
+              "action_id": "89f0e167-7ab5-435c-9d1b-06aeaa8be3b1",
+              "source": "teams",
+              "category": "needs_response",
+              "priority": "medium",
+              "preview": "Test action item 5: Follow up on Q4 planning meeting",
+              "created_at": "2025-11-15T05:49:27.402076+00:00"
+            },
+            {
+              "action_id": "c0f73954-1215-49cd-b3bd-6ef4e29e5fe5",
+              "source": "doc",
+              "category": "needs_response",
+              "priority": "low",
+              "preview": "Test action item 3: Follow up on Q4 planning meeting",
+              "created_at": "2025-11-15T05:49:27.402074+00:00"
+            }
+          ],
+          "total": 5,
+          "limit": 5,
+          "offset": 0
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/queue/cfb7f993-96d1-4347-ba74-79d485da33ba/assistant-suggest",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "operations": [
+            {
+              "op": "chat",
+              "params": {
+                "message": "I'll help you manage this action item. Let me link it to a task and update its state."
+              }
+            },
+            {
+              "op": "link_action_to_task",
+              "params": {
+                "action_id": "cfb7f993-96d1-4347-ba74-79d485da33ba",
+                "task_id": "<task_id>"
+              }
+            },
+            {
+              "op": "update_action_state",
+              "params": {
+                "action_id": "cfb7f993-96d1-4347-ba74-79d485da33ba",
+                "state": "converted_to_task"
+              }
+            }
+          ],
+          "applied": [
+            {
+              "op": "chat",
+              "params": {
+                "message": "I'll help you manage this action item. Let me link it to a task and update its state."
+              }
+            }
+          ],
+          "pending": [
+            {
+              "op": "link_action_to_task",
+              "params": {
+                "action_id": "cfb7f993-96d1-4347-ba74-79d485da33ba",
+                "task_id": "<task_id>"
+              }
+            },
+            {
+              "op": "update_action_state",
+              "params": {
+                "action_id": "cfb7f993-96d1-4347-ba74-79d485da33ba",
+                "state": "converted_to_task"
+              }
+            }
+          ],
+          "errors": [],
+          "action": {
+            "id": "cfb7f993-96d1-4347-ba74-79d485da33ba",
+            "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+            "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+            "source_type": "email",
+            "source_id": "msg-0",
+            "priority": "high",
+            "state": "queued",
+            "payload": {
+              "preview": "Test action item 1: Follow up on Q4 planning meeting",
+              "subject": "Test Email 1"
+            }
+          }
+        },
+        "status": 200,
+        "request_body": {
+          "message": "Link this action to a task and update its state"
+        }
+      },
+      {
+        "endpoint": "/api/queue/cfb7f993-96d1-4347-ba74-79d485da33ba/assistant-suggest",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "operations": [
+            {
+              "op": "chat",
+              "params": {
+                "message": "I'll help you manage this action item. Let me link it to a task and update its state."
+              }
+            },
+            {
+              "op": "link_action_to_task",
+              "params": {
+                "action_id": "cfb7f993-96d1-4347-ba74-79d485da33ba",
+                "task_id": "<task_id>"
+              }
+            },
+            {
+              "op": "update_action_state",
+              "params": {
+                "action_id": "cfb7f993-96d1-4347-ba74-79d485da33ba",
+                "state": "converted_to_task"
+              }
+            }
+          ],
+          "applied": [
+            {
+              "op": "chat",
+              "params": {
+                "message": "I'll help you manage this action item. Let me link it to a task and update its state."
+              }
+            }
+          ],
+          "pending": [
+            {
+              "op": "link_action_to_task",
+              "params": {
+                "action_id": "cfb7f993-96d1-4347-ba74-79d485da33ba",
+                "task_id": "<task_id>"
+              }
+            },
+            {
+              "op": "update_action_state",
+              "params": {
+                "action_id": "cfb7f993-96d1-4347-ba74-79d485da33ba",
+                "state": "converted_to_task"
+              }
+            }
+          ],
+          "errors": [],
+          "action": {
+            "id": "cfb7f993-96d1-4347-ba74-79d485da33ba",
+            "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+            "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+            "source_type": "email",
+            "source_id": "msg-0",
+            "priority": "high",
+            "state": "queued",
+            "payload": {
+              "preview": "Test action item 1: Follow up on Q4 planning meeting",
+              "subject": "Test Email 1"
+            }
+          }
+        },
+        "status": 200,
+        "request_body": {
+          "message": "Actually, can you also create a task for this?"
+        }
+      },
+      {
+        "endpoint": "/api/queue/cfb7f993-96d1-4347-ba74-79d485da33ba/assistant-approve",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "result": {
+            "ok": true,
+            "op": "update_action_state",
+            "params": {
+              "action_id": "cfb7f993-96d1-4347-ba74-79d485da33ba",
+              "state": "converted_to_task"
+            }
+          },
+          "action": {
+            "id": "cfb7f993-96d1-4347-ba74-79d485da33ba",
+            "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+            "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+            "source_type": "email",
+            "source_id": "msg-0",
+            "priority": "high",
+            "state": "converted_to_task",
+            "payload": {
+              "preview": "Test action item 1: Follow up on Q4 planning meeting",
+              "subject": "Test Email 1"
+            },
+            "updated_at": "2025-11-15T05:49:27.407981+00:00"
+          }
+        },
+        "status": 200,
+        "request_body": {
+          "operation": {
+            "op": "update_action_state",
+            "params": {
+              "action_id": "cfb7f993-96d1-4347-ba74-79d485da33ba",
+              "state": "converted_to_task"
+            }
+          }
+        }
+      }
+    ],
+    "text": "{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': True}}\n{'ok': True, 'seeded': 5, 'total': 5}\n{'ok': True, 'items': [{'action_id': 'cfb7f993-96d1-4347-ba74-79d485da33ba', 'source': 'email', 'category': 'needs_response', 'priority': 'high', 'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'created_at': '2025-11-15T05:49:27.402065+00:00'}, {'action_id': '07cec122-241d-4958-b6d2-207d50a667e7', 'source': 'email', 'category': 'needs_response', 'priority': 'high', 'preview': 'Test action item 4: Follow up on Q4 planning meeting', 'created_at': '2025-11-15T05:49:27.402075+00:00'}, {'action_id': 'f2ea7810-84ee-49a9-a8b4-073905d3250a', 'source': 'teams', 'category': 'needs_response', 'priority': 'medium', 'preview': 'Test action item 2: Follow up on Q4 planning meeting', 'created_at': '2025-11-15T05:49:27.402071+00:00'}, {'action_id': '89f0e167-7ab5-435c-9d1b-06aeaa8be3b1', 'source': 'teams', 'category': 'needs_response', 'priority': 'medium', 'preview': 'Test action item 5: Follow up on Q4 planning meeting', 'created_at': '2025-11-15T05:49:27.402076+00:00'}, {'action_id': 'c0f73954-1215-49cd-b3bd-6ef4e29e5fe5', 'source': 'doc', 'category': 'needs_response', 'priority': 'low', 'preview': 'Test action item 3: Follow up on Q4 planning meeting', 'created_at': '2025-11-15T05:49:27.402074+00:00'}], 'total': 5, 'limit': 5, 'offset': 0}\n{'ok': True, 'operations': [{'op': 'chat', 'params': {'message': \"I'll help you manage this action item. Let me link it to a task and update its state.\"}}, {'op': 'link_action_to_task', 'params': {'action_id': 'cfb7f993-96d1-4347-ba74-79d485da33ba', 'task_id': '<task_id>'}}, {'op': 'update_action_state', 'params': {'action_id': 'cfb7f993-96d1-4347-ba74-79d485da33ba', 'state': 'converted_to_task'}}], 'applied': [{'op': 'chat', 'params': {'message': \"I'll help you manage this action item. Let me link it to a task and update its state.\"}}], 'pending': [{'op': 'link_action_to_task', 'params': {'action_id': 'cfb7f993-96d1-4347-ba74-79d485da33ba', 'task_id': '<task_id>'}}, {'op': 'update_action_state', 'params': {'action_id': 'cfb7f993-96d1-4347-ba74-79d485da33ba', 'state': 'converted_to_task'}}], 'errors': [], 'action': {'id': 'cfb7f993-96d1-4347-ba74-79d485da33ba', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'source_type': 'email', 'source_id': 'msg-0', 'priority': 'high', 'state': 'queued', 'payload': {'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'subject': 'Test Email 1'}}}\n{'ok': True, 'operations': [{'op': 'chat', 'params': {'message': \"I'll help you manage this action item. Let me link it to a task and update its state.\"}}, {'op': 'link_action_to_task', 'params': {'action_id': 'cfb7f993-96d1-4347-ba74-79d485da33ba', 'task_id': '<task_id>'}}, {'op': 'update_action_state', 'params': {'action_id': 'cfb7f993-96d1-4347-ba74-79d485da33ba', 'state': 'converted_to_task'}}], 'applied': [{'op': 'chat', 'params': {'message': \"I'll help you manage this action item. Let me link it to a task and update its state.\"}}], 'pending': [{'op': 'link_action_to_task', 'params': {'action_id': 'cfb7f993-96d1-4347-ba74-79d485da33ba', 'task_id': '<task_id>'}}, {'op': 'update_action_state', 'params': {'action_id': 'cfb7f993-96d1-4347-ba74-79d485da33ba', 'state': 'converted_to_task'}}], 'errors': [], 'action': {'id': 'cfb7f993-96d1-4347-ba74-79d485da33ba', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'source_type': 'email', 'source_id': 'msg-0', 'priority': 'high', 'state': 'queued', 'payload': {'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'subject': 'Test Email 1'}}}\n{'ok': True, 'result': {'ok': True, 'op': 'update_action_state', 'params': {'action_id': 'cfb7f993-96d1-4347-ba74-79d485da33ba', 'state': 'converted_to_task'}}, 'action': {'id': 'cfb7f993-96d1-4347-ba74-79d485da33ba', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'source_type': 'email', 'source_id': 'msg-0', 'priority': 'high', 'state': 'converted_to_task', 'payload': {'preview': 'Test action item 1: Follow up on Q4 planning meeting', 'subject': 'Test Email 1'}, 'updated_at': '2025-11-15T05:49:27.407981+00:00'}}"
+  },
+  "ts": 1763185767.408727
+}

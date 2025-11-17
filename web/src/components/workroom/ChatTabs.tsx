@@ -10,6 +10,8 @@ interface ChatTabsProps {
   onCloseChat: (chatId: string) => void;
   onPinChat?: (chatId: string) => void;
   onCreateChat?: () => void;
+  loading?: boolean;
+  creating?: boolean;
 }
 
 export function ChatTabs({
@@ -19,6 +21,8 @@ export function ChatTabs({
   onCloseChat,
   onPinChat,
   onCreateChat,
+  loading = false,
+  creating = false,
 }: ChatTabsProps) {
   const sortedChats = [...chats].sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
@@ -29,8 +33,13 @@ export function ChatTabs({
   });
 
   return (
-    <div className="flex items-center gap-1 border-b border-slate-200 bg-slate-50 overflow-x-auto">
-      {sortedChats.map((chat) => (
+    <div className="flex items-center gap-1 border-b border-slate-200 bg-slate-50 overflow-x-auto flex-shrink-0">
+      {loading && chats.length === 0 ? (
+        <div className="px-3 py-2 text-xs text-slate-500">
+          Loading chats...
+        </div>
+      ) : (
+        sortedChats.map((chat) => (
         <div
           key={chat.id}
           className={`flex items-center gap-1 px-3 py-2 text-sm border-b-2 cursor-pointer transition-colors ${
@@ -40,9 +49,7 @@ export function ChatTabs({
           }`}
           onClick={() => onSelectChat(chat.id)}
         >
-          {chat.pinned && (
-            <Pin24Regular className="w-3 h-3 text-slate-400" />
-          )}
+          {chat.pinned && <Pin24Regular className="w-3 h-3 text-slate-400" />}
           <span className="truncate max-w-[120px]">{chat.title}</span>
           <button
             onClick={(e) => {
@@ -54,16 +61,16 @@ export function ChatTabs({
             <Dismiss24Regular className="w-3 h-3" />
           </button>
         </div>
-      ))}
+      )))}
       {onCreateChat && (
         <button
           onClick={onCreateChat}
-          className="px-3 py-2 text-sm text-slate-600 hover:text-slate-900 border-b-2 border-transparent"
+          disabled={creating}
+          className="px-3 py-2 text-sm text-slate-600 hover:text-slate-900 border-b-2 border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          + New Chat
+          {creating ? "Creating..." : "+ New Chat"}
         </button>
       )}
     </div>
   );
 }
-

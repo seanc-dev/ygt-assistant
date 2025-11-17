@@ -214,14 +214,21 @@ def update_item_status(
 
 
 def create_task(
-    title: str, project_id: str, notes: str = "", database_type: str = "tasks"
+    title: str,
+    project_id: Optional[str] = None,
+    notes: str = "",
+    priority: Optional[str] = None,
+    tags: Optional[List[str]] = None,
+    database_type: str = "tasks",
 ) -> Dict[str, Any]:
     """Create a new task in Notion.
 
     Args:
         title: Task title/name
-        project_id: Notion project page ID to link the task to
+        project_id: Optional Notion project page ID to link the task to
         notes: Optional notes/description for the task
+        priority: Optional priority (e.g., "High", "Medium", "Low")
+        tags: Optional list of tags to add to the task
         database_type: Database type to create in (default: "tasks")
 
     Returns:
@@ -235,11 +242,19 @@ def create_task(
     properties = {
         "Name": {"title": [{"text": {"content": title}}]},
         "Status": {"status": {"name": "Not started"}},
-        "Project": {"relation": [{"id": project_id}]},
     }
+
+    if project_id:
+        properties["Project"] = {"relation": [{"id": project_id}]}
 
     if notes:
         properties["Notes"] = {"rich_text": [{"text": {"content": notes}}]}
+
+    if priority:
+        properties["Priority"] = {"select": {"name": priority}}
+
+    if tags:
+        properties["Tags"] = {"multi_select": [{"name": tag} for tag in tags]}
 
     with httpx.Client(timeout=10.0) as client:
         resp = client.post(

@@ -1,0 +1,324 @@
+{
+  "scenario": {
+    "name": "llm_ops_create_task_duplicate",
+    "mode": "mock",
+    "steps": [
+      {
+        "action": "reset_state"
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/dev/workroom/seed",
+        "expect": {
+          "status": 200
+        }
+      },
+      {
+        "action": "http",
+        "method": "GET",
+        "url": "/api/workroom/tree",
+        "expect": {
+          "status": 200
+        },
+        "extract": {
+          "task_id": "tree.0.children.0.id"
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/api/workroom/tasks/<task_id>/assistant-suggest",
+        "json": {
+          "message": "Create a new task called 'Review Q4 metrics' with high priority in the current project"
+        },
+        "expect": {
+          "status": 200,
+          "contains": [
+            "operations"
+          ]
+        },
+        "extract": {
+          "create_op": "pending[?(@.op == 'create_task')]"
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/api/workroom/tasks/<task_id>/assistant-approve",
+        "json": {
+          "operation": {
+            "__var__": "create_op"
+          }
+        },
+        "expect": {
+          "status": 200,
+          "jsonpath": {
+            "result.ok": true
+          }
+        }
+      },
+      {
+        "action": "http",
+        "method": "POST",
+        "url": "/api/workroom/tasks/<task_id>/assistant-approve",
+        "json": {
+          "operation": {
+            "__var__": "create_op"
+          }
+        },
+        "expect": {
+          "status": 409,
+          "jsonpath": {
+            "detail.stock_message": "This project already has a task with that name. Would you like to name it something else?"
+          }
+        }
+      }
+    ]
+  },
+  "transcript": {
+    "scenario": "llm_ops_create_task_duplicate",
+    "steps": [
+      {
+        "action": "reset_state",
+        "response": {
+          "ok": true,
+          "cleared": {
+            "approvals": true,
+            "history": true,
+            "queue": true,
+            "settings": true
+          }
+        }
+      },
+      {
+        "endpoint": "/dev/workroom/seed",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "projects": 2,
+          "tasks": 2,
+          "threads": 0
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/workroom/tree",
+        "method": "GET",
+        "response": {
+          "ok": true,
+          "tree": [
+            {
+              "id": "de4be36f-4e3b-4708-88f9-230c54fcdeab",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Product Launch",
+              "description": "Q4 product launch planning and execution",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 0,
+              "metadata": {},
+              "deleted_at": null,
+              "children": [
+                {
+                  "id": "bb703185-8360-4b2c-b453-57909cf91c90",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "de4be36f-4e3b-4708-88f9-230c54fcdeab",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Write product copy",
+                  "status": "ready",
+                  "priority": "medium",
+                  "order_index": 1,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "deleted_at": null,
+                  "children": []
+                },
+                {
+                  "id": "e7979ef8-dc9d-4d94-ba0b-74001bb6a8dd",
+                  "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+                  "project_id": "de4be36f-4e3b-4708-88f9-230c54fcdeab",
+                  "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+                  "title": "Design landing page",
+                  "status": "doing",
+                  "priority": "high",
+                  "order_index": 0,
+                  "source_type": "manual",
+                  "source_ref": {},
+                  "deleted_at": null,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "269ef661-095d-42fb-aec4-7ced3a9fc526",
+              "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+              "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+              "name": "Marketing Campaign",
+              "description": "Social media and email marketing campaign",
+              "status": "active",
+              "priority": "medium",
+              "order_index": 1,
+              "metadata": {},
+              "deleted_at": null,
+              "children": []
+            }
+          ]
+        },
+        "status": 200
+      },
+      {
+        "endpoint": "/api/workroom/tasks/bb703185-8360-4b2c-b453-57909cf91c90/assistant-suggest",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "operations": [
+            {
+              "op": "chat",
+              "params": {
+                "message": "I'll move this task forward and create the new 'Review Q4 metrics' follow-up."
+              }
+            },
+            {
+              "op": "update_task_status",
+              "params": {
+                "task": "this task",
+                "status": "doing"
+              }
+            },
+            {
+              "op": "create_task",
+              "params": {
+                "title": "Review Q4 metrics",
+                "description": "Analyze the Q4 performance dashboards and capture insights for leadership.",
+                "priority": "high",
+                "project": "current project"
+              }
+            }
+          ],
+          "applied": [
+            {
+              "op": "chat",
+              "params": {
+                "message": "I'll move this task forward and create the new 'Review Q4 metrics' follow-up."
+              }
+            }
+          ],
+          "pending": [
+            {
+              "op": "update_task_status",
+              "params": {
+                "task": "this task",
+                "status": "doing"
+              }
+            },
+            {
+              "op": "create_task",
+              "params": {
+                "title": "Review Q4 metrics",
+                "description": "Analyze the Q4 performance dashboards and capture insights for leadership.",
+                "priority": "high",
+                "project": "current project"
+              }
+            }
+          ],
+          "errors": [],
+          "task": {
+            "id": "bb703185-8360-4b2c-b453-57909cf91c90",
+            "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+            "project_id": "de4be36f-4e3b-4708-88f9-230c54fcdeab",
+            "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+            "title": "Write product copy",
+            "status": "ready",
+            "priority": "medium",
+            "order_index": 1,
+            "source_type": "manual",
+            "source_ref": {},
+            "deleted_at": null,
+            "children": []
+          }
+        },
+        "status": 200,
+        "request_body": {
+          "message": "Create a new task called 'Review Q4 metrics' with high priority in the current project"
+        }
+      },
+      {
+        "endpoint": "/api/workroom/tasks/bb703185-8360-4b2c-b453-57909cf91c90/assistant-approve",
+        "method": "POST",
+        "response": {
+          "ok": true,
+          "result": {
+            "ok": true,
+            "op": "create_task",
+            "params": {
+              "title": "Review Q4 metrics",
+              "description": "Analyze the Q4 performance dashboards and capture insights for leadership.",
+              "priority": "high",
+              "project": "current project"
+            }
+          },
+          "task": {
+            "id": "bb703185-8360-4b2c-b453-57909cf91c90",
+            "tenant_id": "6b58b8eb-70a0-4efd-8354-c5cf0862d983",
+            "project_id": "de4be36f-4e3b-4708-88f9-230c54fcdeab",
+            "owner_id": "ea7f6212-c420-4be5-84e3-c34257b4fa99",
+            "title": "Write product copy",
+            "status": "ready",
+            "priority": "medium",
+            "order_index": 1,
+            "source_type": "manual",
+            "source_ref": {},
+            "deleted_at": null,
+            "children": []
+          }
+        },
+        "status": 200,
+        "request_body": {
+          "operation": {
+            "op": "create_task",
+            "params": {
+              "title": "Review Q4 metrics",
+              "description": "Analyze the Q4 performance dashboards and capture insights for leadership.",
+              "priority": "high",
+              "project": "current project"
+            }
+          }
+        }
+      },
+      {
+        "endpoint": "/api/workroom/tasks/bb703185-8360-4b2c-b453-57909cf91c90/assistant-approve",
+        "method": "POST",
+        "response": {
+          "detail": {
+            "error": "This project already has a task with that name. Would you like to name it something else?",
+            "stock_message": "This project already has a task with that name. Would you like to name it something else?",
+            "operation": {
+              "op": "create_task",
+              "params": {
+                "title": "Review Q4 metrics",
+                "description": "Analyze the Q4 performance dashboards and capture insights for leadership.",
+                "priority": "high",
+                "project": "current project"
+              }
+            }
+          }
+        },
+        "status": 409,
+        "request_body": {
+          "operation": {
+            "op": "create_task",
+            "params": {
+              "title": "Review Q4 metrics",
+              "description": "Analyze the Q4 performance dashboards and capture insights for leadership.",
+              "priority": "high",
+              "project": "current project"
+            }
+          }
+        }
+      }
+    ],
+    "text": "{'ok': True, 'cleared': {'approvals': True, 'history': True, 'queue': True, 'settings': True}}\n{'ok': True, 'projects': 2, 'tasks': 2, 'threads': 0}\n{'ok': True, 'tree': [{'id': 'de4be36f-4e3b-4708-88f9-230c54fcdeab', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Product Launch', 'description': 'Q4 product launch planning and execution', 'status': 'active', 'priority': 'medium', 'order_index': 0, 'metadata': {}, 'deleted_at': None, 'children': [{'id': 'bb703185-8360-4b2c-b453-57909cf91c90', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'de4be36f-4e3b-4708-88f9-230c54fcdeab', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'deleted_at': None, 'children': []}, {'id': 'e7979ef8-dc9d-4d94-ba0b-74001bb6a8dd', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'de4be36f-4e3b-4708-88f9-230c54fcdeab', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Design landing page', 'status': 'doing', 'priority': 'high', 'order_index': 0, 'source_type': 'manual', 'source_ref': {}, 'deleted_at': None, 'children': []}]}, {'id': '269ef661-095d-42fb-aec4-7ced3a9fc526', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'name': 'Marketing Campaign', 'description': 'Social media and email marketing campaign', 'status': 'active', 'priority': 'medium', 'order_index': 1, 'metadata': {}, 'deleted_at': None, 'children': []}]}\n{'ok': True, 'operations': [{'op': 'chat', 'params': {'message': \"I'll move this task forward and create the new 'Review Q4 metrics' follow-up.\"}}, {'op': 'update_task_status', 'params': {'task': 'this task', 'status': 'doing'}}, {'op': 'create_task', 'params': {'title': 'Review Q4 metrics', 'description': 'Analyze the Q4 performance dashboards and capture insights for leadership.', 'priority': 'high', 'project': 'current project'}}], 'applied': [{'op': 'chat', 'params': {'message': \"I'll move this task forward and create the new 'Review Q4 metrics' follow-up.\"}}], 'pending': [{'op': 'update_task_status', 'params': {'task': 'this task', 'status': 'doing'}}, {'op': 'create_task', 'params': {'title': 'Review Q4 metrics', 'description': 'Analyze the Q4 performance dashboards and capture insights for leadership.', 'priority': 'high', 'project': 'current project'}}], 'errors': [], 'task': {'id': 'bb703185-8360-4b2c-b453-57909cf91c90', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'de4be36f-4e3b-4708-88f9-230c54fcdeab', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'deleted_at': None, 'children': []}}\n{'ok': True, 'result': {'ok': True, 'op': 'create_task', 'params': {'title': 'Review Q4 metrics', 'description': 'Analyze the Q4 performance dashboards and capture insights for leadership.', 'priority': 'high', 'project': 'current project'}}, 'task': {'id': 'bb703185-8360-4b2c-b453-57909cf91c90', 'tenant_id': '6b58b8eb-70a0-4efd-8354-c5cf0862d983', 'project_id': 'de4be36f-4e3b-4708-88f9-230c54fcdeab', 'owner_id': 'ea7f6212-c420-4be5-84e3-c34257b4fa99', 'title': 'Write product copy', 'status': 'ready', 'priority': 'medium', 'order_index': 1, 'source_type': 'manual', 'source_ref': {}, 'deleted_at': None, 'children': []}}\n{'detail': {'error': 'This project already has a task with that name. Would you like to name it something else?', 'stock_message': 'This project already has a task with that name. Would you like to name it something else?', 'operation': {'op': 'create_task', 'params': {'title': 'Review Q4 metrics', 'description': 'Analyze the Q4 performance dashboards and capture insights for leadership.', 'priority': 'high', 'project': 'current project'}}}}"
+  },
+  "ts": 1763340844.5657358
+}

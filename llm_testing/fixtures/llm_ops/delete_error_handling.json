@@ -1,0 +1,17 @@
+{
+  "operations": [
+    {
+      "op": "chat",
+      "params": {
+        "message": "I couldn't delete the project: Project not found. Please check the project name and try again."
+      }
+    },
+    {
+      "op": "delete_project",
+      "params": {
+        "project_ids": ["non-existent-project-id"]
+      }
+    }
+  ]
+}
+

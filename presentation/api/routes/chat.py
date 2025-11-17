@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Dict, List
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from presentation.api.routes.actions import (
     actions_scan as _actions_scan,
@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.post("/chat")
-async def chat(body: Dict[str, Any]) -> Dict[str, Any]:
+async def chat(body: Dict[str, Any], request: Request) -> Dict[str, Any]:
     """Minimal chat endpoint to stand in for WhatsApp.
 
     Commands:
@@ -37,7 +37,7 @@ async def chat(body: Dict[str, Any]) -> Dict[str, Any]:
 
         lowered = text.lower()
         if lowered == "scan" or lowered.startswith("scan "):
-            approvals = await _actions_scan({"domains": ["email", "calendar"]})
+            approvals = await _actions_scan({"domains": ["email", "calendar"]}, request)
             preview = [
                 {
                     "id": a.get("id"),
