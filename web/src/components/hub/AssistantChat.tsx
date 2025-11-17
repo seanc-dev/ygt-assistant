@@ -8,6 +8,7 @@ import { api } from "../../lib/api";
 import useSWR from "swr";
 import { ActionEmbedComponent } from "../workroom/ActionEmbed";
 import { ActionSummary } from "../shared/ActionSummary";
+import type { LlmOperation as SummaryOperation } from "../shared/ActionSummary";
 
 // Custom scrollbar styles
 const scrollbarStyles = `
@@ -54,6 +55,56 @@ type MessageView = {
   errorMessage?: string;
 };
 
+type OperationRecord = SummaryOperation & {
+  localId: string;
+};
+
+type OperationError = {
+  id: string;
+  message: string;
+  op?: string;
+  params?: Record<string, any>;
+};
+
+type OperationsState = {
+  applied: OperationRecord[];
+  pending: OperationRecord[];
+  errors: OperationError[];
+};
+
+type OperationApiGroup = {
+  suggest: (body: Record<string, any>) => Promise<any>;
+  approve: (body: Record<string, any>) => Promise<any>;
+  edit: (body: Record<string, any>) => Promise<any>;
+  decline: (body: Record<string, any>) => Promise<any>;
+  undo: (body: Record<string, any>) => Promise<any>;
+};
+
+const generateOperationLocalId = () => {
+  const cryptoObj =
+    typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
+  if (cryptoObj?.randomUUID) {
+    return cryptoObj.randomUUID();
+  }
+  return `op-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+};
+
+const removeByLocalId = (ops: OperationRecord[], id: string) =>
+  ops.filter((item) => item.localId !== id);
+
+const sanitizeOperationForApi = (op: SummaryOperation | OperationRecord) => ({
+  op: op.op,
+  params: op.params,
+});
+
+const formatOperationErrors = (errors?: any[]): OperationError[] =>
+  (errors ?? []).map((err) => ({
+    id: generateOperationLocalId(),
+    message: err?.error || "Operation failed. Please try again.",
+    op: err?.op,
+    params: err?.params,
+  }));
+
 type ThreadResponse = {
   ok: boolean;
   thread: {
@@ -64,7 +115,7 @@ type ThreadResponse = {
 
 type AssistantChatProps = {
   actionId: string;
-  taskId?: string; // For workroom mode
+  taskId?: string | null; // For workroom mode
   threadId?: string | null;
   summary?: string;
   meta?: {
@@ -446,9 +497,74 @@ export function AssistantChat({
   const [isTyping, setIsTyping] = useState(false);
   const [contextExpanded, setContextExpanded] = useState(false);
   const [draftCache, setDraftCache] = useState<Record<string, string>>({});
-  const [appliedOps, setAppliedOps] = useState<any[]>([]);
-  const [pendingOps, setPendingOps] = useState<any[]>([]);
-  const [operationErrors, setOperationErrors] = useState<any[]>([]);
+  const [operationsState, setOperationsState] = useState<OperationsState>({
+    applied: [],
+    pending: [],
+    errors: [],
+  });
+  const appliedOps = operationsState.applied;
+  const pendingOps = operationsState.pending;
+  const hasErrors = operationsState.errors.length > 0;
+
+  const operationApi = useMemo<OperationApiGroup | null>(() => {
+    if (mode === "workroom" && taskId) {
+      return {
+        suggest: (body: Record<string, any>) =>
+          api.assistantSuggestForTask(taskId, body),
+        approve: (body: Record<string, any>) =>
+          api.assistantApproveForTask(taskId, body),
+        edit: (body: Record<string, any>) =>
+          api.assistantEditForTask(taskId, body),
+        decline: (body: Record<string, any>) =>
+          api.assistantDeclineForTask(taskId, body),
+        undo: (body: Record<string, any>) =>
+          api.assistantUndoForTask(taskId, body),
+      };
+    }
+
+    if (actionId) {
+      return {
+        suggest: (body: Record<string, any>) =>
+          api.assistantSuggestForAction(actionId, body),
+        approve: (body: Record<string, any>) =>
+          api.assistantApproveForAction(actionId, body),
+        edit: (body: Record<string, any>) =>
+          api.assistantEditForAction(actionId, body),
+        decline: (body: Record<string, any>) =>
+          api.assistantDeclineForAction(actionId, body),
+        undo: (body: Record<string, any>) =>
+          api.assistantUndoForAction(actionId, body),
+      };
+    }
+
+    return null;
+  }, [mode, taskId, actionId]);
+
+  const runOperationApi = useCallback(
+    async <T extends keyof OperationApiGroup>(
+      action: T,
+      payload: Record<string, any>
+    ) => {
+      if (!operationApi) {
+        console.warn("Assistant operations are unavailable for this chat.");
+        return null;
+      }
+      try {
+        const result = await operationApi[action](payload);
+        return result;
+      } catch (error) {
+        console.error(`Failed to run operation API action '${action}':`, error);
+        return {
+          ok: false,
+          error: (error as Error).message,
+          status: (error as any)?.status,
+          detail: (error as any)?.body,
+        };
+      }
+    },
+    [operationApi]
+  );
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -737,6 +853,17 @@ export function AssistantChat({
     [activeAssistantId]
   );
 
+  const scheduleThreadRefreshForChat = useCallback(() => {
+    if (!threadId) {
+      return;
+    }
+    setTimeout(() => {
+      mutateThread().catch((err) => {
+        console.warn("Failed to refetch thread after ChatOp:", err);
+      });
+    }, 500);
+  }, [threadId, mutateThread]);
+
   // Helper to clear typing with minimum duration
   const clearTyping = useCallback(() => {
     const elapsed = typingStartRef.current
@@ -748,6 +875,71 @@ export function AssistantChat({
       typingStartRef.current = null;
     }, remaining);
   }, []);
+
+  const stampOperations = useCallback(
+    (ops?: SummaryOperation[] | OperationRecord[]) =>
+      (ops ?? []).map((op) =>
+        (op as OperationRecord).localId
+          ? (op as OperationRecord)
+          : {
+              ...(op as SummaryOperation),
+              localId: generateOperationLocalId(),
+            }
+      ),
+    []
+  );
+
+  const applyOperationsResponse = useCallback(
+    (response?: Partial<OperationsState>) => {
+      if (!response) return;
+      setOperationsState({
+        applied: stampOperations(response.applied as SummaryOperation[]),
+        pending: stampOperations(response.pending as SummaryOperation[]),
+        errors: formatOperationErrors(response.errors),
+      });
+      clearTyping();
+    },
+    [stampOperations, clearTyping]
+  );
+
+  const updateOperationsState = useCallback(
+    (mutator: (prev: OperationsState) => OperationsState) => {
+      setOperationsState((prev) => mutator(prev));
+    },
+    []
+  );
+
+  const pushOperationError = useCallback(
+    (message: string, meta?: { op?: string; params?: Record<string, any> }) => {
+      setOperationsState((prev) => ({
+        ...prev,
+        errors: [
+          ...prev.errors,
+          {
+            id: generateOperationLocalId(),
+            message,
+            op: meta?.op,
+            params: meta?.params,
+          },
+        ],
+      }));
+    },
+    []
+  );
+
+  const dismissOperationError = useCallback(
+    (id: string) => {
+      updateOperationsState((prev) => ({
+        ...prev,
+        errors: prev.errors.filter((err) => err.id !== id),
+      }));
+    },
+    [updateOperationsState]
+  );
+
+  useEffect(() => {
+    onOperationsUpdate?.(operationsState);
+  }, [operationsState, onOperationsUpdate]);
 
   // Detect first assistant reply after user message and clear typing indicator
   useEffect(() => {
@@ -1032,72 +1224,19 @@ export function AssistantChat({
               return;
             }
 
-            // Call assistant-suggest endpoint if in queue or workroom mode
-            if (mode === "default" && actionId) {
-              // Queue mode
+            if (operationApi) {
               try {
-                const suggestResponse = await api.assistantSuggestForAction(
-                  actionId,
-                  {
-                    thread_id: currentThreadId,
-                  }
-                );
+                const suggestResponse = await operationApi.suggest({
+                  thread_id: currentThreadId,
+                });
                 if (suggestResponse?.ok) {
-                  setAppliedOps(suggestResponse.applied || []);
-                  setPendingOps(suggestResponse.pending || []);
-                  setOperationErrors(suggestResponse.errors || []);
-                  onOperationsUpdate?.({
-                    applied: suggestResponse.applied || [],
-                    pending: suggestResponse.pending || [],
-                    errors: suggestResponse.errors || [],
-                  });
-                  
-                  // Check if any applied operations include ChatOp - if so, refetch thread to get assistant message
+                  applyOperationsResponse(suggestResponse);
+
                   const hasChatOp = (suggestResponse.applied || []).some(
                     (op: any) => op.op === "chat"
                   );
-                  if (hasChatOp && currentThreadId) {
-                    // Refetch thread to get the newly created assistant message
-                    setTimeout(() => {
-                      mutateThread().catch((err) => {
-                        console.warn("Failed to refetch thread after ChatOp:", err);
-                      });
-                    }, 500); // Small delay to ensure message is persisted
-                  }
-                }
-              } catch (err) {
-                console.warn("Failed to get assistant suggestions:", err);
-              }
-            } else if (mode === "workroom" && taskId) {
-              // Workroom mode
-              try {
-                const suggestResponse = await api.assistantSuggestForTask(
-                  taskId,
-                  {
-                    thread_id: currentThreadId,
-                  }
-                );
-                if (suggestResponse?.ok) {
-                  setAppliedOps(suggestResponse.applied || []);
-                  setPendingOps(suggestResponse.pending || []);
-                  setOperationErrors(suggestResponse.errors || []);
-                  onOperationsUpdate?.({
-                    applied: suggestResponse.applied || [],
-                    pending: suggestResponse.pending || [],
-                    errors: suggestResponse.errors || [],
-                  });
-                  
-                  // Check if any applied operations include ChatOp - if so, refetch thread to get assistant message
-                  const hasChatOp = (suggestResponse.applied || []).some(
-                    (op: any) => op.op === "chat"
-                  );
-                  if (hasChatOp && currentThreadId) {
-                    // Refetch thread to get the newly created assistant message
-                    setTimeout(() => {
-                      mutateThread().catch((err) => {
-                        console.warn("Failed to refetch thread after ChatOp:", err);
-                      });
-                    }, 500); // Small delay to ensure message is persisted
+                  if (hasChatOp) {
+                    scheduleThreadRefreshForChat();
                   }
                 }
               } catch (err) {
@@ -1670,63 +1809,56 @@ export function AssistantChat({
           </div>
 
           {/* Action Summary */}
-          {(appliedOps.length > 0 || pendingOps.length > 0) && (
+          {(appliedOps.length > 0 || pendingOps.length > 0 || hasErrors) && (
             <div className="border-t border-slate-200">
               <ActionSummary
                 appliedOps={appliedOps}
                 pendingOps={pendingOps}
                 trustMode={trustMode}
+                errors={operationsState.errors}
+                onDismissError={dismissOperationError}
                 onApprove={async (op) => {
+                  if (!op?.localId) {
+                    console.warn("Cannot approve operation without localId:", op);
+                    return;
+                  }
                   try {
-                    if (mode === "workroom" && taskId) {
-                      const result = await api.assistantApproveForTask(taskId, {
-                        operation: op,
+                    const result = await runOperationApi("approve", {
+                      operation: sanitizeOperationForApi(op),
+                    });
+                    if (!result?.ok) {
+                      const detailMessage =
+                        result?.detail?.stock_message ||
+                        result?.detail?.error ||
+                        result?.error ||
+                        "Failed to approve operation. Please try again.";
+                      pushOperationError(detailMessage, {
+                        op: op.op,
+                        params: op.params,
                       });
-                      if (result.ok) {
-                        setPendingOps((prev) => prev.filter((p) => p !== op));
-                        setAppliedOps((prev) => [...prev, op]);
-                        onOperationsUpdate?.({
-                          applied: [...appliedOps, op],
-                          pending: pendingOps.filter((p) => p !== op),
-                          errors: [],
-                        });
-                        // If ChatOp was approved, refetch thread to get assistant message
-                        if (op.op === "chat" && threadId) {
-                          setTimeout(() => {
-                            mutateThread().catch((err) => {
-                              console.warn("Failed to refetch thread after ChatOp approval:", err);
-                            });
-                          }, 500);
-                        }
-                      }
-                    } else if (actionId) {
-                      const result = await api.assistantApproveForAction(
-                        actionId,
-                        { operation: op }
-                      );
-                      if (result.ok) {
-                        setPendingOps((prev) => prev.filter((p) => p !== op));
-                        setAppliedOps((prev) => [...prev, op]);
-                        onOperationsUpdate?.({
-                          applied: [...appliedOps, op],
-                          pending: pendingOps.filter((p) => p !== op),
-                          errors: [],
-                        });
-                        // If ChatOp was approved, refetch thread to get assistant message
-                        if (op.op === "chat" && threadId) {
-                          setTimeout(() => {
-                            mutateThread().catch((err) => {
-                              console.warn("Failed to refetch thread after ChatOp approval:", err);
-                            });
-                          }, 500);
-                        }
-                      }
+                      return;
                     }
+
+                    updateOperationsState((prev) => ({
+                      ...prev,
+                      pending: removeByLocalId(prev.pending, op.localId!),
+                      applied: [...prev.applied, op as OperationRecord],
+                    }));
+                    if (op.op === "chat") {
+                      scheduleThreadRefreshForChat();
+                    }
+                    clearTyping();
                   } catch (error) {
                     console.error("Failed to approve operation:", error);
+                    pushOperationError(
+                      (error as Error)?.message ||
+                        "Failed to approve operation. Please try again.",
+                      { op: op.op, params: op.params }
+                    );
                   }
                 }}
                 onEdit={async (op) => {
+                  if (!op?.localId) return;
                   // For now, edit is a simple prompt - in future could show a modal
                   const editedParams = prompt(
                     "Edit operation parameters (JSON):",
@@ -1735,55 +1867,24 @@ export function AssistantChat({
                   if (!editedParams) return;
                   try {
                     const parsedParams = JSON.parse(editedParams);
-                    if (mode === "workroom" && taskId) {
-                      const result = await api.assistantEditForTask(taskId, {
-                        operation: op,
-                        edited_params: parsedParams,
-                      });
-                      if (result.ok) {
-                        setPendingOps((prev) => prev.filter((p) => p !== op));
-                        const editedOp = { ...op, params: parsedParams };
-                        setAppliedOps((prev) => [...prev, editedOp]);
-                        onOperationsUpdate?.({
-                          applied: [...appliedOps, editedOp],
-                          pending: pendingOps.filter((p) => p !== op),
-                          errors: [],
-                        });
-                        // If ChatOp was edited and executed, refetch thread to get assistant message
-                        if (op.op === "chat" && threadId) {
-                          setTimeout(() => {
-                            mutateThread().catch((err) => {
-                              console.warn("Failed to refetch thread after ChatOp edit:", err);
-                            });
-                          }, 500);
-                        }
+                    const result = await runOperationApi("edit", {
+                      operation: sanitizeOperationForApi(op),
+                      edited_params: parsedParams,
+                    });
+                    if (result?.ok) {
+                      const editedOp = {
+                        ...(op as OperationRecord),
+                        params: parsedParams,
+                      };
+                      updateOperationsState((prev) => ({
+                        ...prev,
+                        pending: removeByLocalId(prev.pending, op.localId!),
+                        applied: [...prev.applied, editedOp],
+                      }));
+                      if (op.op === "chat") {
+                        scheduleThreadRefreshForChat();
                       }
-                    } else if (actionId) {
-                      const result = await api.assistantEditForAction(
-                        actionId,
-                        {
-                          operation: op,
-                          edited_params: parsedParams,
-                        }
-                      );
-                      if (result.ok) {
-                        setPendingOps((prev) => prev.filter((p) => p !== op));
-                        const editedOp = { ...op, params: parsedParams };
-                        setAppliedOps((prev) => [...prev, editedOp]);
-                        onOperationsUpdate?.({
-                          applied: [...appliedOps, editedOp],
-                          pending: pendingOps.filter((p) => p !== op),
-                          errors: [],
-                        });
-                        // If ChatOp was edited and executed, refetch thread to get assistant message
-                        if (op.op === "chat" && threadId) {
-                          setTimeout(() => {
-                            mutateThread().catch((err) => {
-                              console.warn("Failed to refetch thread after ChatOp edit:", err);
-                            });
-                          }, 500);
-                        }
-                      }
+                      clearTyping();
                     }
                   } catch (error) {
                     console.error("Failed to edit operation:", error);
@@ -1791,59 +1892,35 @@ export function AssistantChat({
                   }
                 }}
                 onDecline={async (op) => {
+                  if (!op?.localId) return;
                   try {
-                    if (mode === "workroom" && taskId) {
-                      await api.assistantDeclineForTask(taskId, {
-                        operation: op,
-                      });
-                    } else if (actionId) {
-                      await api.assistantDeclineForAction(actionId, {
-                        operation: op,
-                      });
-                    }
-                    setPendingOps((prev) => prev.filter((p) => p !== op));
-                    onOperationsUpdate?.({
-                      applied: appliedOps,
-                      pending: pendingOps.filter((p) => p !== op),
-                      errors: [],
+                    await runOperationApi("decline", {
+                      operation: sanitizeOperationForApi(op),
                     });
+                    updateOperationsState((prev) => ({
+                      ...prev,
+                      pending: removeByLocalId(prev.pending, op.localId!),
+                    }));
+                    clearTyping();
                   } catch (error) {
                     console.error("Failed to decline operation:", error);
                   }
                 }}
                 onUndo={async (op) => {
+                  if (!op?.localId) return;
                   try {
                     // Try to get original state from the operation result if available
                     const originalState = op.original_state;
-                    if (mode === "workroom" && taskId) {
-                      const result = await api.assistantUndoForTask(taskId, {
-                        operation: op,
-                        original_state: originalState,
-                      });
-                      if (result.ok) {
-                        setAppliedOps((prev) => prev.filter((p) => p !== op));
-                        onOperationsUpdate?.({
-                          applied: appliedOps.filter((p) => p !== op),
-                          pending: pendingOps,
-                          errors: [],
-                        });
-                      }
-                    } else if (actionId) {
-                      const result = await api.assistantUndoForAction(
-                        actionId,
-                        {
-                          operation: op,
-                          original_state: originalState,
-                        }
-                      );
-                      if (result.ok) {
-                        setAppliedOps((prev) => prev.filter((p) => p !== op));
-                        onOperationsUpdate?.({
-                          applied: appliedOps.filter((p) => p !== op),
-                          pending: pendingOps,
-                          errors: [],
-                        });
-                      }
+                    const result = await runOperationApi("undo", {
+                      operation: sanitizeOperationForApi(op),
+                      original_state: originalState,
+                    });
+                    if (result?.ok) {
+                      updateOperationsState((prev) => ({
+                        ...prev,
+                        applied: removeByLocalId(prev.applied, op.localId!),
+                      }));
+                      clearTyping();
                     }
                   } catch (error) {
                     console.error("Failed to undo operation:", error);

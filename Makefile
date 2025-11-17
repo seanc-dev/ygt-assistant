@@ -32,6 +32,59 @@ ms-test-cal:
 llm-run:
 	@$(PY) llm_testing/runner.py --all
 
+chat-llm-e2e:
+	@echo "Running assistant chat & LLM ops e2e scenarios (with fixtures)" && \
+	OFFLINE_EVAL=true DEV_MODE=true USE_MOCK_GRAPH=true $(PY) -m llm_testing.runner --scenarios \
+		llm_testing/scenarios/assistant_chat_happy_path.yaml \
+		llm_testing/scenarios/assistant_chat_edge_cases.yaml \
+		llm_testing/scenarios/assistant_chat_live_inbox.yaml \
+		llm_testing/scenarios/llm_ops_task_training_wheels.yaml \
+		llm_testing/scenarios/llm_ops_task_autonomous.yaml \
+		llm_testing/scenarios/llm_ops_queue_focus.yaml \
+		llm_testing/scenarios/llm_ops_create_task.yaml \
+		llm_testing/scenarios/llm_ops_create_task_duplicate.yaml \
+		llm_testing/scenarios/llm_ops_create_task_from_action.yaml \
+		llm_testing/scenarios/llm_ops_update_status_all.yaml \
+		llm_testing/scenarios/llm_ops_link_action.yaml \
+		llm_testing/scenarios/llm_ops_action_state_complete.yaml \
+		llm_testing/scenarios/llm_ops_chat.yaml \
+		llm_testing/scenarios/llm_ops_defer_deterministic.yaml \
+		llm_testing/scenarios/llm_ops_edge_cases.yaml \
+		llm_testing/scenarios/llm_ops_delete_project.yaml \
+		llm_testing/scenarios/llm_ops_delete_project_multiple.yaml \
+		llm_testing/scenarios/llm_ops_delete_project_autonomous.yaml \
+		llm_testing/scenarios/llm_ops_delete_task.yaml \
+		llm_testing/scenarios/llm_ops_delete_task_multiple.yaml \
+		llm_testing/scenarios/llm_ops_delete_task_autonomous.yaml \
+		llm_testing/scenarios/llm_ops_delete_error_handling.yaml
+
+chat-llm-e2e-live:
+	@echo "Running assistant chat & LLM ops e2e scenarios (with LIVE LLM calls)" && \
+	echo "⚠️  This will make real API calls and incur costs. Requires OPENAI_API_KEY." && \
+	OFFLINE_EVAL=true DEV_MODE=true USE_MOCK_GRAPH=true LLM_TESTING_MODE=false $(PY) -m llm_testing.runner --scenarios \
+		llm_testing/scenarios/assistant_chat_happy_path.yaml \
+		llm_testing/scenarios/assistant_chat_edge_cases.yaml \
+		llm_testing/scenarios/assistant_chat_live_inbox.yaml \
+		llm_testing/scenarios/llm_ops_task_training_wheels.yaml \
+		llm_testing/scenarios/llm_ops_task_autonomous.yaml \
+		llm_testing/scenarios/llm_ops_queue_focus.yaml \
+		llm_testing/scenarios/llm_ops_create_task.yaml \
+		llm_testing/scenarios/llm_ops_create_task_duplicate.yaml \
+		llm_testing/scenarios/llm_ops_create_task_from_action.yaml \
+		llm_testing/scenarios/llm_ops_update_status_all.yaml \
+		llm_testing/scenarios/llm_ops_link_action.yaml \
+		llm_testing/scenarios/llm_ops_action_state_complete.yaml \
+		llm_testing/scenarios/llm_ops_chat.yaml \
+		llm_testing/scenarios/llm_ops_defer_deterministic.yaml \
+		llm_testing/scenarios/llm_ops_edge_cases.yaml \
+		llm_testing/scenarios/llm_ops_delete_project.yaml \
+		llm_testing/scenarios/llm_ops_delete_project_multiple.yaml \
+		llm_testing/scenarios/llm_ops_delete_project_autonomous.yaml \
+		llm_testing/scenarios/llm_ops_delete_task.yaml \
+		llm_testing/scenarios/llm_ops_delete_task_multiple.yaml \
+		llm_testing/scenarios/llm_ops_delete_task_autonomous.yaml \
+		llm_testing/scenarios/llm_ops_delete_error_handling.yaml
+
 llm-report:
 	@echo "Reports in llm_testing/reports"
 

@@ -9,6 +9,8 @@ import {
 export type LlmOperation = {
   op: string;
   params: Record<string, any>;
+  original_state?: Record<string, any>;
+  localId?: string;
 };
 
 type ActionSummaryProps = {
@@ -19,6 +21,8 @@ type ActionSummaryProps = {
   onDecline?: (op: LlmOperation) => void;
   onUndo?: (op: LlmOperation) => void;
   trustMode?: "training_wheels" | "supervised" | "autonomous";
+  errors?: { id: string; message: string }[];
+  onDismissError?: (id: string) => void;
 };
 
 function formatOperation(op: LlmOperation): string {
@@ -54,6 +58,8 @@ export function ActionSummary({
   onDecline,
   onUndo,
   trustMode = "training_wheels",
+  errors = [],
+  onDismissError,
 }: ActionSummaryProps) {
   const [expanded, setExpanded] = useState(false);
   
@@ -66,6 +72,28 @@ export function ActionSummary({
   
   return (
     <div className="border-t border-slate-200 bg-slate-50 p-4">
+      {errors.length > 0 && (
+        <div className="mb-3 space-y-2" data-testid="operation-errors">
+          {errors.map((error) => (
+            <div
+              key={error.id}
+              className="flex items-start justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+            >
+              <span className="pr-2">{error.message}</span>
+              {onDismissError && (
+                <button
+                  onClick={() => onDismissError(error.id)}
+                  className="text-red-500 hover:text-red-700 transition-colors"
+                  title="Dismiss"
+                >
+                  <Dismiss24Regular className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {showApprovalMode && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -88,7 +116,7 @@ export function ActionSummary({
               
               return (
                 <div
-                  key={idx}
+                  key={op.localId ?? idx}
                   className="flex items-start justify-between rounded-lg bg-white p-3 border border-slate-200"
                 >
                   <div className="flex-1">
@@ -150,7 +178,7 @@ export function ActionSummary({
               }
               return (
                 <div
-                  key={idx}
+                  key={op.localId ?? idx}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-xs"
                 >
                   <span>{formatOperation(op)}</span>

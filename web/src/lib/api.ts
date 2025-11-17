@@ -27,13 +27,44 @@ async function req(path: string, opts: RequestInit = {}) {
   } catch (err) {
     throw createNetworkError(url, err);
   }
+  const contentType = res.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
+
   if (!res.ok) {
+    let errorBody: any = null;
+    if (isJson) {
+      try {
+        errorBody = await res.json();
+      } catch (err) {
+        try {
+          errorBody = await res.text();
+        } catch {
+          errorBody = null;
+        }
+      }
+    } else {
+      try {
+        errorBody = await res.text();
+      } catch {
+        errorBody = null;
+      }
+    }
+
     const error = new Error(`${res.status} ${res.statusText}`);
-    // Store status code for easier error handling
     (error as any).status = res.status;
+    (error as any).body = errorBody;
     throw error;
   }
-  return res.json();
+
+  if (res.status === 204) {
+    return null;
+  }
+
+  if (isJson) {
+    return res.json();
+  }
+
+  return res.text();
 }
 
 export const api = {
