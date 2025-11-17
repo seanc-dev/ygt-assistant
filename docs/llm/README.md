@@ -4,6 +4,28 @@
 
 The LLM testing framework provides end-to-end testing for assistant chat and LLM operations functionality. Tests use YAML scenario definitions and deterministic fixtures to ensure reproducible, fast test runs.
 
+## Testing Structure
+
+The testing framework follows a three-tier evaluation strategy:
+
+1. **LLM Chat Responses** → Agent Evaluator
+   - Uses GPT-4o-mini agent evaluator (when `LLM_EVAL_API_KEY` is available)
+   - Assesses suitability, safety, and clarity of LLM-generated chat responses
+   - Falls back to offline string matching (`must_contain`/`must_not_contain`) if unavailable
+   - Full transcript snapshots are NOT enforced with live LLM (responses are non-deterministic)
+
+2. **LLM Operations** → Deterministic Tests
+   - Uses deterministic validation (`_assess_function_calling()`)
+   - Validates operation structure (`op`, `params` fields), enum values, and user intent matching
+   - Operation snapshots only enforced with fixtures (`LLM_TESTING_MODE=true`)
+   - Always validates enum values and required parameters regardless of mode
+
+3. **Infrastructure** → Fixtures
+   - Uses `LLM_TESTING_MODE=true` (deterministic fixtures) by default
+   - Full transcript snapshots enforced for regression testing
+   - Tests HTTP flow, JSONPath extraction, database operations, execution logic
+   - No live LLM calls - pure infrastructure validation
+
 ## Running Tests
 
 ### Run All Scenarios
@@ -86,6 +108,10 @@ HTTP steps support:
 ### Snapshots
 
 Snapshots capture normalized transcripts (with timestamps and UUIDs replaced) for regression testing. They are stored in `llm_testing/snapshots/` and automatically created on first run.
+
+**Snapshot behavior:**
+- **Full transcript snapshots**: Only enforced with fixtures (`LLM_TESTING_MODE=true`) for infrastructure regression testing. With live LLM, snapshots generate warnings but don't fail tests (chat responses vary).
+- **Operation snapshots**: Only enforced with fixtures for deterministic operation structure validation. With live LLM, snapshots generate warnings but don't fail tests (operation content may vary).
 
 ## LLM Operations
 
