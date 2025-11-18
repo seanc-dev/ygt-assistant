@@ -72,6 +72,9 @@ export function ActionSummary({
   
   return (
     <div className="border-t border-slate-200 bg-slate-50 p-4">
+      <div className="text-xs text-slate-500 mb-3">
+        Assistant actions operate on the current project. Switch to another project to make changes there.
+      </div>
       {errors.length > 0 && (
         <div className="mb-3 space-y-2" data-testid="operation-errors">
           {errors.map((error) => (

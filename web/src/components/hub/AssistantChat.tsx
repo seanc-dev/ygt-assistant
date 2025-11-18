@@ -92,10 +92,20 @@ const generateOperationLocalId = () => {
 const removeByLocalId = (ops: OperationRecord[], id: string) =>
   ops.filter((item) => item.localId !== id);
 
-const sanitizeOperationForApi = (op: SummaryOperation | OperationRecord) => ({
-  op: op.op,
-  params: op.params,
-});
+const sanitizeOperationForApi = (
+  op: SummaryOperation | OperationRecord,
+  options?: { forceCurrentProject?: boolean }
+) => {
+  const params = { ...op.params };
+  if (options?.forceCurrentProject) {
+    delete params.project;
+    delete params.project_id;
+  }
+  return {
+    op: op.op,
+    params,
+  };
+};
 
 const formatOperationErrors = (errors?: any[]): OperationError[] =>
   (errors ?? []).map((err) => ({
@@ -104,6 +114,15 @@ const formatOperationErrors = (errors?: any[]): OperationError[] =>
     op: err?.op,
     params: err?.params,
   }));
+
+const createAssistantMessage = (content: string): Message => ({
+  id: generateOperationLocalId(),
+  role: "assistant",
+  content,
+  ts: new Date().toISOString(),
+  optimistic: false,
+  error: false,
+});
 
 type ThreadResponse = {
   ok: boolean;
@@ -502,6 +521,7 @@ export function AssistantChat({
     pending: [],
     errors: [],
   });
+  const forceCurrentProject = mode === "workroom";
   const appliedOps = operationsState.applied;
   const pendingOps = operationsState.pending;
   const hasErrors = operationsState.errors.length > 0;
@@ -923,8 +943,17 @@ export function AssistantChat({
           },
         ],
       }));
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          ...createAssistantMessage(message),
+          error: true,
+          errorMessage: message,
+        },
+      ]);
     },
-    []
+    [setMessages]
   );
 
   const dismissOperationError = useCallback(
@@ -1822,14 +1851,25 @@ export function AssistantChat({
                     console.warn("Cannot approve operation without localId:", op);
                     return;
                   }
+                  console.log("Approving operation:", op);
                   try {
-                    const result = await runOperationApi("approve", {
-                      operation: sanitizeOperationForApi(op),
+                    const sanitizedOp = sanitizeOperationForApi(op, {
+                      forceCurrentProject,
                     });
+                    console.log("Sanitized operation for API:", sanitizedOp);
+                    const result = await runOperationApi("approve", {
+                      operation: sanitizedOp,
+                    });
+                    console.log("Approve API result:", result);
                     if (!result?.ok) {
+                      const errorDetail =
+                        result?.detail?.detail ||
+                        result?.detail ||
+                        result?.result;
                       const detailMessage =
-                        result?.detail?.stock_message ||
-                        result?.detail?.error ||
+                        errorDetail?.assistant_message ||
+                        errorDetail?.stock_message ||
+                        errorDetail?.error ||
                         result?.error ||
                         "Failed to approve operation. Please try again.";
                       pushOperationError(detailMessage, {
@@ -1868,7 +1908,9 @@ export function AssistantChat({
                   try {
                     const parsedParams = JSON.parse(editedParams);
                     const result = await runOperationApi("edit", {
-                      operation: sanitizeOperationForApi(op),
+                      operation: sanitizeOperationForApi(op, {
+                        forceCurrentProject,
+                      }),
                       edited_params: parsedParams,
                     });
                     if (result?.ok) {
@@ -1895,7 +1937,9 @@ export function AssistantChat({
                   if (!op?.localId) return;
                   try {
                     await runOperationApi("decline", {
-                      operation: sanitizeOperationForApi(op),
+                      operation: sanitizeOperationForApi(op, {
+                        forceCurrentProject,
+                      }),
                     });
                     updateOperationsState((prev) => ({
                       ...prev,
@@ -1912,7 +1956,9 @@ export function AssistantChat({
                     // Try to get original state from the operation result if available
                     const originalState = op.original_state;
                     const result = await runOperationApi("undo", {
-                      operation: sanitizeOperationForApi(op),
+                      operation: sanitizeOperationForApi(op, {
+                        forceCurrentProject,
+                      }),
                       original_state: originalState,
                     });
                     if (result?.ok) {

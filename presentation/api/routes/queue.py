@@ -518,13 +518,13 @@ async def assistant_approve_operation(
         context=context,
     )
     
-    # Check for duplicate errors and return 409 with stock message
-    if not result.get("ok") and result.get("stock_message"):
+    # Check for duplicate errors and return 409 with assistant-facing message
+    if not result.get("ok") and result.get("assistant_message"):
         raise HTTPException(
             status_code=409,
             detail={
                 "error": result.get("error"),
-                "stock_message": result.get("stock_message"),
+                "assistant_message": result.get("assistant_message"),
                 "operation": body.operation,
             }
         )

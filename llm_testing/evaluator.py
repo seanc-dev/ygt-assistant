@@ -340,14 +340,26 @@ def _assess_function_calling(
                 
                 # Check expected operation types (if specified - optional)
                 expected_ops = function_calling.get("expected_operations", [])
+                forbidden_ops = function_calling.get("forbidden_operations", [])
                 if expected_ops:
                     found_ops = [op.get("op") for op in ops if isinstance(op, dict)]
                     missing_ops = [eo for eo in expected_ops if eo not in found_ops]
                     if missing_ops:
                         reasons.append(f"missing_expected_operations: {missing_ops}")
+                    # Check for forbidden operations
+                    if forbidden_ops:
+                        found_forbidden = [fo for fo in forbidden_ops if fo in found_ops]
+                        if found_forbidden:
+                            reasons.append(f"forbidden_operations_generated: {found_forbidden}")
                 # If no expected_ops specified, just verify at least one operation was generated
                 elif len(ops) == 0:
                     reasons.append("no_operations_generated")
+                # Always check forbidden operations even if expected_ops not specified
+                if forbidden_ops:
+                    found_ops = [op.get("op") for op in ops if isinstance(op, dict)]
+                    found_forbidden = [fo for fo in forbidden_ops if fo in found_ops]
+                    if found_forbidden:
+                        reasons.append(f"forbidden_operations_generated: {found_forbidden}")
     
     if not operations_found:
         reasons.append("no_assistant_suggest_response_found")
@@ -582,6 +594,10 @@ def evaluate(report_path: str) -> Dict[str, Any]:
             if function_calling.get("expected_operations"):
                 expected = function_calling["expected_operations"]
                 function_calling_instructions += f"- Should include operations of types: {expected}\n"
+            if function_calling.get("forbidden_operations"):
+                forbidden = function_calling["forbidden_operations"]
+                function_calling_instructions += f"- MUST NOT include operations of types: {forbidden}\n"
+                function_calling_instructions += "- If any forbidden operation is present, factual=0.\n"
             function_calling_instructions += "- factual=0 if function calling fails any of these checks.\n"
         
         prompt = {

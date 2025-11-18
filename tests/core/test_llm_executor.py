@@ -278,8 +278,8 @@ def test_execute_single_op_approved_returns_stock_message_for_duplicate_project(
     )
 
     assert result["ok"] is False
-    assert "stock_message" in result
-    assert "That project already exists" in result["stock_message"]
+    assert "assistant_message" in result
+    assert "That project already exists" in result["assistant_message"]
 
 
 @patch("presentation.api.repos.workroom")
@@ -315,8 +315,8 @@ def test_execute_single_op_approved_returns_stock_message_for_duplicate_task(moc
     )
 
     assert result["ok"] is False
-    assert "stock_message" in result
-    assert "already has a task with that name" in result["stock_message"]
+    assert "assistant_message" in result
+    assert "already has a task with that name" in result["assistant_message"]
 
 
 @patch("presentation.api.repos.workroom")
@@ -347,4 +347,4 @@ def test_execute_single_op_approved_success_returns_ok(mock_workroom):
     )
 
     assert result["ok"] is True
-    assert "stock_message" not in result
+    assert "assistant_message" not in result

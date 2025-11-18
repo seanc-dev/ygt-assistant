@@ -22,6 +22,7 @@ from core.domain.llm_ops import (
     TaskStatusLiteral,
     ActionStateLiteral,
 )
+from core.services.llm_context_builder import _get_current_project_id
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +87,7 @@ def _resolve_project_id(
         MultipleMatchesError: If multiple projects match the name
     """
     if not ref:
-        return None
+        return _get_current_project_id(context or {}, focus_task_id, user_id)
 
     ref_str = str(ref).strip()
 
@@ -125,7 +126,12 @@ def _resolve_project_id(
     elif len(matches) == 1:
         return matches[0]["id"]
 
-    return None
+    logger.warning(
+        "Project reference '%s' not found. Available projects: %s",
+        ref_str,
+        [p.get("name") for p in projects],
+    )
+    raise ValueError(f"Project '{ref_str}' not found")
 
 
 def _resolve_task_id(
@@ -513,20 +519,24 @@ def execute_single_op_approved(
         )
 
         if isinstance(e, DuplicateProjectNameError):
+            assistant_message = (
+                "That project already exists. Would you like to name it something else?"
+            )
             return {
                 "ok": False,
                 "op": op.op,
                 "params": op.params,
                 "error": str(e),
-                "stock_message": "That project already exists. Would you like to name it something else?",
+                "assistant_message": assistant_message,
             }
         elif isinstance(e, DuplicateTaskTitleError):
+            assistant_message = "This project already has a task with that name. Would you like to name it something else?"
             return {
                 "ok": False,
                 "op": op.op,
                 "params": op.params,
                 "error": str(e),
-                "stock_message": "This project already has a task with that name. Would you like to name it something else?",
+                "assistant_message": assistant_message,
             }
 
         logger.error(
@@ -831,6 +841,8 @@ def _execute_single_op(
         if not title:
             raise ValueError("CreateTaskOp requires 'title' in params")
 
+        context = context or {}
+
         # Resolve project reference (supports "project" or "project_id" for backward compatibility)
         project_ref = params.get("project") or params.get("project_id")
         project_id = None
@@ -841,6 +853,17 @@ def _execute_single_op(
                 )
             except MultipleMatchesError as e:
                 raise ValueError(str(e))
+            except ValueError as e:
+                raise ValueError(
+                    f"{e}. Please open a chat within that project to make changes."
+                )
+        else:
+            project_id = _get_current_project_id(context, focus_task_id, user_id)
+
+        if not project_id:
+            raise ValueError(
+                "I couldn't determine which project you're working in. Please open a task inside the project you want to update."
+            )
 
         description = params.get("description")
         priority = _normalize_enum_value(

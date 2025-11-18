@@ -87,8 +87,8 @@ def test_assistant_approve_create_task_duplicate_returns_conflict(
     assert second.status_code == 409
     detail = second.json()["detail"]
     assert (
-        "stock_message" in detail
-        and "already has a task with that name" in detail["stock_message"]
+        "assistant_message" in detail
+        and "already has a task with that name" in detail["assistant_message"]
     )
 
 
@@ -113,4 +113,50 @@ def test_assistant_approve_rejects_invalid_priority(client: TestClient) -> None:
 
     assert resp.status_code == 400
     assert "priority" in resp.json()["detail"]
+
+
+def test_create_task_same_title_different_project_allowed(client: TestClient) -> None:
+    """Duplicate titles in other projects should not block approval."""
+    _seed_workroom(client)
+    tree_resp = client.get("/api/workroom/tree")
+    assert tree_resp.status_code == 200
+    tree = tree_resp.json()["tree"]
+    focus_project_id = tree[0]["id"]
+    focus_task_id = tree[0]["children"][0]["id"]
+
+    # Create another project
+    other_project_resp = client.post(
+        "/api/workroom/projects",
+        json={"title": "Analytics"},
+        cookies={"user_id": "test-user"},
+    )
+    assert other_project_resp.status_code == 200
+    other_project_id = other_project_resp.json()["project"]["id"]
+
+    # Create task with duplicate title in other project
+    duplicate_title = "Cross-project duplicate task"
+    create_task_resp = client.post(
+        "/api/workroom/tasks",
+        json={"projectId": other_project_id, "title": duplicate_title},
+        cookies={"user_id": "test-user"},
+    )
+    assert create_task_resp.status_code == 200
+
+    # Approve create_task in focus project with same title should succeed
+    operation = {
+        "op": "create_task",
+        "params": {
+            "title": duplicate_title,
+            "priority": "medium",
+            "project": "current project",
+        },
+    }
+
+    resp = client.post(
+        f"/api/workroom/tasks/{focus_task_id}/assistant-approve",
+        json={"operation": operation},
+        cookies={"user_id": "test-user"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["result"]["ok"] is True
 
