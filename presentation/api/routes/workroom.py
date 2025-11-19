@@ -1278,3 +1278,68 @@ async def assistant_undo_operation_for_task(
         "result": result,
         "task": refreshed_task,
     }
+
+
+@router.get("/api/workroom/picker/projects")
+async def workroom_picker_projects(
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Lightweight list of projects for slash command pickers."""
+
+    projects = workroom_repo.get_projects(user_id)
+    return {
+        "ok": True,
+        "projects": [
+            {
+                "id": project["id"],
+                "title": project.get("name")
+                or project.get("title")
+                or "Untitled Project",
+            }
+            for project in projects
+        ],
+    }
+
+
+@router.get("/api/workroom/picker/tasks")
+async def workroom_picker_tasks(
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+    project_id: Optional[str] = None,
+    q: Optional[str] = None,
+    limit: int = 25,
+) -> Dict[str, Any]:
+    """Lightweight task search for slash command pickers."""
+
+    if limit <= 0:
+        limit = 10
+    limit = min(limit, 100)
+
+    tasks = workroom_repo.get_tasks(user_id, project_id=project_id)
+    project_lookup = {
+        project["id"]: project.get("name") or project.get("title") or "Untitled Project"
+        for project in workroom_repo.get_projects(user_id)
+    }
+
+    q_normalized = q.lower().strip() if q else None
+    results: List[Dict[str, Any]] = []
+    for task in tasks:
+        title = task.get("title", "") or ""
+        if q_normalized and q_normalized not in title.lower():
+            continue
+        results.append(
+            {
+                "id": task["id"],
+                "title": title or "Untitled Task",
+                "projectId": task.get("project_id"),
+                "projectTitle": project_lookup.get(task.get("project_id")),
+            }
+        )
+        if len(results) >= limit:
+            break
+
+    return {
+        "ok": True,
+        "tasks": results,
+    }

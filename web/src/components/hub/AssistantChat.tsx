@@ -1,11 +1,4 @@
-import {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  memo,
-  useMemo,
-} from "react";
+import { useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
 import {
   Send24Regular,
   ChevronDown24Regular,
@@ -85,8 +78,13 @@ type ProjectOption = {
 type TaskOption = {
   id: string;
   title: string;
-  projectId: string;
-  projectTitle?: string;
+  projectId?: string | null;
+  projectTitle?: string | null;
+};
+
+type TaskSuggestion = TaskOption & {
+  meta?: string;
+  isSuggested?: boolean;
 };
 
 type ParsedTokenChip = {
@@ -102,11 +100,11 @@ type OperationsState = {
 };
 
 type OperationApiGroup = {
-  suggest: (body: Record<string, any>) => Promise<any>;
-  approve: (body: Record<string, any>) => Promise<any>;
-  edit: (body: Record<string, any>) => Promise<any>;
-  decline: (body: Record<string, any>) => Promise<any>;
-  undo: (body: Record<string, any>) => Promise<any>;
+  suggest: (body: { message?: string; thread_id?: string }) => Promise<any>;
+  approve: (body: { operation: any }) => Promise<any>;
+  edit: (body: { operation: any; edited_params: any }) => Promise<any>;
+  decline: (body: { operation: any }) => Promise<any>;
+  undo: (body: { operation: any; original_state?: any }) => Promise<any>;
 };
 
 const generateOperationLocalId = () => {
@@ -160,11 +158,14 @@ const escapeTokenValue = (value: string) => value.replace(/"/g, '\\"');
 
 const parseTokenBody = (body: string): Record<string, string> => {
   const pairs: Record<string, string> = {};
-  body.replace(KEY_VALUE_REGEX, (_, key: string, quoted: string, bare: string) => {
-    const cleaned = (quoted ?? bare ?? "").replace(/\\"/g, '"');
-    pairs[key] = cleaned;
-    return "";
-  });
+  body.replace(
+    KEY_VALUE_REGEX,
+    (_, key: string, quoted: string, bare: string) => {
+      const cleaned = (quoted ?? bare ?? "").replace(/\\"/g, '"');
+      pairs[key] = cleaned;
+      return "";
+    }
+  );
   return pairs;
 };
 
@@ -215,6 +216,8 @@ type AssistantChatProps = {
   threadId?: string | null;
   projectId?: string | null;
   projectTitle?: string | null;
+  suggestedTaskId?: string | null;
+  suggestedTaskTitle?: string | null;
   summary?: string;
   meta?: {
     from?: string;
@@ -572,6 +575,8 @@ export function AssistantChat({
   threadId: initialThreadId,
   projectId,
   projectTitle,
+  suggestedTaskId,
+  suggestedTaskTitle,
   summary,
   meta,
   onThreadCreated,
@@ -603,11 +608,36 @@ export function AssistantChat({
     errors: [],
   });
   const [projectOptions, setProjectOptions] = useState<ProjectOption[]>([]);
-  const [showTaskPicker, setShowTaskPicker] = useState(false);
+  const [projectIndexState, setProjectIndexState] = useState<
+    "idle" | "loading" | "ready"
+  >("idle");
+  const [isReferenceSearchOpen, setReferenceSearchOpen] = useState(false);
+  const [referenceQuery, setReferenceQuery] = useState("");
+  const [referenceProjectId, setReferenceProjectId] = useState<string | null>(
+    projectId ?? null
+  );
+  const [referenceResults, setReferenceResults] = useState<TaskOption[]>([]);
+  const [referenceLoading, setReferenceLoading] = useState(false);
+  const [referenceActiveIndex, setReferenceActiveIndex] = useState(0);
+  const referenceSearchAbort = useRef<AbortController | null>(null);
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
   const [inlineNotice, setInlineNotice] = useState<string | null>(null);
+  const [hasPrefetchedPicker, setHasPrefetchedPicker] = useState(false);
+  const [suggestedTaskTitleResolved, setSuggestedTaskTitleResolved] = useState<
+    string | null
+  >(suggestedTaskTitle || null);
+  useEffect(() => {
+    if (suggestedTaskTitle) {
+      setSuggestedTaskTitleResolved(suggestedTaskTitle);
+    } else if (!suggestedTaskId) {
+      setSuggestedTaskTitleResolved(null);
+    }
+  }, [suggestedTaskId, suggestedTaskTitle]);
   const [isSlashMenuOpen, setSlashMenuOpen] = useState(false);
-  const [slashMenuPosition, setSlashMenuPosition] = useState({ top: 0, left: 0 });
+  const [slashMenuPosition, setSlashMenuPosition] = useState({
+    top: 0,
+    left: 0,
+  });
   const forceCurrentProject = mode === "workroom";
   const appliedOps = operationsState.applied;
   const pendingOps = operationsState.pending;
@@ -633,6 +663,46 @@ export function AssistantChat({
     () => extractTokensFromMessage(message),
     [message]
   );
+  const suggestionEntry = useMemo<TaskSuggestion | null>(() => {
+    if (!suggestedTaskId) {
+      return null;
+    }
+    const resolvedTitle =
+      suggestedTaskTitleResolved || suggestedTaskTitle || "Linked task";
+    let resolvedProjectTitle = projectTitle;
+    if (!resolvedProjectTitle && projectId) {
+      const projectMatch = projectOptions.find(
+        (project) => project.id === projectId
+      );
+      resolvedProjectTitle = projectMatch?.title;
+    }
+    return {
+      id: suggestedTaskId,
+      title: resolvedTitle,
+      projectId: projectId ?? null,
+      projectTitle: resolvedProjectTitle ?? null,
+      isSuggested: true,
+      meta: "Current link",
+    };
+  }, [
+    suggestedTaskId,
+    suggestedTaskTitleResolved,
+    suggestedTaskTitle,
+    projectId,
+    projectTitle,
+    projectOptions,
+  ]);
+
+  const displayReferenceResults = useMemo<TaskSuggestion[]>(() => {
+    const map = new Map<string, TaskSuggestion>();
+    if (suggestionEntry) {
+      map.set(suggestionEntry.id, suggestionEntry);
+    }
+    referenceResults.forEach((task) => {
+      map.set(task.id, task);
+    });
+    return Array.from(map.values());
+  }, [referenceResults, suggestionEntry]);
 
   const updateMessageValue = useCallback(
     (nextValue: string) => {
@@ -640,55 +710,6 @@ export function AssistantChat({
       setDraftCache((prev) => ({ ...prev, [actionId]: nextValue }));
     },
     [actionId]
-  );
-
-  const ensureProjectsLoaded = useCallback(async () => {
-    if (projectOptions.length > 0) {
-      return projectOptions;
-    }
-    try {
-      const response = await workroomApi.getProjects();
-      if (response?.ok) {
-        const mapped =
-          response.projects?.map((project) => ({
-            id: project.id,
-            title: project.title,
-          })) ?? [];
-        setProjectOptions(mapped);
-        return mapped;
-      }
-      return [];
-    } catch (error) {
-      console.error("Failed to load projects:", error);
-      throw error;
-    }
-  }, [projectOptions]);
-
-  const loadTasksForProject = useCallback(
-    async (id: string, title?: string) => {
-      if (tasksCacheRef.current[id]) {
-        return tasksCacheRef.current[id];
-      }
-      try {
-        const response = await workroomApi.getTasks(id);
-        if (response?.ok) {
-          const mapped =
-            response.tasks?.map((task) => ({
-              id: task.id,
-              title: task.title,
-              projectId: id,
-              projectTitle: title,
-            })) ?? [];
-          tasksCacheRef.current[id] = mapped;
-          return mapped;
-        }
-        return [];
-      } catch (error) {
-        console.error("Failed to load tasks:", error);
-        throw error;
-      }
-    },
-    []
   );
 
   const showInlineNotice = useCallback((text: string, timeout = 4000) => {
@@ -701,6 +722,159 @@ export function AssistantChat({
       noticeTimeoutRef.current = null;
     }, timeout);
   }, []);
+
+  const ensureProjectsIndex = useCallback(async () => {
+    if (projectOptions.length > 0 || projectIndexState === "loading") {
+      return projectOptions;
+    }
+    setProjectIndexState("loading");
+    try {
+      const response = await workroomApi.listProjectsLite();
+      const projects = response?.projects ?? [];
+      setProjectOptions(projects);
+      setProjectIndexState("ready");
+      return projects;
+    } catch (error) {
+      console.error("Failed to load project index:", error);
+      setProjectIndexState("idle");
+      showInlineNotice("Unable to load projects. Please try again.");
+      throw error;
+    }
+  }, [projectOptions, projectIndexState, showInlineNotice]);
+
+  const closeReferenceSearch = useCallback(() => {
+    referenceSearchAbort.current?.abort();
+    setReferenceSearchOpen(false);
+    setReferenceQuery("");
+    setReferenceResults([]);
+    setReferenceActiveIndex(0);
+    setReferenceLoading(false);
+  }, []);
+
+  const openReferenceSearch = useCallback(() => {
+    setReferenceProjectId((current) => {
+      if (current) {
+        return current;
+      }
+      if (projectId) {
+        return projectId;
+      }
+      return projectOptions[0]?.id ?? null;
+    });
+    setReferenceQuery("");
+    setReferenceResults([]);
+    setReferenceActiveIndex(0);
+    setReferenceSearchOpen(true);
+  }, [projectId, projectOptions]);
+
+  const runTaskSearch = useCallback(
+    async (query: string, projectFilter: string | null) => {
+      referenceSearchAbort.current?.abort();
+      const controller = new AbortController();
+      referenceSearchAbort.current = controller;
+      setReferenceLoading(true);
+      const normalizedQuery = query.trim();
+      try {
+        const response = await workroomApi.searchTasksLite({
+          projectId: projectFilter,
+          query: normalizedQuery,
+          limit: 25,
+          signal: controller.signal,
+        });
+        if (!controller.signal.aborted) {
+          const normalized =
+            response?.tasks?.map((task) => {
+              const fallbackTitle =
+                task.projectTitle ||
+                projectOptions.find((project) => project.id === task.projectId)
+                  ?.title ||
+                null;
+              return {
+                id: task.id,
+                title: task.title,
+                projectId: task.projectId ?? null,
+                projectTitle: fallbackTitle,
+              };
+            }) ?? [];
+          setReferenceResults(normalized);
+        }
+      } catch (error) {
+        if ((error as any)?.name !== "AbortError") {
+          console.error("Failed to search tasks:", error);
+          showInlineNotice("Search failed. Please try again.");
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setReferenceLoading(false);
+        }
+      }
+    },
+    [projectOptions, showInlineNotice]
+  );
+
+  useEffect(() => {
+    if (!suggestedTaskId || suggestedTaskTitle || suggestedTaskTitleResolved) {
+      return;
+    }
+    let mounted = true;
+    workroomApi
+      .getTask(suggestedTaskId)
+      .then((response) => {
+        if (mounted && response?.ok) {
+          setSuggestedTaskTitleResolved(response.task?.title || null);
+        }
+      })
+      .catch((error) => {
+        console.warn("Failed to load suggested task details:", error);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [suggestedTaskId, suggestedTaskTitle, suggestedTaskTitleResolved]);
+
+  useEffect(() => {
+    if (hasPrefetchedPicker) {
+      return;
+    }
+    const trimmed = message.trim().toLowerCase();
+    if (trimmed.endsWith("/ins") || trimmed.includes("/insert task")) {
+      ensureProjectsIndex().catch(() => {});
+      setHasPrefetchedPicker(true);
+    }
+  }, [message, hasPrefetchedPicker, ensureProjectsIndex]);
+
+  useEffect(() => {
+    if (!isReferenceSearchOpen) {
+      return;
+    }
+    const debounceId = setTimeout(() => {
+      runTaskSearch(referenceQuery, referenceProjectId);
+    }, 180);
+    return () => {
+      clearTimeout(debounceId);
+    };
+  }, [
+    isReferenceSearchOpen,
+    referenceQuery,
+    referenceProjectId,
+    runTaskSearch,
+  ]);
+
+  useEffect(() => {
+    if (!isReferenceSearchOpen) {
+      return;
+    }
+    ensureProjectsIndex().catch(() => {});
+  }, [isReferenceSearchOpen, ensureProjectsIndex]);
+
+  useEffect(() => {
+    if (!isReferenceSearchOpen) {
+      return;
+    }
+    setReferenceActiveIndex((current) =>
+      Math.min(current, Math.max(displayReferenceResults.length - 1, 0))
+    );
+  }, [displayReferenceResults.length, isReferenceSearchOpen]);
 
   const insertTokenAtCursor = useCallback(
     (token: string) => {
@@ -747,9 +921,10 @@ export function AssistantChat({
         task.id
       } name:"${escapeTokenValue(task.title)}"]`;
       insertTokenAtCursor(token);
-      setShowTaskPicker(false);
+      onAddReference?.({ type: "task", id: task.id });
+      closeReferenceSearch();
     },
-    [insertTokenAtCursor]
+    [insertTokenAtCursor, onAddReference, closeReferenceSearch]
   );
 
   const handleInsertCreateTaskOp = useCallback(
@@ -762,17 +937,6 @@ export function AssistantChat({
     },
     [insertTokenAtCursor]
   );
-  const loadTasksForModal = useCallback(
-    (id: string) => {
-      const title =
-        projectOptions.find((project) => project.id === id)?.title ||
-        projectTitle ||
-        undefined;
-      return loadTasksForProject(id, title);
-    },
-    [loadTasksForProject, projectOptions, projectTitle]
-  );
-
   const closeSlashMenu = useCallback(() => setSlashMenuOpen(false), []);
 
   const openSlashMenu = useCallback(() => {
@@ -781,7 +945,9 @@ export function AssistantChat({
     }
     const top = Math.max(
       0,
-      (textareaRef.current.offsetTop || 0) - textareaRef.current.offsetHeight - 12
+      (textareaRef.current.offsetTop || 0) -
+        textareaRef.current.offsetHeight -
+        12
     );
     const left = (textareaRef.current.offsetLeft || 0) + 16;
     setSlashMenuPosition({ top, left });
@@ -792,60 +958,53 @@ export function AssistantChat({
     async (command: SlashCommand) => {
       closeSlashMenu();
       try {
-        let projectsList = projectOptions;
-        if (projectsList.length === 0) {
-          showInlineNotice("Loading workspace projects…", 2000);
-          projectsList = await ensureProjectsLoaded();
-        }
-        if (
-          command.id === "insert-task" ||
-          command.id === "create-task-op"
-        ) {
-          if (projectsList.length === 0) {
+        const projectsList = await ensureProjectsIndex();
+        if (command.id === "insert-task" || command.id === "create-task-op") {
+          if ((projectsList?.length ?? 0) === 0) {
             showInlineNotice("No projects available. Create one first.");
             return;
           }
           if (command.id === "insert-task") {
-            setShowTaskPicker(true);
-          } else {
-            setShowCreateTaskModal(true);
+            openReferenceSearch();
+            return;
           }
+          setShowCreateTaskModal(true);
         }
       } catch (error) {
         console.error("Slash command preparation failed:", error);
         showInlineNotice("Failed to load workspace context. Try again.");
       }
     },
-    [closeSlashMenu, ensureProjectsLoaded, projectOptions, showInlineNotice]
+    [closeSlashMenu, ensureProjectsIndex, openReferenceSearch, showInlineNotice]
   );
 
   const operationApi = useMemo<OperationApiGroup | null>(() => {
     if (mode === "workroom" && taskId) {
       return {
-        suggest: (body: Record<string, any>) =>
+        suggest: (body: { message?: string; thread_id?: string }) =>
           api.assistantSuggestForTask(taskId, body),
-        approve: (body: Record<string, any>) =>
+        approve: (body: { operation: any }) =>
           api.assistantApproveForTask(taskId, body),
-        edit: (body: Record<string, any>) =>
+        edit: (body: { operation: any; edited_params: any }) =>
           api.assistantEditForTask(taskId, body),
-        decline: (body: Record<string, any>) =>
+        decline: (body: { operation: any }) =>
           api.assistantDeclineForTask(taskId, body),
-        undo: (body: Record<string, any>) =>
+        undo: (body: { operation: any; original_state?: any }) =>
           api.assistantUndoForTask(taskId, body),
       };
     }
 
     if (actionId) {
       return {
-        suggest: (body: Record<string, any>) =>
+        suggest: (body: { message?: string; thread_id?: string }) =>
           api.assistantSuggestForAction(actionId, body),
-        approve: (body: Record<string, any>) =>
+        approve: (body: { operation: any }) =>
           api.assistantApproveForAction(actionId, body),
-        edit: (body: Record<string, any>) =>
+        edit: (body: { operation: any; edited_params: any }) =>
           api.assistantEditForAction(actionId, body),
-        decline: (body: Record<string, any>) =>
+        decline: (body: { operation: any }) =>
           api.assistantDeclineForAction(actionId, body),
-        undo: (body: Record<string, any>) =>
+        undo: (body: { operation: any; original_state?: any }) =>
           api.assistantUndoForAction(actionId, body),
       };
     }
@@ -856,14 +1015,14 @@ export function AssistantChat({
   const runOperationApi = useCallback(
     async <T extends keyof OperationApiGroup>(
       action: T,
-      payload: Record<string, any>
+      payload: Parameters<OperationApiGroup[T]>[0]
     ) => {
       if (!operationApi) {
         console.warn("Assistant operations are unavailable for this chat.");
         return null;
       }
       try {
-        const result = await operationApi[action](payload);
+        const result = await operationApi[action](payload as any);
         return result;
       } catch (error) {
         console.error(`Failed to run operation API action '${action}':`, error);
@@ -889,7 +1048,6 @@ export function AssistantChat({
     start: 0,
     end: 0,
   });
-  const tasksCacheRef = useRef<Record<string, TaskOption[]>>({});
   const noticeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [animatedMessageIds, setAnimatedMessageIds] = useState<Set<string>>(
     new Set()
@@ -1771,7 +1929,13 @@ export function AssistantChat({
         }
       }
     },
-    [handleSend, contextExpanded, isSlashMenuOpen, openSlashMenu, closeSlashMenu]
+    [
+      handleSend,
+      contextExpanded,
+      isSlashMenuOpen,
+      openSlashMenu,
+      closeSlashMenu,
+    ]
   );
 
   const handleContextToggle = useCallback(() => {
@@ -2139,6 +2303,28 @@ export function AssistantChat({
               position={slashMenuPosition}
             />
           )}
+          {isReferenceSearchOpen && (
+            <ReferenceSearchPanel
+              anchorRef={inputFooterRef}
+              query={referenceQuery}
+              onQueryChange={(value) => {
+                setReferenceQuery(value);
+                setReferenceActiveIndex(0);
+              }}
+              projectOptions={projectOptions}
+              projectId={referenceProjectId}
+              onProjectChange={(value) => {
+                setReferenceProjectId(value);
+                setReferenceActiveIndex(0);
+              }}
+              results={displayReferenceResults}
+              loading={referenceLoading}
+              onSelect={(task) => handleInsertTaskReference(task)}
+              onClose={closeReferenceSearch}
+              activeIndex={referenceActiveIndex}
+              onActiveIndexChange={setReferenceActiveIndex}
+            />
+          )}
           {parsedTokens.length > 0 && (
             <div className="flex flex-wrap gap-2 pb-2">
               {parsedTokens.map((token, idx) => (
@@ -2208,7 +2394,10 @@ export function AssistantChat({
                 onDismissError={dismissOperationError}
                 onApprove={async (op) => {
                   if (!op?.localId) {
-                    console.warn("Cannot approve operation without localId:", op);
+                    console.warn(
+                      "Cannot approve operation without localId:",
+                      op
+                    );
                     return;
                   }
                   console.log("Approving operation:", op);
@@ -2337,15 +2526,6 @@ export function AssistantChat({
           )}
         </div>
       </div>
-      {showTaskPicker && (
-        <TaskPickerModal
-          projects={projectOptions}
-          initialProjectId={projectId}
-          loadTasks={loadTasksForModal}
-          onSelect={handleInsertTaskReference}
-          onClose={() => setShowTaskPicker(false)}
-        />
-      )}
       {showCreateTaskModal && (
         <CreateTaskOpModal
           projects={projectOptions}
@@ -2402,102 +2582,170 @@ function ModalShell({ title, onClose, children }: ModalShellProps) {
   );
 }
 
-type TaskPickerModalProps = {
-  projects: ProjectOption[];
-  initialProjectId?: string | null;
-  loadTasks: (projectId: string) => Promise<TaskOption[]>;
+type ReferenceSearchPanelProps = {
+  anchorRef: React.RefObject<HTMLDivElement | null>;
+  query: string;
+  onQueryChange: (value: string) => void;
+  projectOptions: ProjectOption[];
+  projectId: string | null;
+  onProjectChange: (value: string | null) => void;
+  results: TaskSuggestion[];
+  loading: boolean;
   onSelect: (task: TaskOption) => void;
   onClose: () => void;
+  activeIndex: number;
+  onActiveIndexChange: (index: number) => void;
 };
 
-function TaskPickerModal({
-  projects,
-  initialProjectId,
-  loadTasks,
+function ReferenceSearchPanel({
+  anchorRef,
+  query,
+  onQueryChange,
+  projectOptions,
+  projectId,
+  onProjectChange,
+  results,
+  loading,
   onSelect,
   onClose,
-}: TaskPickerModalProps) {
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(
-    initialProjectId && projects.some((p) => p.id === initialProjectId)
-      ? initialProjectId
-      : projects[0]?.id || ""
-  );
-  const [tasks, setTasks] = useState<TaskOption[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  activeIndex,
+  onActiveIndexChange,
+}: ReferenceSearchPanelProps) {
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [position, setPosition] = useState({
+    left: 0,
+    bottom: 0,
+    width: 0,
+  });
 
   useEffect(() => {
-    if (!selectedProjectId) {
-      setTasks([]);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    loadTasks(selectedProjectId)
-      .then((taskList) => {
-        setTasks(taskList);
-      })
-      .catch(() => setError("Unable to load tasks"))
-      .finally(() => setLoading(false));
-  }, [selectedProjectId, loadTasks]);
+    const updatePosition = () => {
+      if (!anchorRef.current) return;
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPosition({
+        left: rect.left,
+        bottom: window.innerHeight - rect.top + 12,
+        width: rect.width,
+      });
+    };
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    return () => window.removeEventListener("resize", updatePosition);
+  }, [anchorRef]);
 
   useEffect(() => {
-    if (
-      initialProjectId &&
-      projects.some((project) => project.id === initialProjectId)
-    ) {
-      setSelectedProjectId(initialProjectId);
+    const handleClick = (event: MouseEvent) => {
+      if (
+        panelRef.current &&
+        !panelRef.current.contains(event.target as Node)
+      ) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [onClose]);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      onActiveIndexChange(
+        Math.min(activeIndex + 1, Math.max(results.length - 1, 0))
+      );
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      onActiveIndexChange(Math.max(activeIndex - 1, 0));
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      const task = results[activeIndex];
+      if (task) {
+        onSelect(task);
+      }
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      onClose();
     }
-  }, [initialProjectId, projects]);
+  };
+
+  const hasProjects = projectOptions.length > 0;
 
   return (
-    <ModalShell title="Insert task reference" onClose={onClose}>
-      {projects.length === 0 ? (
-        <p className="text-sm text-slate-600">
-          No projects available. Create a project first.
-        </p>
-      ) : (
-        <>
-          <label className="text-xs text-slate-500 uppercase tracking-wide">
-            Project
-          </label>
-          <select
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="mt-1 w-full border border-slate-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
-          >
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.title}
-              </option>
-            ))}
-          </select>
-          <div className="mt-4 max-h-64 overflow-y-auto space-y-1">
-            {loading && (
-              <div className="text-sm text-slate-500">Loading tasks…</div>
-            )}
-            {error && <div className="text-sm text-red-500">{error}</div>}
-            {!loading && tasks.length === 0 && (
-              <div className="text-sm text-slate-500">
-                No tasks found in this project.
-              </div>
-            )}
-            {tasks.map((task) => (
+    <div
+      className="fixed z-40"
+      style={{
+        left: position.left,
+        bottom: position.bottom,
+        width: position.width || "100%",
+      }}
+    >
+      <div
+        ref={panelRef}
+        className="rounded-2xl border border-slate-200 bg-slate-950/95 text-white shadow-2xl backdrop-blur-md p-3"
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search tasks…"
+            className="flex-1 bg-transparent text-white placeholder:text-slate-400 text-sm focus:outline-none"
+          />
+          {hasProjects && (
+            <select
+              value={projectId || ""}
+              onChange={(e) => onProjectChange(e.target.value || null)}
+              className="text-xs bg-slate-800 rounded-lg px-2 py-1 text-slate-200 focus:outline-none"
+            >
+              <option value="">All projects</option>
+              {projectOptions.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.title}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+        <div className="max-h-72 overflow-y-auto">
+          {loading && (
+            <div className="px-3 py-2 text-sm text-slate-400">Searching…</div>
+          )}
+          {!loading && results.length === 0 && (
+            <div className="px-3 py-2 text-sm text-slate-400">
+              {query
+                ? "No matches yet. Keep typing."
+                : "Start typing to search tasks."}
+            </div>
+          )}
+          {results.map((task, index) => {
+            const isActive = index === activeIndex;
+            return (
               <button
-                key={task.id}
+                key={`${task.id}-${task.meta || "result"}`}
                 onClick={() => onSelect(task)}
-                className="w-full text-left px-3 py-2 rounded-md border border-slate-200 text-sm hover:bg-slate-50 transition-colors"
+                onMouseEnter={() => onActiveIndexChange(index)}
+                className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                  isActive ? "bg-slate-800" : "hover:bg-slate-900"
+                }`}
               >
-                <div className="font-medium text-slate-900">{task.title}</div>
-                <div className="text-xs text-slate-500">
-                  {task.projectTitle || "Selected project"}
+                <div className="text-sm font-medium text-white">
+                  {task.title}
+                </div>
+                <div className="text-xs text-slate-400 flex items-center justify-between">
+                  <span>{task.projectTitle || "No project"}</span>
+                  {task.meta && <span>{task.meta}</span>}
                 </div>
               </button>
-            ))}
-          </div>
-        </>
-      )}
-    </ModalShell>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
 

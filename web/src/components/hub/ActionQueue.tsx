@@ -23,6 +23,8 @@ interface ActionItem {
   defer_until?: string;
   defer_bucket?: string;
   added_to_today?: boolean;
+  task_id?: string | null;
+  task_title?: string | null;
 }
 
 interface QueueResponse {

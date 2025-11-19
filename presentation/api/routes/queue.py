@@ -173,11 +173,42 @@ async def get_queue(
     ))
     
     total = len(visible_items)
-    items = visible_items[offset:offset + limit]
+    sliced_items = visible_items[offset:offset + limit]
+    task_title_cache: Dict[str, Optional[str]] = {}
+
+    response_items = []
+    for item in sliced_items:
+        entry = {
+            "action_id": item["action_id"],
+            "source": item.get("source"),
+            "category": item.get("category"),
+            "priority": item.get("priority"),
+            "preview": item.get("preview"),
+            "thread_id": item.get("thread_id"),
+            "defer_until": item.get("defer_until"),
+            "defer_bucket": item.get("defer_bucket"),
+            "added_to_today": item.get("added_to_today"),
+        }
+
+        linked_task_id = item.get("task_id")
+        if linked_task_id:
+            entry["task_id"] = linked_task_id
+            task_title = item.get("task_title") or task_title_cache.get(linked_task_id)
+            if task_title is None:
+                try:
+                    task = workroom.get_task(user_id, linked_task_id)
+                    task_title = task.get("title")
+                    task_title_cache[linked_task_id] = task_title
+                except ValueError:
+                    task_title = None
+            if task_title:
+                entry["task_title"] = task_title
+
+        response_items.append(entry)
     
     return {
         "ok": True,
-        "items": items,
+        "items": response_items,
         "total": total,
         "limit": limit,
         "offset": offset,

@@ -24,6 +24,8 @@ type ActionCardProps = {
     preview: string;
     action_label: "Respond" | "Approve" | "Review";
     thread_id?: string;
+    task_id?: string | null;
+    task_title?: string | null;
   };
   onToggleExpand: (id: string) => void;
   expanded: boolean;
@@ -817,6 +819,8 @@ export function ActionCard({
             <AssistantChat
               actionId={item.action_id}
               threadId={threadId}
+              suggestedTaskId={item.task_id}
+              suggestedTaskTitle={item.task_title || undefined}
               summary={item.preview}
               meta={{
                 from: item.source,

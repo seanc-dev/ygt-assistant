@@ -15,8 +15,12 @@ vi.mock("next/router", () => ({
 
 vi.mock("../../../hooks/useWorkroomStore", () => ({
   useWorkroomStore: vi.fn(() => ({
+    view: "doc",
+    setView: vi.fn(),
     taskViewState: {},
     setTaskViewState: vi.fn(),
+    hydrated: true,
+    openContext: vi.fn(),
   })),
 }));
 
@@ -36,6 +40,29 @@ vi.mock("../../../lib/workroomApi", () => ({
       ok: true,
       chats: [],
     }),
+    listProjectsLite: vi.fn().mockResolvedValue({
+      ok: true,
+      projects: [],
+    }),
+    searchTasksLite: vi.fn().mockResolvedValue({
+      ok: true,
+      tasks: [],
+    }),
+  },
+}));
+
+vi.mock("../../../lib/api", () => ({
+  api: {
+    assistantSuggestForTask: vi.fn().mockResolvedValue({ ok: true }),
+    assistantApproveForTask: vi.fn().mockResolvedValue({ ok: true }),
+    assistantEditForTask: vi.fn().mockResolvedValue({ ok: true }),
+    assistantDeclineForTask: vi.fn().mockResolvedValue({ ok: true }),
+    assistantUndoForTask: vi.fn().mockResolvedValue({ ok: true }),
+    assistantSuggestForAction: vi.fn().mockResolvedValue({ ok: true }),
+    assistantApproveForAction: vi.fn().mockResolvedValue({ ok: true }),
+    assistantEditForAction: vi.fn().mockResolvedValue({ ok: true }),
+    assistantDeclineForAction: vi.fn().mockResolvedValue({ ok: true }),
+    assistantUndoForAction: vi.fn().mockResolvedValue({ ok: true }),
   },
 }));
 

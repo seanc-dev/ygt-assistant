@@ -129,5 +129,40 @@ export const workroomApi = {
       method: "POST",
       body: JSON.stringify({ messageId }),
     }),
+
+  listProjectsLite: (): Promise<{
+    ok: boolean;
+    projects: { id: string; title: string }[];
+  }> => req("/api/workroom/picker/projects"),
+
+  searchTasksLite: (options: {
+    projectId?: string | null;
+    query?: string;
+    limit?: number;
+    signal?: AbortSignal;
+  }): Promise<{
+    ok: boolean;
+    tasks: {
+      id: string;
+      title: string;
+      projectId?: string | null;
+      projectTitle?: string | null;
+    }[];
+  }> => {
+    const searchParams = new URLSearchParams();
+    if (options.projectId) {
+      searchParams.append("project_id", options.projectId);
+    }
+    if (options.query && options.query.trim()) {
+      searchParams.append("q", options.query.trim());
+    }
+    if (options.limit) {
+      searchParams.append("limit", String(options.limit));
+    }
+    const qs = searchParams.toString();
+    return req(`/api/workroom/picker/tasks${qs ? `?${qs}` : ""}`, {
+      signal: options.signal,
+    });
+  },
 };
 
