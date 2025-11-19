@@ -280,11 +280,10 @@ def propose_ops_for_user(
             if project:
                 current_project_name = project.get("name") or None
 
-    current_project_label = (
-        f'"{current_project_name}"'
-        if current_project_name
-        else "the current project shown in the UI"
-    )
+    if current_project_name:
+        current_project_label = f'"{current_project_name}"'
+    else:
+        current_project_label = "the current project shown in the UI"
 
     # LLM_TESTING_MODE: return deterministic fixture operations
     if os.getenv("LLM_TESTING_MODE", "false").lower() in {"1", "true", "yes", "on"}:
@@ -479,13 +478,13 @@ Allowed enum values (adhere exactly):
 If the user requests something outside these lists, ask for a valid option or choose the closest allowed value and mention the adjustment.
 
 Available operations:
-- chat: {"op": "chat", "params": {"message": "..."}}
-- create_task: {"op": "create_task", "params": {"title": "...", "project": "'current project'", "description": "...", "priority": "low|medium|high|urgent", "from_action": "action preview"}}
-- update_task_status: {"op": "update_task_status", "params": {"task": "task title or 'this task'", "status": "backlog|ready|doing|blocked|done|todo"}}
-- link_action_to_task: {"op": "link_action_to_task", "params": {"action": "action preview", "task": "task title"}}
-- update_action_state: {"op": "update_action_state", "params": {"action": "action preview", "state": "queued|deferred|completed|dismissed|converted_to_task", "defer_until": "...", "added_to_today": true/false}}
-- delete_project: {"op": "delete_project", "params": {"projects": ["project name 1", "project name 2", ...]}}
-- delete_task: {"op": "delete_task", "params": {"tasks": ["task title 1", "task title 2", ...]}}
+- chat: {{"op": "chat", "params": {{"message": "..."}}}}
+- create_task: {{"op": "create_task", "params": {{"title": "...", "project": "'current project'", "description": "...", "priority": "low|medium|high|urgent", "from_action": "action preview"}}}}
+- update_task_status: {{"op": "update_task_status", "params": {{"task": "task title or 'this task'", "status": "backlog|ready|doing|blocked|done|todo"}}}}
+- link_action_to_task: {{"op": "link_action_to_task", "params": {{"action": "action preview", "task": "task title"}}}}
+- update_action_state: {{"op": "update_action_state", "params": {{"action": "action preview", "state": "queued|deferred|completed|dismissed|converted_to_task", "defer_until": "...", "added_to_today": true/false}}}}
+- delete_project: {{"op": "delete_project", "params": {{"projects": ["project name 1", "project name 2", ...]}}}}
+- delete_task: {{"op": "delete_task", "params": {{"tasks": ["task title 1", "task title 2", ...]}}}}
 
 Semantic reference rules:
 - For projects: Use the project name (e.g., "Launch Readiness") or "current project" if referring to the focus task's project
@@ -494,18 +493,18 @@ Semantic reference rules:
 - If context shows duplicate names, ask the user to clarify before proposing operations (e.g., "There are two tasks named 'Review Q4 metrics' - which one?")
 
 Important notes:
-- When deleting multiple items, use a single operation with a list of names (e.g., {"op": "delete_project", "params": {"projects": ["Project A", "Project B"]}})
+- When deleting multiple items, use a single operation with a list of names (e.g., {{"op": "delete_project", "params": {{"projects": ["Project A", "Project B"]}}}})
 - Deleting a project will also delete all tasks in that project (cascade deletion)
 - Deletion is soft delete (items are archived, not permanently removed)
 - Check the provided context for available projects, tasks, and actions before proposing operations
 
 Respond ONLY with JSON matching this schema:
-{
+{{
   "operations": [
-    {"op": "...", "params": {...}},
+    {{"op": "...", "params": {{...}}}},
     ...
   ]
-}
+}}
 """
 
         # Build user message with context - aggregate multiple messages if provided
