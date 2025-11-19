@@ -7,7 +7,7 @@ Splits operations into "applied" (executed) and "pending" (requires approval).
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from core.domain.llm_ops import (
     LlmOperation,
@@ -64,6 +64,165 @@ def _normalize_enum_value(
         fallback,
     )
     return fallback
+
+
+def _looks_like_uuid(value: Optional[str]) -> bool:
+    if not value or not isinstance(value, str):
+        return False
+    stripped = value.strip()
+    return len(stripped) == 36 and stripped.count("-") == 4
+
+
+def _lookup_name(items: List[Dict[str, Any]], item_id: Optional[str], name_keys: List[str]) -> Optional[str]:
+    if not item_id:
+        return None
+    for item in items:
+        if item.get("id") == item_id:
+            for key in name_keys:
+                if item.get(key):
+                    return item.get(key)
+    return None
+
+
+def _infer_target_metadata(
+    op: LlmOperation,
+    context: Optional[Dict[str, Any]],
+    focus_task_id: Optional[str],
+    focus_action_id: Optional[str],
+) -> Dict[str, Any]:
+    """Best-effort inference of target IDs for ActionSummary."""
+
+    metadata: Dict[str, Any] = {}
+    ctx = context or {}
+    projects = ctx.get("projects", [])
+    tasks = ctx.get("tasks", [])
+    actions = ctx.get("actions", [])
+
+    def _project_id_from_ref(ref: Optional[str]) -> Tuple[Optional[str], str]:
+        if not ref:
+            return (
+                _get_current_project_id(ctx, focus_task_id),
+                "focus" if focus_task_id else "unknown",
+            )
+        ref_str = str(ref).strip()
+        if _looks_like_uuid(ref_str):
+            return ref_str, "token"
+        if ref_str.lower() in {"current project", "this project", "current"}:
+            return (
+                _get_current_project_id(ctx, focus_task_id),
+                "focus" if focus_task_id else "unknown",
+            )
+        match = next(
+            (p for p in projects if p.get("name", "").lower() == ref_str.lower()), None
+        )
+        if match:
+            return match.get("id"), "name"
+        return None, "unknown"
+
+    def _task_id_from_ref(ref: Optional[str]) -> Tuple[Optional[str], str]:
+        if not ref:
+            return focus_task_id, "focus" if focus_task_id else "unknown"
+        ref_str = str(ref).strip()
+        if _looks_like_uuid(ref_str):
+            return ref_str, "token"
+        if ref_str.lower() in {"this task", "current task", "the task"}:
+            return focus_task_id, "focus" if focus_task_id else "unknown"
+        match = next(
+            (t for t in tasks if t.get("title", "").lower() == ref_str.lower()), None
+        )
+        if match:
+            return match.get("id"), "name"
+        return None, "unknown"
+
+    def _action_id_from_ref(ref: Optional[str]) -> Tuple[Optional[str], str]:
+        if not ref:
+            return focus_action_id, "focus" if focus_action_id else "unknown"
+        ref_str = str(ref).strip()
+        if _looks_like_uuid(ref_str):
+            return ref_str, "token"
+        match = next(
+            (
+                a
+                for a in actions
+                if (a.get("preview") or a.get("title", "")).lower() == ref_str.lower()
+            ),
+            None,
+        )
+        if match:
+            return match.get("id"), "name"
+        return None, "unknown"
+
+    if isinstance(op, CreateTaskOp):
+        project_ref = op.params.get("project_id") or op.params.get("project")
+        project_id, source = _project_id_from_ref(project_ref)
+        if project_id:
+            metadata["targetProjectId"] = project_id
+            metadata["targetProjectName"] = _lookup_name(projects, project_id, ["name"])
+            metadata["targetContext"] = source
+        from_action_ref = op.params.get("from_action_id") or op.params.get("from_action")
+        action_id, action_source = _action_id_from_ref(from_action_ref)
+        if action_id:
+            metadata["sourceItemId"] = action_id
+            metadata["sourceItemName"] = _lookup_name(
+                actions, action_id, ["preview", "title"]
+            )
+            metadata["sourceContext"] = action_source
+
+    elif isinstance(op, UpdateTaskStatusOp):
+        task_ref = op.params.get("task_id") or op.params.get("task")
+        task_id, source = _task_id_from_ref(task_ref)
+        if task_id:
+            metadata["targetTaskId"] = task_id
+            metadata["targetTaskName"] = _lookup_name(tasks, task_id, ["title", "name"])
+            metadata["targetContext"] = source
+
+    elif isinstance(op, LinkActionToTaskOp):
+        task_ref = op.params.get("task_id") or op.params.get("task")
+        task_id, task_source = _task_id_from_ref(task_ref)
+        action_ref = op.params.get("action_id") or op.params.get("action")
+        action_id, action_source = _action_id_from_ref(action_ref)
+        if task_id:
+            metadata["targetTaskId"] = task_id
+            metadata["targetTaskName"] = _lookup_name(tasks, task_id, ["title", "name"])
+        if action_id:
+            metadata["sourceItemId"] = action_id
+            metadata["sourceItemName"] = _lookup_name(
+                actions, action_id, ["preview", "title"]
+            )
+        if task_source or action_source:
+            metadata["targetContext"] = task_source or action_source
+
+    elif isinstance(op, UpdateActionStateOp):
+        action_ref = op.params.get("action_id") or op.params.get("action")
+        action_id, source = _action_id_from_ref(action_ref)
+        if action_id:
+            metadata["sourceItemId"] = action_id
+            metadata["sourceItemName"] = _lookup_name(
+                actions, action_id, ["preview", "title"]
+            )
+            metadata["sourceContext"] = source
+
+    elif isinstance(op, DeleteTaskOp):
+        task_refs = op.params.get("task_ids") or op.params.get("tasks") or []
+        ids = []
+        for ref in task_refs:
+            task_id, _ = _task_id_from_ref(ref)
+            if task_id:
+                ids.append(task_id)
+        if ids:
+            metadata["targetTaskIds"] = ids
+
+    elif isinstance(op, DeleteProjectOp):
+        project_refs = op.params.get("project_ids") or op.params.get("projects") or []
+        ids = []
+        for ref in project_refs:
+            project_id, _ = _project_id_from_ref(ref)
+            if project_id:
+                ids.append(project_id)
+        if ids:
+            metadata["targetProjectIds"] = ids
+
+    return metadata
 
 
 def _resolve_project_id(
@@ -380,6 +539,11 @@ def execute_ops(
 
     for op in ops:
         op_dict = {"op": op.op, "params": op.params}
+        inferred_targets = _infer_target_metadata(
+            op, context, focus_task_id, focus_action_id
+        )
+        if inferred_targets:
+            op_dict.update(inferred_targets)
 
         # Check if operation should be auto-applied
         if _should_apply_operation(op, trust_mode):

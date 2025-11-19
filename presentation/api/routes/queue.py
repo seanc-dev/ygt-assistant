@@ -10,8 +10,17 @@ from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel, Field
 from settings import DEFAULT_TZ
 from presentation.api.repos import user_settings, audit_log, workroom
+from presentation.api.routes.llm_contract_support import build_contract_payload
 from presentation.api.utils.defer import compute_defer_until
 from presentation.api.stores import proposed_blocks_store
+from core.chat.context import (
+    load_thread_context,
+    save_thread_context,
+    update_thread_context_with_refs,
+)
+from core.chat.focus import UiContext, resolve_focus_candidates
+from core.chat.tokens import parse_message_with_tokens
+from core.chat.validation import ValidationOk, validate_parsed_message
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -393,7 +402,7 @@ async def assistant_suggest_for_action(
             raise HTTPException(status_code=400, detail="Either message or thread_id must be provided")
         input_messages = [body.message]
     
-    # Build context for resolution
+    # Build context for resolution (shared across pipeline)
     from core.services.llm_context_builder import build_context_for_user
     
     context = build_context_for_user(
@@ -402,12 +411,65 @@ async def assistant_suggest_for_action(
         focus_action_id=action_id,
     )
 
+    context_thread_id = thread_id or f"action:{action_id}"
+    thread_context = load_thread_context(context_thread_id)
+    ui_context = UiContext(
+        mode="hub",
+        hub_suggested_task_id=action.get("task_id"),
+    )
+
+    latest_message = input_messages[-1] if input_messages else ""
+    parsed_message = parse_message_with_tokens(latest_message)
+    validation_ok: Optional[ValidationOk] = None
+
+    if input_messages:
+        llm_input_messages = list(input_messages)
+        llm_input_messages[-1] = parsed_message.llm_text
+    else:
+        llm_input_messages = [parsed_message.llm_text]
+
+    if parsed_message.references or parsed_message.operations:
+        validation_result = validate_parsed_message(
+            parsed_message,
+            user_context={
+                "userId": user_id,
+                "tenantId": tenant_id,
+                "threadContext": thread_context.to_dict(),
+            },
+        )
+        if isinstance(validation_result, ValidationOk):
+            validation_ok = validation_result
+            thread_context = update_thread_context_with_refs(
+                thread_context, parsed_message.references
+            )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "token_validation_failed",
+                    "code": getattr(validation_result, "error_code", "UNKNOWN"),
+                    "details": getattr(validation_result, "details", {}),
+                },
+            )
+
+    focus_candidates = resolve_focus_candidates(thread_context, ui_context, parsed_message)
+    contract_payload = build_contract_payload(
+        parsed_message=parsed_message,
+        thread_context=thread_context,
+        ui_context=ui_context,
+        focus_candidates=focus_candidates,
+        validation=validation_ok,
+        context=context,
+    )
+    
     # Propose operations with aggregated messages
     operations = llm_service.propose_ops_for_user(
         tenant_id=tenant_id,
         user_id=user_id,
-        input_messages=input_messages,
+        input_messages=llm_input_messages,
         focus_action_id=action_id,
+        context_override=context,
+        contract_payload=contract_payload,
     )
 
     # Convert to typed operations for executor
@@ -429,6 +491,7 @@ async def assistant_suggest_for_action(
         thread_id=thread_id,
         context=context,
     )
+    save_thread_context(context_thread_id, thread_context)
     
     # Refresh action item
     try:

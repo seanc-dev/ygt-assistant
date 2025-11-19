@@ -1,14 +1,25 @@
-import { useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  memo,
+  useMemo,
+} from "react";
 import {
   Send24Regular,
   ChevronDown24Regular,
   ArrowClockwise24Regular,
+  Add24Regular,
+  Link24Regular,
 } from "@fluentui/react-icons";
 import { api } from "../../lib/api";
+import { workroomApi } from "../../lib/workroomApi";
 import useSWR from "swr";
 import { ActionEmbedComponent } from "../workroom/ActionEmbed";
 import { ActionSummary } from "../shared/ActionSummary";
 import type { LlmOperation as SummaryOperation } from "../shared/ActionSummary";
+import { SlashMenu, SlashCommand } from "../ui/SlashMenu";
 
 // Custom scrollbar styles
 const scrollbarStyles = `
@@ -64,6 +75,24 @@ type OperationError = {
   message: string;
   op?: string;
   params?: Record<string, any>;
+};
+
+type ProjectOption = {
+  id: string;
+  title: string;
+};
+
+type TaskOption = {
+  id: string;
+  title: string;
+  projectId: string;
+  projectTitle?: string;
+};
+
+type ParsedTokenChip = {
+  raw: string;
+  kind: "ref" | "op";
+  label: string;
 };
 
 type OperationsState = {
@@ -124,6 +153,54 @@ const createAssistantMessage = (content: string): Message => ({
   error: false,
 });
 
+const TOKEN_REGEX = /\[(ref|op)\s+([^\]]+)\]/gi;
+const KEY_VALUE_REGEX = /(\w+):(?:"([^"]*)"|([^\s]+))/g;
+
+const escapeTokenValue = (value: string) => value.replace(/"/g, '\\"');
+
+const parseTokenBody = (body: string): Record<string, string> => {
+  const pairs: Record<string, string> = {};
+  body.replace(KEY_VALUE_REGEX, (_, key: string, quoted: string, bare: string) => {
+    const cleaned = (quoted ?? bare ?? "").replace(/\\"/g, '"');
+    pairs[key] = cleaned;
+    return "";
+  });
+  return pairs;
+};
+
+const extractTokensFromMessage = (text: string): ParsedTokenChip[] => {
+  if (!text) {
+    return [];
+  }
+  const matches = text.matchAll(TOKEN_REGEX);
+  const tokens: ParsedTokenChip[] = [];
+  for (const match of matches) {
+    const raw = match[0] || "";
+    const kind = (match[1] as "ref" | "op") || "ref";
+    const body = match[2] || "";
+    const data = parseTokenBody(body);
+    if (!raw) continue;
+    if (kind === "ref") {
+      const refType = data.type || "ref";
+      const name = data.name || data.id || "";
+      tokens.push({
+        raw,
+        kind,
+        label: `${refType}: ${name || "unnamed"}`,
+      });
+    } else {
+      const opType = data.type || "op";
+      const hint = data.title || data.status || data.project || "";
+      tokens.push({
+        raw,
+        kind,
+        label: hint ? `${opType} • ${hint}` : opType,
+      });
+    }
+  }
+  return tokens;
+};
+
 type ThreadResponse = {
   ok: boolean;
   thread: {
@@ -136,6 +213,8 @@ type AssistantChatProps = {
   actionId: string;
   taskId?: string | null; // For workroom mode
   threadId?: string | null;
+  projectId?: string | null;
+  projectTitle?: string | null;
   summary?: string;
   meta?: {
     from?: string;
@@ -491,6 +570,8 @@ export function AssistantChat({
   actionId,
   taskId,
   threadId: initialThreadId,
+  projectId,
+  projectTitle,
   summary,
   meta,
   onThreadCreated,
@@ -521,10 +602,222 @@ export function AssistantChat({
     pending: [],
     errors: [],
   });
+  const [projectOptions, setProjectOptions] = useState<ProjectOption[]>([]);
+  const [showTaskPicker, setShowTaskPicker] = useState(false);
+  const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
+  const [inlineNotice, setInlineNotice] = useState<string | null>(null);
+  const [isSlashMenuOpen, setSlashMenuOpen] = useState(false);
+  const [slashMenuPosition, setSlashMenuPosition] = useState({ top: 0, left: 0 });
   const forceCurrentProject = mode === "workroom";
   const appliedOps = operationsState.applied;
   const pendingOps = operationsState.pending;
   const hasErrors = operationsState.errors.length > 0;
+  const slashCommands = useMemo<SlashCommand[]>(
+    () => [
+      {
+        id: "insert-task",
+        label: "/insert task",
+        icon: Link24Regular,
+        description: "Insert a task reference token",
+      },
+      {
+        id: "create-task-op",
+        label: "/create task",
+        icon: Add24Regular,
+        description: "Insert a create_task operation token",
+      },
+    ],
+    []
+  );
+  const parsedTokens = useMemo(
+    () => extractTokensFromMessage(message),
+    [message]
+  );
+
+  const updateMessageValue = useCallback(
+    (nextValue: string) => {
+      setMessage(nextValue);
+      setDraftCache((prev) => ({ ...prev, [actionId]: nextValue }));
+    },
+    [actionId]
+  );
+
+  const ensureProjectsLoaded = useCallback(async () => {
+    if (projectOptions.length > 0) {
+      return projectOptions;
+    }
+    try {
+      const response = await workroomApi.getProjects();
+      if (response?.ok) {
+        const mapped =
+          response.projects?.map((project) => ({
+            id: project.id,
+            title: project.title,
+          })) ?? [];
+        setProjectOptions(mapped);
+        return mapped;
+      }
+      return [];
+    } catch (error) {
+      console.error("Failed to load projects:", error);
+      throw error;
+    }
+  }, [projectOptions]);
+
+  const loadTasksForProject = useCallback(
+    async (id: string, title?: string) => {
+      if (tasksCacheRef.current[id]) {
+        return tasksCacheRef.current[id];
+      }
+      try {
+        const response = await workroomApi.getTasks(id);
+        if (response?.ok) {
+          const mapped =
+            response.tasks?.map((task) => ({
+              id: task.id,
+              title: task.title,
+              projectId: id,
+              projectTitle: title,
+            })) ?? [];
+          tasksCacheRef.current[id] = mapped;
+          return mapped;
+        }
+        return [];
+      } catch (error) {
+        console.error("Failed to load tasks:", error);
+        throw error;
+      }
+    },
+    []
+  );
+
+  const showInlineNotice = useCallback((text: string, timeout = 4000) => {
+    setInlineNotice(text);
+    if (noticeTimeoutRef.current) {
+      clearTimeout(noticeTimeoutRef.current);
+    }
+    noticeTimeoutRef.current = setTimeout(() => {
+      setInlineNotice(null);
+      noticeTimeoutRef.current = null;
+    }, timeout);
+  }, []);
+
+  const insertTokenAtCursor = useCallback(
+    (token: string) => {
+      const { start, end } = selectionRef.current;
+      const nextValue =
+        message.slice(0, start) + token + " " + message.slice(end);
+      updateMessageValue(nextValue);
+      const nextPos = start + token.length + 1;
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          textareaRef.current.selectionStart = nextPos;
+          textareaRef.current.selectionEnd = nextPos;
+        }
+        selectionRef.current = { start: nextPos, end: nextPos };
+      });
+    },
+    [message, updateMessageValue]
+  );
+
+  const handleRemoveToken = useCallback(
+    (raw: string) => {
+      const idx = message.indexOf(raw);
+      if (idx === -1) return;
+      const before = message.slice(0, idx);
+      const after = message.slice(idx + raw.length);
+      const nextValue = (before + after).replace(/\s{2,}/g, " ").trimStart();
+      updateMessageValue(nextValue);
+      selectionRef.current = { start: idx, end: idx };
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          textareaRef.current.selectionStart = idx;
+          textareaRef.current.selectionEnd = idx;
+        }
+      });
+    },
+    [message, updateMessageValue]
+  );
+
+  const handleInsertTaskReference = useCallback(
+    (task: TaskOption) => {
+      const token = `[ref v:1 type:"task" id:${
+        task.id
+      } name:"${escapeTokenValue(task.title)}"]`;
+      insertTokenAtCursor(token);
+      setShowTaskPicker(false);
+    },
+    [insertTokenAtCursor]
+  );
+
+  const handleInsertCreateTaskOp = useCallback(
+    (payload: { projectId: string; title: string }) => {
+      const token = `[op v:1 type:"create_task" project:${
+        payload.projectId
+      } title:"${escapeTokenValue(payload.title)}"]`;
+      insertTokenAtCursor(token);
+      setShowCreateTaskModal(false);
+    },
+    [insertTokenAtCursor]
+  );
+  const loadTasksForModal = useCallback(
+    (id: string) => {
+      const title =
+        projectOptions.find((project) => project.id === id)?.title ||
+        projectTitle ||
+        undefined;
+      return loadTasksForProject(id, title);
+    },
+    [loadTasksForProject, projectOptions, projectTitle]
+  );
+
+  const closeSlashMenu = useCallback(() => setSlashMenuOpen(false), []);
+
+  const openSlashMenu = useCallback(() => {
+    if (!textareaRef.current || !inputFooterRef.current) {
+      return;
+    }
+    const top = Math.max(
+      0,
+      (textareaRef.current.offsetTop || 0) - textareaRef.current.offsetHeight - 12
+    );
+    const left = (textareaRef.current.offsetLeft || 0) + 16;
+    setSlashMenuPosition({ top, left });
+    setSlashMenuOpen(true);
+  }, []);
+
+  const handleSlashCommandSelect = useCallback(
+    async (command: SlashCommand) => {
+      closeSlashMenu();
+      try {
+        let projectsList = projectOptions;
+        if (projectsList.length === 0) {
+          showInlineNotice("Loading workspace projects…", 2000);
+          projectsList = await ensureProjectsLoaded();
+        }
+        if (
+          command.id === "insert-task" ||
+          command.id === "create-task-op"
+        ) {
+          if (projectsList.length === 0) {
+            showInlineNotice("No projects available. Create one first.");
+            return;
+          }
+          if (command.id === "insert-task") {
+            setShowTaskPicker(true);
+          } else {
+            setShowCreateTaskModal(true);
+          }
+        }
+      } catch (error) {
+        console.error("Slash command preparation failed:", error);
+        showInlineNotice("Failed to load workspace context. Try again.");
+      }
+    },
+    [closeSlashMenu, ensureProjectsLoaded, projectOptions, showInlineNotice]
+  );
 
   const operationApi = useMemo<OperationApiGroup | null>(() => {
     if (mode === "workroom" && taskId) {
@@ -588,9 +881,16 @@ export function AssistantChat({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const inputFooterRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const typingStartRef = useRef<number | null>(null);
   const messagesRef = useRef<Message[]>([]);
+  const selectionRef = useRef<{ start: number; end: number }>({
+    start: 0,
+    end: 0,
+  });
+  const tasksCacheRef = useRef<Record<string, TaskOption[]>>({});
+  const noticeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [animatedMessageIds, setAnimatedMessageIds] = useState<Set<string>>(
     new Set()
   );
@@ -609,6 +909,17 @@ export function AssistantChat({
 
   const MIN_TYPING_DURATION = 500; // ms
   const ASSISTANT_START_DELAY_MS = 100; // ms
+
+  const syncSelectionFromEvent = useCallback(
+    (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+      if (!e.currentTarget) return;
+      selectionRef.current = {
+        start: e.currentTarget.selectionStart ?? 0,
+        end: e.currentTarget.selectionEnd ?? 0,
+      };
+    },
+    []
+  );
 
   // Bootstrap thread if needed (only if not provided and shouldFocus is true)
   // Note: ActionCard creates thread on expand, so this is mainly for edge cases
@@ -1022,12 +1333,20 @@ export function AssistantChat({
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (noticeTimeoutRef.current) {
+        clearTimeout(noticeTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Load draft from cache
   useEffect(() => {
     if (draftCache[actionId]) {
-      setMessage(draftCache[actionId]);
+      updateMessageValue(draftCache[actionId]);
     }
-  }, [actionId, draftCache]);
+  }, [actionId, draftCache, updateMessageValue]);
 
   // Auto-scroll to bottom - scroll the messages container, not the page
   useEffect(() => {
@@ -1172,8 +1491,7 @@ export function AssistantChat({
 
     // Optimistic update
     setMessages((prev) => [...prev, optimisticMessage]);
-    setMessage("");
-    setDraftCache((prev) => ({ ...prev, [actionId]: "" }));
+    updateMessageValue("");
 
     // Cancel any existing typing session timers
     if (typingSessionRef.current.showTimerId) {
@@ -1429,20 +1747,31 @@ export function AssistantChat({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      // Stop propagation to prevent card handlers from catching these events
       e.stopPropagation();
-
+      if (e.key === "/" && !e.shiftKey && !isSlashMenuOpen) {
+        openSlashMenu();
+      }
+      if (isSlashMenuOpen && e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        return;
+      }
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         handleSend();
+        return;
       }
-      // Shift+Enter naturally creates a new line, no need to handle
-      // Space works normally, no need to handle
-      if (e.key === "Escape" && contextExpanded) {
-        setContextExpanded(false);
+      if (e.key === "Escape") {
+        if (isSlashMenuOpen) {
+          e.preventDefault();
+          closeSlashMenu();
+          return;
+        }
+        if (contextExpanded) {
+          setContextExpanded(false);
+        }
       }
     },
-    [handleSend, contextExpanded]
+    [handleSend, contextExpanded, isSlashMenuOpen, openSlashMenu, closeSlashMenu]
   );
 
   const handleContextToggle = useCallback(() => {
@@ -1798,26 +2127,56 @@ export function AssistantChat({
 
         {/* Sticky Footer - Input + Action Summary */}
         <div
-          className="flex-shrink-0 sticky bottom-0 bg-white z-10 border-t border-slate-200 -mx-4 px-4 pt-4 pb-0"
+          ref={inputFooterRef}
+          className="flex-shrink-0 sticky bottom-0 bg-white z-10 border-t border-slate-200 -mx-4 px-4 pt-4 pb-0 relative"
           data-testid="chat-input-footer"
         >
+          {isSlashMenuOpen && (
+            <SlashMenu
+              commands={slashCommands}
+              onSelect={handleSlashCommandSelect}
+              onClose={closeSlashMenu}
+              position={slashMenuPosition}
+            />
+          )}
+          {parsedTokens.length > 0 && (
+            <div className="flex flex-wrap gap-2 pb-2">
+              {parsedTokens.map((token, idx) => (
+                <span
+                  key={`${token.raw}-${idx}`}
+                  className="inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-700 px-2 py-0.5 text-xs"
+                >
+                  <span>{token.label}</span>
+                  <button
+                    onClick={() => handleRemoveToken(token.raw)}
+                    className="text-slate-500 hover:text-slate-900"
+                    aria-label="Remove token"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          {inlineNotice && (
+            <div className="text-xs text-slate-500 pb-2">{inlineNotice}</div>
+          )}
           {/* Input Row */}
           <div className="flex items-end gap-2 pb-4">
             <textarea
               ref={textareaRef}
               value={message}
               onChange={(e) => {
-                setMessage(e.target.value);
-                setDraftCache((prev) => ({
-                  ...prev,
-                  [actionId]: e.target.value,
-                }));
+                updateMessageValue(e.target.value);
               }}
               onFocus={() => {
                 onInputFocus?.();
               }}
               onMouseDown={(e) => e.stopPropagation()}
               onKeyDown={handleKeyDown}
+              onKeyUp={syncSelectionFromEvent}
+              onSelect={syncSelectionFromEvent}
+              onClick={syncSelectionFromEvent}
               placeholder="Message Assistant"
               aria-label="Message Assistant"
               disabled={!threadId}
@@ -1840,6 +2199,7 @@ export function AssistantChat({
           {/* Action Summary */}
           {(appliedOps.length > 0 || pendingOps.length > 0 || hasErrors) && (
             <div className="border-t border-slate-200">
+              {/* TODO(LucidWork Contract): ActionSummary will surface/edit explicit target IDs here. */}
               <ActionSummary
                 appliedOps={appliedOps}
                 pendingOps={pendingOps}
@@ -1977,6 +2337,243 @@ export function AssistantChat({
           )}
         </div>
       </div>
+      {showTaskPicker && (
+        <TaskPickerModal
+          projects={projectOptions}
+          initialProjectId={projectId}
+          loadTasks={loadTasksForModal}
+          onSelect={handleInsertTaskReference}
+          onClose={() => setShowTaskPicker(false)}
+        />
+      )}
+      {showCreateTaskModal && (
+        <CreateTaskOpModal
+          projects={projectOptions}
+          initialProjectId={projectId}
+          onSubmit={handleInsertCreateTaskOp}
+          onClose={() => setShowCreateTaskModal(false)}
+        />
+      )}
     </>
+  );
+}
+
+type ModalShellProps = {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+};
+
+function ModalShell({ title, onClose, children }: ModalShellProps) {
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="bg-white rounded-xl shadow-xl w-full max-w-md p-4 relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="text-slate-500 hover:text-slate-900"
+          >
+            ×
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+type TaskPickerModalProps = {
+  projects: ProjectOption[];
+  initialProjectId?: string | null;
+  loadTasks: (projectId: string) => Promise<TaskOption[]>;
+  onSelect: (task: TaskOption) => void;
+  onClose: () => void;
+};
+
+function TaskPickerModal({
+  projects,
+  initialProjectId,
+  loadTasks,
+  onSelect,
+  onClose,
+}: TaskPickerModalProps) {
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(
+    initialProjectId && projects.some((p) => p.id === initialProjectId)
+      ? initialProjectId
+      : projects[0]?.id || ""
+  );
+  const [tasks, setTasks] = useState<TaskOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedProjectId) {
+      setTasks([]);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    loadTasks(selectedProjectId)
+      .then((taskList) => {
+        setTasks(taskList);
+      })
+      .catch(() => setError("Unable to load tasks"))
+      .finally(() => setLoading(false));
+  }, [selectedProjectId, loadTasks]);
+
+  useEffect(() => {
+    if (
+      initialProjectId &&
+      projects.some((project) => project.id === initialProjectId)
+    ) {
+      setSelectedProjectId(initialProjectId);
+    }
+  }, [initialProjectId, projects]);
+
+  return (
+    <ModalShell title="Insert task reference" onClose={onClose}>
+      {projects.length === 0 ? (
+        <p className="text-sm text-slate-600">
+          No projects available. Create a project first.
+        </p>
+      ) : (
+        <>
+          <label className="text-xs text-slate-500 uppercase tracking-wide">
+            Project
+          </label>
+          <select
+            value={selectedProjectId}
+            onChange={(e) => setSelectedProjectId(e.target.value)}
+            className="mt-1 w-full border border-slate-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+          >
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.title}
+              </option>
+            ))}
+          </select>
+          <div className="mt-4 max-h-64 overflow-y-auto space-y-1">
+            {loading && (
+              <div className="text-sm text-slate-500">Loading tasks…</div>
+            )}
+            {error && <div className="text-sm text-red-500">{error}</div>}
+            {!loading && tasks.length === 0 && (
+              <div className="text-sm text-slate-500">
+                No tasks found in this project.
+              </div>
+            )}
+            {tasks.map((task) => (
+              <button
+                key={task.id}
+                onClick={() => onSelect(task)}
+                className="w-full text-left px-3 py-2 rounded-md border border-slate-200 text-sm hover:bg-slate-50 transition-colors"
+              >
+                <div className="font-medium text-slate-900">{task.title}</div>
+                <div className="text-xs text-slate-500">
+                  {task.projectTitle || "Selected project"}
+                </div>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </ModalShell>
+  );
+}
+
+type CreateTaskOpModalProps = {
+  projects: ProjectOption[];
+  initialProjectId?: string | null;
+  onSubmit: (payload: { projectId: string; title: string }) => void;
+  onClose: () => void;
+};
+
+function CreateTaskOpModal({
+  projects,
+  initialProjectId,
+  onSubmit,
+  onClose,
+}: CreateTaskOpModalProps) {
+  const [projectId, setProjectId] = useState<string>(
+    initialProjectId && projects.some((p) => p.id === initialProjectId)
+      ? initialProjectId
+      : projects[0]?.id || ""
+  );
+  const [title, setTitle] = useState("");
+
+  useEffect(() => {
+    if (
+      initialProjectId &&
+      projects.some((project) => project.id === initialProjectId)
+    ) {
+      setProjectId(initialProjectId);
+    }
+  }, [initialProjectId, projects]);
+
+  return (
+    <ModalShell title="Create task operation" onClose={onClose}>
+      {projects.length === 0 ? (
+        <p className="text-sm text-slate-600">
+          No projects available. Create a project first.
+        </p>
+      ) : (
+        <>
+          <label className="text-xs text-slate-500 uppercase tracking-wide">
+            Project
+          </label>
+          <select
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+            className="mt-1 w-full border border-slate-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+          >
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.title}
+              </option>
+            ))}
+          </select>
+          <label className="text-xs text-slate-500 uppercase tracking-wide mt-4 block">
+            Task title
+          </label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="mt-1 w-full border border-slate-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+            placeholder="e.g., Draft launch brief"
+          />
+          <button
+            onClick={() => {
+              if (!projectId || !title.trim()) return;
+              onSubmit({ projectId, title: title.trim() });
+            }}
+            disabled={!projectId || !title.trim()}
+            className="mt-4 inline-flex justify-center items-center px-3 py-2 rounded-md bg-slate-900 text-white text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Insert operation
+          </button>
+        </>
+      )}
+    </ModalShell>
   );
 }

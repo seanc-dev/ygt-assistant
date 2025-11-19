@@ -46,9 +46,13 @@ vi.mock("../TaskDoc", () => ({
 }));
 
 vi.mock("../ThreadView", () => ({
-  ThreadView: ({ threadId }: { threadId: string }) => (
-    <div data-testid="thread-view">ThreadView for {threadId}</div>
-  ),
+  ThreadView: ({
+    threadId,
+  }: {
+    threadId: string;
+    projectId?: string;
+    projectTitle?: string;
+  }) => <div data-testid="thread-view">ThreadView for {threadId}</div>,
 }));
 
 vi.mock("../ChatTabs", () => ({

@@ -18,7 +18,7 @@ export interface SlashCommand {
   requiresParams?: boolean;
 }
 
-const commands: SlashCommand[] = [
+const defaultCommands: SlashCommand[] = [
   {
     id: "draft-email",
     label: "Draft email",
@@ -95,23 +95,31 @@ interface SlashMenuProps {
   onSelect: (command: SlashCommand) => void;
   onClose: () => void;
   position: { top: number; left: number };
+  commands?: SlashCommand[];
 }
 
-export function SlashMenu({ onSelect, onClose, position }: SlashMenuProps) {
+export function SlashMenu({
+  onSelect,
+  onClose,
+  position,
+  commands: customCommands,
+}: SlashMenuProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuCommands = customCommands ?? defaultCommands;
+  const lastIndex = Math.max(menuCommands.length - 1, 0);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex((prev) => Math.min(prev + 1, commands.length - 1));
+        setSelectedIndex((prev) => Math.min(prev + 1, lastIndex));
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedIndex((prev) => Math.max(prev - 1, 0));
       } else if (e.key === "Enter") {
         e.preventDefault();
-        onSelect(commands[selectedIndex]);
+        onSelect(menuCommands[selectedIndex]);
       } else if (e.key === "Escape") {
         e.preventDefault();
         onClose();
@@ -120,15 +128,21 @@ export function SlashMenu({ onSelect, onClose, position }: SlashMenuProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedIndex, onSelect, onClose]);
+  }, [selectedIndex, onSelect, onClose, menuCommands, lastIndex]);
 
   useEffect(() => {
     // Scroll selected item into view
-    const selectedElement = menuRef.current?.children[selectedIndex] as HTMLElement;
+    const selectedElement = menuRef.current?.children[
+      selectedIndex
+    ] as HTMLElement;
     if (selectedElement) {
       selectedElement.scrollIntoView({ block: "nearest" });
     }
   }, [selectedIndex]);
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [menuCommands]);
 
   return (
     <div
@@ -140,7 +154,7 @@ export function SlashMenu({ onSelect, onClose, position }: SlashMenuProps) {
         minWidth: "280px",
       }}
     >
-      {commands.map((cmd, index) => {
+      {menuCommands.map((cmd, index) => {
         const Icon = cmd.icon;
         const isSelected = index === selectedIndex;
         return (

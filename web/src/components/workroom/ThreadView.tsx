@@ -14,6 +14,8 @@ interface Message {
 interface ThreadViewProps {
   threadId: string;
   taskId: string;
+  projectId?: string;
+  projectTitle?: string;
   mode?: "workroom" | "default";
   onAddReference?: (ref: any) => void;
 }
@@ -21,6 +23,8 @@ interface ThreadViewProps {
 export function ThreadView({
   threadId,
   taskId,
+  projectId,
+  projectTitle,
   mode = "workroom",
   onAddReference,
 }: ThreadViewProps) {
@@ -34,6 +38,8 @@ export function ThreadView({
         actionId={taskId}
         taskId={taskId}
         threadId={threadId}
+        projectId={projectId}
+        projectTitle={projectTitle}
         shouldFocus={false}
         onOpenWorkroom={undefined}
         mode={mode}

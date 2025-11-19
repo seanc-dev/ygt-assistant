@@ -631,17 +631,17 @@ export default function WorkroomPage() {
                           </Button>
                         </div>
                       ) : (
-                        <div className="text-center">
-                          <Text variant="muted" className="text-sm mb-2">
-                            Select a task to view
-                          </Text>
-                          <Text
-                            variant="caption"
-                            className="text-xs text-slate-500"
-                          >
-                            Use Navigator or press ⌘K to search
-                          </Text>
-                        </div>
+                      <div className="text-center">
+                        <Text variant="muted" className="text-sm mb-2">
+                          Select a task to view
+                        </Text>
+                        <Text
+                          variant="caption"
+                          className="text-xs text-slate-500"
+                        >
+                          Use Navigator or press ⌘K to search
+                        </Text>
+                      </div>
                       )}
                     </div>
                   )}

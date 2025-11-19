@@ -11,6 +11,16 @@ export type LlmOperation = {
   params: Record<string, any>;
   original_state?: Record<string, any>;
   localId?: string;
+  targetTaskId?: string;
+  targetTaskName?: string;
+  targetProjectId?: string;
+  targetProjectName?: string;
+  sourceItemId?: string;
+  sourceItemName?: string;
+  targetContext?: string;
+  sourceContext?: string;
+  targetTaskIds?: string[];
+  targetProjectIds?: string[];
 };
 
 type ActionSummaryProps = {
@@ -23,6 +33,7 @@ type ActionSummaryProps = {
   trustMode?: "training_wheels" | "supervised" | "autonomous";
   errors?: { id: string; message: string }[];
   onDismissError?: (id: string) => void;
+  onRetarget?: (op: LlmOperation) => void;
 };
 
 function formatOperation(op: LlmOperation): string {
@@ -60,8 +71,10 @@ export function ActionSummary({
   trustMode = "training_wheels",
   errors = [],
   onDismissError,
+  onRetarget,
 }: ActionSummaryProps) {
   const [expanded, setExpanded] = useState(false);
+  const retargetHandler = onRetarget || onEdit;
   
   // Show approval mode if there are pending ops
   const showApprovalMode = pendingOps.length > 0;
@@ -116,6 +129,16 @@ export function ActionSummary({
               const isDeleteProject = op.op === "delete_project";
               const projectIds = op.params?.project_ids || [];
               const taskCount = op.params?.tasks_deleted || 0;
+              const targetLabel =
+                op.targetTaskName ||
+                op.targetProjectName ||
+                op.sourceItemName;
+              const contextLabel =
+                op.targetContext === "focus"
+                  ? " (current focus)"
+                  : op.targetContext === "token"
+                  ? " (from token)"
+                  : "";
               
               return (
                 <div
@@ -126,6 +149,22 @@ export function ActionSummary({
                     <span className="text-sm text-slate-700">
                       {formatOperation(op)}
                     </span>
+                    {targetLabel && (
+                      <div className="mt-1 text-xs text-slate-500 flex items-center gap-2">
+                        <span>
+                          Applied to: {targetLabel}
+                          {contextLabel}
+                        </span>
+                        {retargetHandler && (
+                          <button
+                            onClick={() => retargetHandler(op)}
+                            className="text-slate-600 hover:text-slate-900"
+                          >
+                            Change
+                          </button>
+                        )}
+                      </div>
+                    )}
                     {isDeleteProject && taskCount > 0 && (
                       <div className="mt-1 text-xs text-amber-600 font-medium">
                         ⚠️ This will also delete {taskCount} task{taskCount !== 1 ? 's' : ''}

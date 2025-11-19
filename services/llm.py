@@ -224,6 +224,8 @@ def propose_ops_for_user(
     focus_action_id: Optional[str] = None,
     focus_task_id: Optional[str] = None,
     use_tools: bool = True,
+    context_override: Optional[Dict[str, Any]] = None,
+    contract_payload: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """Propose LLM operations for a user based on their message(s) and context.
 
@@ -235,6 +237,8 @@ def propose_ops_for_user(
         focus_action_id: Optional action ID to focus on
         focus_task_id: Optional task ID to focus on
         use_tools: If True, use OpenAI function calling; else use JSON-only mode
+        context_override: Precomputed context dict (skips redundant DB fetches)
+        contract_payload: Structured token/context information from the caller
 
     Returns:
         List of operation dicts: [{"op": "...", "params": {...}}, ...]
@@ -247,8 +251,8 @@ def propose_ops_for_user(
     from core.services.llm_context_builder import build_context_for_user
     from core.domain.llm_ops import parse_operations_response
 
-    # Build context
-    context = build_context_for_user(
+    # Build or reuse context snapshot
+    context = context_override or build_context_for_user(
         tenant_id,
         user_id,
         focus_action_id=focus_action_id,
@@ -514,6 +518,59 @@ Respond ONLY with JSON matching this schema:
             )
             user_content = f"""User messages:
 {messages_text}"""
+
+        if contract_payload:
+            metadata = contract_payload.get("candidate_metadata", {})
+            tasks_meta = metadata.get("tasks", {})
+            projects_meta = metadata.get("projects", {})
+            actions_meta = metadata.get("actions", {})
+            structured_lines: List[str] = []
+
+            for ref in contract_payload.get("resolved_references", []):
+                display_name = (
+                    ref.get("meta", {}).get("name")
+                    or ref.get("record", {}).get("title")
+                    or ref.get("record", {}).get("name")
+                    or ref.get("record", {}).get("preview")
+                    or ref.get("id")
+                )
+                structured_lines.append(
+                    f"- {ref.get('placeholder')}: {ref.get('type')} → {display_name} ({ref.get('id')})"
+                )
+
+            focus_candidates = contract_payload.get("focus_candidates", {})
+            if focus_candidates:
+                default_task_id = focus_candidates.get("default_task_id")
+                if default_task_id:
+                    structured_lines.append(
+                        f"- Default task target: {tasks_meta.get(default_task_id, default_task_id)} ({default_task_id})"
+                    )
+                default_project_id = focus_candidates.get("default_project_id")
+                if default_project_id:
+                    structured_lines.append(
+                        f"- Default project target: {projects_meta.get(default_project_id, default_project_id)} ({default_project_id})"
+                    )
+                candidate_tasks = focus_candidates.get("candidate_task_ids") or []
+                if candidate_tasks:
+                    task_names = [
+                        tasks_meta.get(t_id, t_id) for t_id in candidate_tasks[:3]
+                    ]
+                    structured_lines.append(
+                        "- Candidate tasks: " + ", ".join(task_names)
+                    )
+                candidate_projects = focus_candidates.get("candidate_project_ids") or []
+                if candidate_projects:
+                    project_names = [
+                        projects_meta.get(p_id, p_id) for p_id in candidate_projects[:3]
+                    ]
+                    structured_lines.append(
+                        "- Candidate projects: " + ", ".join(project_names)
+                    )
+
+            if structured_lines:
+                user_content += "\n\nStructured identity hints:\n" + "\n".join(
+                    structured_lines
+                )
 
         user_content += f"""
 
