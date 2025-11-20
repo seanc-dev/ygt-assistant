@@ -147,6 +147,7 @@ export const api = {
       body: JSON.stringify(body),
     }),
   briefToday: () => req("/api/brief/today"),
+  whatNextSurface: () => req("/api/summary/what-next"),
   workroomTree: () => req("/api/workroom/tree"),
   createThread: (body: { task_id: string; title: string; prefs?: any }) =>
     req("/api/workroom/thread", {

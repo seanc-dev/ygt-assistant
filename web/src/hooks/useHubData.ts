@@ -106,3 +106,15 @@ export function useProfile() {
     revalidateOnFocus: false,
   });
 }
+
+export function useWhatNextSurface() {
+  return useSWR(
+    "/api/summary/what-next",
+    () => api.whatNextSurface().catch(() => ({ ok: true, surface: null })),
+    {
+      refreshInterval: 60000,
+      revalidateOnFocus: true,
+      fallbackData: { ok: true, surface: null },
+    }
+  );
+}

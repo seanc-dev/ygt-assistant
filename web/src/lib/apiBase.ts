@@ -49,9 +49,9 @@ function computeBase(): string {
       return stripTrailingSlash(window.location.origin || "https://api.coachflow.nz");
     }
     return stripTrailingSlash(
-      (process.env.NODE_ENV === "development"
+      process.env.NODE_ENV === "development"
         ? "http://localhost:8000"
-        : "https://api.coachflow.nz") || "https://api.coachflow.nz"
+        : "https://api.coachflow.nz"
     );
   };
 

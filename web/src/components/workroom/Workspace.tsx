@@ -245,7 +245,7 @@ export function Workspace({ taskId, projectId, projectTitle }: WorkspaceProps) {
                 onCloseChat={(chatId) => {
                   if (!taskId || !taskState) return;
                   const newOpenChats = taskState.openChatIds.filter(
-                    (id) => id !== chatId
+                    (id: string) => id !== chatId
                   );
                   setTaskViewState(taskId, {
                     ...taskState,

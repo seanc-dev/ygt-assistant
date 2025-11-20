@@ -1,5 +1,8 @@
+import { useMemo } from "react";
 import { Panel, Stack, Text, Badge, Heading } from "@ygt-assistant/ui";
-import { useProfile, useSettings, useSummary } from "../../hooks/useHubData";
+import { useProfile, useSettings, useSummary, useWhatNextSurface } from "../../hooks/useHubData";
+import { parseInteractiveSurfaces } from "../../lib/llm/surfaces";
+import { AssistantSurfacesRenderer } from "../assistant/AssistantSurfacesRenderer";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -28,6 +31,13 @@ export function HubSummary({ actionCount, meetingsToday, syncState, trustMode }:
   const { data: profile } = useProfile();
   const { data: settings } = useSettings();
   const { data: summary } = useSummary();
+  const { data: whatNextData } = useWhatNextSurface();
+  const whatNextSurface = useMemo(() => {
+    if (!whatNextData?.surface) {
+      return null;
+    }
+    return parseInteractiveSurfaces([whatNextData.surface])[0] ?? null;
+  }, [whatNextData]);
 
   const userName = profile?.name || profile?.email?.split("@")[0] || "there";
   const greeting = getGreeting();
@@ -47,6 +57,10 @@ export function HubSummary({ actionCount, meetingsToday, syncState, trustMode }:
             {greeting}, {userName}
           </Heading>
         </div>
+
+        {whatNextSurface && (
+          <AssistantSurfacesRenderer surfaces={[whatNextSurface]} />
+        )}
 
         {(showWeather && weather) || (showNews && news && news.length > 0) ? (
           <div className="flex flex-wrap gap-2 text-sm text-gray-600">

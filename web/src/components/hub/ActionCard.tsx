@@ -257,12 +257,12 @@ export function ActionCard({
     async (
       preset: "focus_30m" | "focus_60m" | "block_pm_admin" | "pick_time"
     ) => {
-      // Call both handlers: add to today and schedule with the selected preset
+      // Add to today - presets are for focus blocks, not scheduling buckets
+      // TODO: Implement preset-based scheduling if needed
       await onAddToToday(item.action_id);
-      await onSchedule(item.action_id, preset);
       setOpenMenu(null);
     },
-    [item.action_id, onAddToToday, onSchedule]
+    [item.action_id, onAddToToday]
   );
 
   const handleToggleAddToToday = useCallback(

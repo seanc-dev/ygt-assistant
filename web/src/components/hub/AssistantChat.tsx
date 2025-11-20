@@ -2,17 +2,34 @@ import { useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
 import {
   Send24Regular,
   ChevronDown24Regular,
-  ArrowClockwise24Regular,
   Add24Regular,
   Link24Regular,
 } from "@fluentui/react-icons";
 import { api } from "../../lib/api";
 import { workroomApi } from "../../lib/workroomApi";
-import useSWR from "swr";
 import { ActionEmbedComponent } from "../workroom/ActionEmbed";
 import { ActionSummary } from "../shared/ActionSummary";
 import type { LlmOperation as SummaryOperation } from "../shared/ActionSummary";
 import { SlashMenu, SlashCommand } from "../ui/SlashMenu";
+import { MessageList } from "./assistantChat/MessageList";
+import { TokenOverlay } from "./assistantChat/TokenOverlay";
+import { ReferenceSearchPanel } from "./assistantChat/ReferenceSearchPanel";
+import { CreateTaskOpModal } from "./assistantChat/CreateTaskOpModal";
+import { useChatThread } from "./assistantChat/useChatThread";
+import {
+  parseInteractiveSurfaces,
+  type InteractiveSurface,
+  type SurfaceNavigateTo,
+} from "../../lib/llm/surfaces";
+import type {
+  Message,
+  MessageView,
+  ParsedTokenChip,
+  TokenSegment,
+  ProjectOption,
+  TaskOption,
+  TaskSuggestion,
+} from "./assistantChat/types";
 
 // Custom scrollbar styles
 const scrollbarStyles = `
@@ -32,33 +49,6 @@ const scrollbarStyles = `
   }
 `;
 
-type Message = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  ts: string;
-  optimistic?: boolean;
-  error?: boolean;
-  retryable?: boolean;
-  errorMessage?: string;
-  embeds?: any[]; // ActionEmbed[]
-};
-
-type MessageView = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  embeds?: any[];
-  marginTop: string;
-  timestampLabel: string;
-  showTimestamp: boolean;
-  shouldAnimate: boolean;
-  startDelayMs?: number;
-  error?: boolean;
-  retryable?: boolean;
-  errorMessage?: string;
-};
-
 type OperationRecord = SummaryOperation & {
   localId: string;
 };
@@ -68,29 +58,6 @@ type OperationError = {
   message: string;
   op?: string;
   params?: Record<string, any>;
-};
-
-type ProjectOption = {
-  id: string;
-  title: string;
-};
-
-type TaskOption = {
-  id: string;
-  title: string;
-  projectId?: string | null;
-  projectTitle?: string | null;
-};
-
-type TaskSuggestion = TaskOption & {
-  meta?: string;
-  isSuggested?: boolean;
-};
-
-type ParsedTokenChip = {
-  raw: string;
-  kind: "ref" | "op";
-  label: string;
 };
 
 type OperationsState = {
@@ -153,6 +120,7 @@ const createAssistantMessage = (content: string): Message => ({
 
 const TOKEN_REGEX = /\[(ref|op)\s+([^\]]+)\]/gi;
 const KEY_VALUE_REGEX = /(\w+):(?:"([^"]*)"|([^\s]+))/g;
+const OP_TOKEN_REGEX = /^\[op\s+([^\]]+)\]$/i;
 
 const escapeTokenValue = (value: string) => value.replace(/"/g, '\\"');
 
@@ -169,6 +137,28 @@ const parseTokenBody = (body: string): Record<string, string> => {
   return pairs;
 };
 
+const convertOpTokenToOperation = (token: string): SummaryOperation | null => {
+  const match = token.match(OP_TOKEN_REGEX);
+  if (!match) {
+    return null;
+  }
+  const pairs = parseTokenBody(match[1]);
+  const opType = pairs.type;
+  if (!opType) {
+    return null;
+  }
+  const params: Record<string, string> = {};
+  Object.entries(pairs).forEach(([key, value]) => {
+    if (key !== "type" && key !== "v") {
+      params[key] = value;
+    }
+  });
+  return {
+    op: opType,
+    params,
+  };
+};
+
 const extractTokensFromMessage = (text: string): ParsedTokenChip[] => {
   if (!text) {
     return [];
@@ -180,6 +170,8 @@ const extractTokensFromMessage = (text: string): ParsedTokenChip[] => {
     const kind = (match[1] as "ref" | "op") || "ref";
     const body = match[2] || "";
     const data = parseTokenBody(body);
+    const start = match.index ?? 0;
+    const end = start + raw.length;
     if (!raw) continue;
     if (kind === "ref") {
       const refType = data.type || "ref";
@@ -188,6 +180,9 @@ const extractTokensFromMessage = (text: string): ParsedTokenChip[] => {
         raw,
         kind,
         label: `${refType}: ${name || "unnamed"}`,
+        start,
+        end,
+        data,
       });
     } else {
       const opType = data.type || "op";
@@ -196,18 +191,13 @@ const extractTokensFromMessage = (text: string): ParsedTokenChip[] => {
         raw,
         kind,
         label: hint ? `${opType} • ${hint}` : opType,
+        start,
+        end,
+        data,
       });
     }
   }
   return tokens;
-};
-
-type ThreadResponse = {
-  ok: boolean;
-  thread: {
-    id: string;
-    messages: Message[];
-  };
 };
 
 type AssistantChatProps = {
@@ -238,337 +228,6 @@ type AssistantChatProps = {
   }) => void;
 };
 
-// MessageItem component - only accepts data props, no functions
-const MessageItem = memo(
-  ({
-    view,
-    onRetry,
-    onEmbedUpdate,
-    animatedRef,
-    activeAssistantId,
-  }: {
-    view: MessageView;
-    onRetry: (id: string) => void;
-    onEmbedUpdate: (messageId: string, embed: any) => void;
-    animatedRef: React.MutableRefObject<Set<string>>;
-    activeAssistantId: string | null;
-  }) => {
-    return (
-      <div
-        className={`flex flex-col gap-0.5 transition-all duration-300 w-full ${
-          view.role === "user" ? "items-end" : "items-start"
-        } ${view.marginTop}`}
-      >
-        <div
-          className={`flex items-end gap-2 ${
-            view.role === "user"
-              ? "justify-end flex-row-reverse"
-              : "justify-start"
-          }`}
-        >
-          {view.error && view.retryable && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRetry(view.id);
-              }}
-              className="flex-shrink-0 text-red-600 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 rounded p-1 transition-colors"
-              aria-label="Retry sending message"
-              title="Retry sending"
-            >
-              <ArrowClockwise24Regular className="w-4 h-4" />
-            </button>
-          )}
-          <div
-            className={`rounded-lg px-4 py-2.5 shadow-sm ${
-              view.role === "user" ? "max-w-[80%]" : "max-w-[80%]"
-            } ${
-              view.role === "assistant"
-                ? "bg-slate-100 text-slate-900 border border-slate-200"
-                : view.error
-                ? "bg-red-50 text-red-900 border border-red-200"
-                : "bg-blue-500 text-white"
-            }`}
-            style={{
-              wordWrap: "break-word",
-              overflowWrap: "break-word",
-              minWidth: "fit-content",
-            }}
-          >
-            <div
-              className="text-sm leading-relaxed"
-              style={{ wordBreak: "normal" }}
-            >
-              {view.role === "assistant" ? (
-                <TypingMessageContent
-                  content={view.content}
-                  id={view.id}
-                  shouldAnimate={view.shouldAnimate}
-                  animatedRef={animatedRef}
-                  startDelayMs={view.startDelayMs}
-                  activeAssistantId={activeAssistantId}
-                />
-              ) : (
-                view.content
-              )}
-            </div>
-            {view.error && view.errorMessage && (
-              <div className="text-xs text-red-600 mt-1 opacity-75">
-                {view.errorMessage}
-              </div>
-            )}
-          </div>
-        </div>
-        {/* Render ActionEmbeds after message content */}
-        {view.embeds && view.embeds.length > 0 && (
-          <div className="mt-2 space-y-2">
-            {view.embeds.map((embed: any) => (
-              <ActionEmbedComponent
-                key={embed.id}
-                embed={embed}
-                messageId={view.id}
-                onUpdate={(updatedEmbed) => {
-                  onEmbedUpdate(view.id, updatedEmbed);
-                }}
-              />
-            ))}
-          </div>
-        )}
-        {view.showTimestamp && (
-          <span className="text-xs text-slate-500 mt-1">
-            {view.timestampLabel}
-          </span>
-        )}
-      </div>
-    );
-  },
-  (prevProps, nextProps) => {
-    // Only re-render if view data changes (functions are stable)
-    const prev = prevProps.view;
-    const next = nextProps.view;
-    return (
-      prev.id === next.id &&
-      prev.content === next.content &&
-      prev.role === next.role &&
-      prev.error === next.error &&
-      prev.retryable === next.retryable &&
-      prev.errorMessage === next.errorMessage &&
-      prev.marginTop === next.marginTop &&
-      prev.timestampLabel === next.timestampLabel &&
-      prev.showTimestamp === next.showTimestamp &&
-      prev.shouldAnimate === next.shouldAnimate &&
-      prevProps.onRetry === nextProps.onRetry &&
-      prevProps.onEmbedUpdate === nextProps.onEmbedUpdate &&
-      prevProps.animatedRef === nextProps.animatedRef &&
-      prevProps.activeAssistantId === nextProps.activeAssistantId
-    );
-  }
-);
-MessageItem.displayName = "MessageItem";
-
-// TypingMessageContent - extracted for use in MessageItem
-const TypingMessageContent = memo(
-  ({
-    content,
-    id,
-    shouldAnimate,
-    animatedRef,
-    startDelayMs = 0,
-    activeAssistantId,
-  }: {
-    content: string;
-    id: string;
-    shouldAnimate: boolean;
-    animatedRef: React.MutableRefObject<Set<string>>;
-    startDelayMs?: number;
-    activeAssistantId: string | null;
-  }) => {
-    const markAsSeen = useCallback(() => {
-      animatedRef.current.add(id);
-    }, [id, animatedRef]);
-
-    // Use activeAssistantId as interrupt key - if this message is not the active one, interrupt
-    const interruptKey = activeAssistantId === id ? id : null;
-
-    const displayedText = useTypingEffect(
-      content,
-      15,
-      shouldAnimate,
-      markAsSeen,
-      startDelayMs,
-      interruptKey
-    );
-    return <>{displayedText}</>;
-  }
-);
-TypingMessageContent.displayName = "TypingMessageContent";
-
-// Typing effect hook for assistant messages
-function useTypingEffect(
-  text: string,
-  speed: number = 15,
-  enabled: boolean = true,
-  onComplete?: () => void,
-  startDelayMs: number = 0,
-  interruptKey?: string | null
-) {
-  const [displayedText, setDisplayedText] = useState("");
-  const [hasStarted, setHasStarted] = useState(false);
-
-  // Handle interruption: if interruptKey changes and we're mid-animation, complete immediately
-  useEffect(() => {
-    if (
-      interruptKey !== undefined &&
-      interruptKey !== null &&
-      enabled &&
-      hasStarted &&
-      displayedText.length < text.length
-    ) {
-      // Interrupted - show full text immediately
-      setDisplayedText(text);
-      if (onComplete) {
-        onComplete();
-      }
-    }
-  }, [
-    interruptKey,
-    enabled,
-    hasStarted,
-    displayedText.length,
-    text.length,
-    text,
-    onComplete,
-  ]);
-
-  useEffect(() => {
-    if (!enabled) {
-      setDisplayedText(text);
-      setHasStarted(true);
-      // Mark as complete immediately if animation is disabled
-      if (onComplete && text.length > 0) {
-        onComplete();
-      }
-      return;
-    }
-
-    // Handle initial delay before starting animation
-    if (!hasStarted && startDelayMs > 0) {
-      const delayTimeout = setTimeout(() => {
-        setHasStarted(true);
-      }, startDelayMs);
-      return () => clearTimeout(delayTimeout);
-    }
-
-    // Start typing animation after delay (or immediately if no delay)
-    if (hasStarted && displayedText.length < text.length) {
-      const timeout = setTimeout(() => {
-        const newLength = displayedText.length + 1;
-        setDisplayedText(text.slice(0, newLength));
-
-        // Mark as complete when animation finishes
-        if (newLength === text.length && onComplete) {
-          onComplete();
-        }
-      }, speed);
-      return () => clearTimeout(timeout);
-    } else if (
-      hasStarted &&
-      displayedText.length === text.length &&
-      onComplete
-    ) {
-      // Already complete, mark it
-      onComplete();
-    }
-  }, [
-    displayedText,
-    text,
-    speed,
-    enabled,
-    onComplete,
-    startDelayMs,
-    hasStarted,
-  ]);
-
-  // Reset when text changes
-  useEffect(() => {
-    if (text !== displayedText && displayedText.length === text.length) {
-      setDisplayedText("");
-      setHasStarted(false);
-    }
-  }, [text, displayedText]);
-
-  return displayedText || "";
-}
-
-// MessageList component - memoized to prevent re-renders
-const MessageList = memo(
-  ({
-    messageViews,
-    isTyping,
-    onRetryMessage,
-    onEmbedUpdate,
-    animatedRef,
-    activeAssistantId,
-  }: {
-    messageViews: MessageView[];
-    isTyping: boolean;
-    onRetryMessage: (id: string) => void;
-    onEmbedUpdate: (messageId: string, embed: any) => void;
-    animatedRef: React.MutableRefObject<Set<string>>;
-    activeAssistantId: string | null;
-  }) => {
-    return (
-      <>
-        {messageViews.length === 0 ? (
-          <div className="text-sm text-slate-500 py-4 text-center">
-            No messages yet. Start the conversation!
-          </div>
-        ) : (
-          messageViews.map((view) => (
-            <MessageItem
-              key={view.id}
-              view={view}
-              onRetry={onRetryMessage}
-              onEmbedUpdate={onEmbedUpdate}
-              animatedRef={animatedRef}
-              activeAssistantId={activeAssistantId}
-            />
-          ))
-        )}
-        {isTyping && (
-          <div className="flex items-start gap-2 mt-2 fade-in">
-            <div className="bg-slate-100 text-slate-900 border border-slate-200 rounded-lg px-4 py-2.5 max-w-[80%] shadow-sm">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
-                <div
-                  className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.2s" }}
-                />
-                <div
-                  className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.4s" }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  },
-  (prevProps, nextProps) => {
-    // Only re-render if messageViews array reference changes or isTyping changes
-    return (
-      prevProps.messageViews === nextProps.messageViews &&
-      prevProps.isTyping === nextProps.isTyping &&
-      prevProps.onRetryMessage === nextProps.onRetryMessage &&
-      prevProps.onEmbedUpdate === nextProps.onEmbedUpdate &&
-      prevProps.animatedRef === nextProps.animatedRef &&
-      prevProps.activeAssistantId === nextProps.activeAssistantId
-    );
-  }
-);
-MessageList.displayName = "MessageList";
-
 export function AssistantChat({
   actionId,
   taskId,
@@ -598,7 +257,6 @@ export function AssistantChat({
     );
   }, [initialThreadId]);
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [contextExpanded, setContextExpanded] = useState(false);
   const [draftCache, setDraftCache] = useState<Record<string, string>>({});
@@ -663,6 +321,31 @@ export function AssistantChat({
     () => extractTokensFromMessage(message),
     [message]
   );
+  const tokenSegments = useMemo<TokenSegment[]>(() => {
+    if (!message) {
+      return [{ type: "text", text: "" }];
+    }
+    if (parsedTokens.length === 0) {
+      return [{ type: "text", text: message }];
+    }
+    const segments: TokenSegment[] = [];
+    const sortedTokens = [...parsedTokens].sort((a, b) => a.start - b.start);
+    let cursor = 0;
+    sortedTokens.forEach((token) => {
+      if (token.start > cursor) {
+        segments.push({
+          type: "text",
+          text: message.slice(cursor, token.start),
+        });
+      }
+      segments.push({ type: "token", token });
+      cursor = token.end;
+    });
+    if (cursor < message.length) {
+      segments.push({ type: "text", text: message.slice(cursor) });
+    }
+    return segments.length ? segments : [{ type: "text", text: message }];
+  }, [message, parsedTokens]);
   const suggestionEntry = useMemo<TaskSuggestion | null>(() => {
     if (!suggestedTaskId) {
       return null;
@@ -722,6 +405,10 @@ export function AssistantChat({
       noticeTimeoutRef.current = null;
     }, timeout);
   }, []);
+
+  useEffect(() => {
+    draftCacheRef.current = draftCache;
+  }, [draftCache]);
 
   const ensureProjectsIndex = useCallback(async () => {
     if (projectOptions.length > 0 || projectIndexState === "loading") {
@@ -883,14 +570,26 @@ export function AssistantChat({
         message.slice(0, start) + token + " " + message.slice(end);
       updateMessageValue(nextValue);
       const nextPos = start + token.length + 1;
-      requestAnimationFrame(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          textareaRef.current.selectionStart = nextPos;
-          textareaRef.current.selectionEnd = nextPos;
-        }
-        selectionRef.current = { start: nextPos, end: nextPos };
-      });
+      if (typeof requestAnimationFrame !== "undefined") {
+        requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+            textareaRef.current.selectionStart = nextPos;
+            textareaRef.current.selectionEnd = nextPos;
+          }
+          selectionRef.current = { start: nextPos, end: nextPos };
+        });
+      } else {
+        // Fallback for test environments
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+            textareaRef.current.selectionStart = nextPos;
+            textareaRef.current.selectionEnd = nextPos;
+          }
+          selectionRef.current = { start: nextPos, end: nextPos };
+        }, 0);
+      }
     },
     [message, updateMessageValue]
   );
@@ -904,15 +603,48 @@ export function AssistantChat({
       const nextValue = (before + after).replace(/\s{2,}/g, " ").trimStart();
       updateMessageValue(nextValue);
       selectionRef.current = { start: idx, end: idx };
-      requestAnimationFrame(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          textareaRef.current.selectionStart = idx;
-          textareaRef.current.selectionEnd = idx;
-        }
-      });
+      if (typeof requestAnimationFrame !== "undefined") {
+        requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+            textareaRef.current.selectionStart = idx;
+            textareaRef.current.selectionEnd = idx;
+          }
+        });
+      } else {
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+            textareaRef.current.selectionStart = idx;
+            textareaRef.current.selectionEnd = idx;
+          }
+        }, 0);
+      }
     },
     [message, updateMessageValue]
+  );
+
+  const handleTokenDetailToggle = useCallback((tokenId: string) => {
+    setActiveTokenDetailId((current) => (current === tokenId ? null : tokenId));
+    if (typeof requestAnimationFrame !== "undefined") {
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+      });
+    } else {
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 0);
+    }
+  }, []);
+
+  const handleOverlayRemoveToken = useCallback(
+    (tokenId: string, rawToken: string) => {
+      setActiveTokenDetailId((current) =>
+        current === tokenId ? null : current
+      );
+      handleRemoveToken(rawToken);
+    },
+    [handleRemoveToken]
   );
 
   const handleInsertTaskReference = useCallback(
@@ -1040,7 +772,8 @@ export function AssistantChat({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const inputFooterRef = useRef<HTMLDivElement>(null);
+  const tokenOverlayRef = useRef<HTMLDivElement | null>(null);
+  const inputFooterRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const typingStartRef = useRef<number | null>(null);
   const messagesRef = useRef<Message[]>([]);
@@ -1048,6 +781,8 @@ export function AssistantChat({
     start: 0,
     end: 0,
   });
+  const draftCacheRef = useRef<Record<string, string>>({});
+  const previousActionIdRef = useRef<string | null>(actionId);
   const noticeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [animatedMessageIds, setAnimatedMessageIds] = useState<Set<string>>(
     new Set()
@@ -1059,11 +794,21 @@ export function AssistantChat({
   const [activeAssistantId, setActiveAssistantId] = useState<string | null>(
     null
   );
+  const [activeTokenDetailId, setActiveTokenDetailId] = useState<string | null>(
+    null
+  );
   const typingSessionRef = useRef<{
     showTimerId: NodeJS.Timeout | null;
     clearTimerId: NodeJS.Timeout | null;
   }>({ showTimerId: null, clearTimerId: null });
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Adaptive polling state
+  const [isTabVisible, setIsTabVisible] = useState(true);
+  const [isThreadActive, setIsThreadActive] = useState(true);
+  const lastActivityRef = useRef<number>(Date.now());
+  const mutateDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingMutateRef = useRef<(() => Promise<any>) | null>(null);
 
   const MIN_TYPING_DURATION = 500; // ms
   const ASSISTANT_START_DELAY_MS = 100; // ms
@@ -1078,6 +823,12 @@ export function AssistantChat({
     },
     []
   );
+
+  const syncOverlayScroll = useCallback(() => {
+    if (tokenOverlayRef.current && textareaRef.current) {
+      tokenOverlayRef.current.scrollTop = textareaRef.current.scrollTop;
+    }
+  }, []);
 
   // Bootstrap thread if needed (only if not provided and shouldFocus is true)
   // Note: ActionCard creates thread on expand, so this is mainly for edge cases
@@ -1109,41 +860,115 @@ export function AssistantChat({
     }
   }, [threadId, actionId, onThreadCreated, shouldFocus, summary]);
 
-  // Fetch messages
+  // Adaptive polling: pause when tab hidden or thread inactive
+  const shouldPoll = isTabVisible && isThreadActive;
+  const POLL_INTERVAL = 5000;
+  const INACTIVITY_THRESHOLD_MS = 30000; // 30 seconds
+  const MUTATE_DEBOUNCE_MS = 500; // 500ms debounce for rapid refetches
+
+  // Track activity: update last activity time on user interaction
+  // Use ref-based callback to avoid recreating on every render
+  const markActivityRef = useRef(() => {
+    lastActivityRef.current = Date.now();
+    setIsThreadActive(true);
+  });
+  const markActivity = markActivityRef.current;
+
   const {
-    data: threadData,
-    mutate: mutateThread,
-    isLoading: isLoadingThread,
-  } = useSWR<ThreadResponse>(
-    threadId ? [`thread`, threadId] : null,
-    async () => {
-      if (!threadId) {
-        throw new Error("No thread ID");
-      }
-      const response = await api.getThread(threadId);
-      if (!response) {
-        // Fallback to empty structure if getThread returns null/undefined
-        return {
-          ok: true,
-          thread: {
-            id: threadId,
-            messages: [],
-          },
-        } as ThreadResponse;
-      }
-      return response as ThreadResponse;
-    },
-    {
-      refreshInterval: 5000, // Poll for new messages
-      revalidateOnFocus: true,
-      onError: (error: any) => {
-        // SWR error handler - don't log 404s (expected) but log other errors
-        if (error?.status !== 404 && !error?.message?.includes("404")) {
-          console.warn("SWR error fetching thread:", error);
-        }
-      },
+    messages,
+    setMessages,
+    threadData,
+    mutateThreadRaw,
+    isLoadingThread,
+  } = useChatThread({ threadId });
+
+  // Fetch messages
+  // Debounced mutateThread wrapper to coalesce rapid refetches
+  const debouncedMutateThread = useCallback(async () => {
+    // Clear existing debounce timer
+    if (mutateDebounceTimerRef.current) {
+      clearTimeout(mutateDebounceTimerRef.current);
+      mutateDebounceTimerRef.current = null;
     }
-  );
+
+    // Store the mutate function to call
+    pendingMutateRef.current = async () => {
+      if (mutateThreadRaw) {
+        return mutateThreadRaw();
+      }
+    };
+
+    // Set debounce timer
+    mutateDebounceTimerRef.current = setTimeout(() => {
+      mutateDebounceTimerRef.current = null;
+      const fn = pendingMutateRef.current;
+      pendingMutateRef.current = null;
+      if (fn) {
+        fn().catch((err) => {
+          console.warn("Debounced mutateThread failed:", err);
+        });
+      }
+    }, MUTATE_DEBOUNCE_MS);
+  }, [mutateThreadRaw]);
+
+  // Wrapped mutateThread that uses debouncing and marks activity
+  const mutateThread = useCallback(async () => {
+    markActivity();
+    return debouncedMutateThread();
+  }, [debouncedMutateThread, markActivity]);
+
+  // Visibility change handler
+  useEffect(() => {
+    if (typeof document === "undefined") return; // Guard for SSR/test environments
+
+    const handleVisibilityChange = () => {
+      setIsTabVisible(!document.hidden);
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    setIsTabVisible(!document.hidden);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  // Inactivity detection: check every 5 seconds if thread should be considered inactive
+  useEffect(() => {
+    if (!shouldPoll) {
+      return; // Skip if already paused
+    }
+
+    const checkInactivity = () => {
+      const now = Date.now();
+      const timeSinceActivity = now - lastActivityRef.current;
+      if (timeSinceActivity > INACTIVITY_THRESHOLD_MS) {
+        setIsThreadActive(false);
+      }
+    };
+
+    const interval = setInterval(checkInactivity, 5000);
+    return () => {
+      clearInterval(interval);
+    };
+  }, [shouldPoll]);
+
+  // Mark activity on user interactions
+  // Use stable callback to avoid recreating listeners on every render
+  useEffect(() => {
+    if (typeof window === "undefined") return; // Guard for SSR/test environments
+
+    const handleUserActivity = () => {
+      markActivity();
+    };
+    // Listen to various user events
+    window.addEventListener("mousedown", handleUserActivity);
+    window.addEventListener("keydown", handleUserActivity);
+    window.addEventListener("scroll", handleUserActivity);
+    return () => {
+      window.removeEventListener("mousedown", handleUserActivity);
+      window.removeEventListener("keydown", handleUserActivity);
+      window.removeEventListener("scroll", handleUserActivity);
+    };
+  }, []); // Empty deps - markActivity is stable via ref
 
   // Reset messages when threadId changes to prevent cross-thread contamination
   useEffect(() => {
@@ -1151,115 +976,6 @@ export function AssistantChat({
       setMessages([]); // Clear messages when switching threads
     }
   }, [threadId]);
-
-  // Helper function to create a normalized fingerprint for message content
-  const fingerprintContent = useCallback((content: string): string => {
-    return content.toLowerCase().trim().replace(/\s+/g, " "); // Collapse internal whitespace
-  }, []);
-
-  // Update messages when thread data changes - merge instead of replace
-  // Only process if this is the current thread to prevent cross-thread contamination
-  useEffect(() => {
-    if (threadData?.thread?.messages && threadData.thread.id === threadId) {
-      setMessages((prev) => {
-        const backendMessages = threadData.thread.messages;
-        // Merge: keep optimistic messages that aren't confirmed yet
-        const optimisticMessages = prev.filter((msg) => msg.optimistic);
-        const confirmedIds = new Set(backendMessages.map((m) => m.id));
-
-        // Build fingerprint-based deduplication for user messages
-        // Count backend user messages by fingerprint
-        const backendUserCounts = new Map<string, number>();
-        backendMessages.forEach((msg: any) => {
-          const content = msg.content || msg.text || "";
-          const role = msg.role === "user" ? "user" : "assistant";
-          if (role === "user") {
-            const fingerprint = fingerprintContent(content);
-            backendUserCounts.set(
-              fingerprint,
-              (backendUserCounts.get(fingerprint) || 0) + 1
-            );
-          }
-        });
-
-        // Group optimistic user messages by fingerprint
-        const optimisticUserBuckets = new Map<string, Message[]>();
-        optimisticMessages.forEach((msg) => {
-          if (msg.role === "user") {
-            const fingerprint = fingerprintContent(msg.content);
-            if (!optimisticUserBuckets.has(fingerprint)) {
-              optimisticUserBuckets.set(fingerprint, []);
-            }
-            optimisticUserBuckets.get(fingerprint)!.push(msg);
-          }
-        });
-
-        // Remove matched optimistics: for each fingerprint, remove up to backendUserCounts[fingerprint] messages
-        const matchedOptimisticIds = new Set<string>();
-        optimisticUserBuckets.forEach((bucket, fingerprint) => {
-          const backendCount = backendUserCounts.get(fingerprint) || 0;
-          // Sort by timestamp (oldest first) to match oldest optimistics first
-          const sortedBucket = [...bucket].sort(
-            (a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime()
-          );
-          // Mark up to backendCount messages as matched
-          for (
-            let i = 0;
-            i < Math.min(backendCount, sortedBucket.length);
-            i++
-          ) {
-            matchedOptimisticIds.add(sortedBucket[i].id);
-          }
-        });
-
-        // Filter optimistics: exclude those matched by ID or by fingerprint count
-        const stillOptimistic = optimisticMessages.filter((msg) => {
-          // Keep if ID is confirmed (already handled by backend)
-          if (confirmedIds.has(msg.id)) {
-            return false;
-          }
-          // For user messages, exclude if matched by fingerprint count
-          if (msg.role === "user" && matchedOptimisticIds.has(msg.id)) {
-            return false;
-          }
-          // Keep all other optimistics (assistant messages, unmatched user messages)
-          return true;
-        });
-
-        // Ensure roles are correct - fix any role mismatches
-        const correctedBackendMessages = backendMessages.map((msg: any) => {
-          // Normalize message structure - ensure it has content, role, id, ts
-          const normalizedMsg = {
-            id: msg.id || String(Math.random()),
-            role: (msg.role === "user" ? "user" : "assistant") as
-              | "user"
-              | "assistant",
-            content: msg.content || msg.text || "",
-            ts: msg.ts || msg.created_at || new Date().toISOString(),
-            embeds: msg.embeds || [],
-          };
-
-          // If message was sent by user (check by matching content with optimistic), ensure role is user
-          const matchingOptimistic = optimisticMessages.find(
-            (opt) =>
-              fingerprintContent(opt.content) ===
-                fingerprintContent(normalizedMsg.content) && opt.role === "user"
-          );
-          if (matchingOptimistic) {
-            return { ...normalizedMsg, role: "user" as const };
-          }
-          return normalizedMsg;
-        });
-
-        // Combine backend messages with still-optimistic ones
-        const merged = [...correctedBackendMessages, ...stillOptimistic];
-        // Sort by timestamp
-        return merged.sort(
-          (a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime()
-        );
-      });
-    }
-  }, [threadData, threadId, fingerprintContent]);
 
   // Keep messagesRef in sync with messages state
   useEffect(() => {
@@ -1499,12 +1215,20 @@ export function AssistantChat({
     };
   }, []);
 
-  // Load draft from cache
+  // Load draft only when switching actions
   useEffect(() => {
-    if (draftCache[actionId]) {
-      updateMessageValue(draftCache[actionId]);
+    if (!actionId) {
+      previousActionIdRef.current = actionId;
+      setMessage("");
+      return;
     }
-  }, [actionId, draftCache, updateMessageValue]);
+    if (previousActionIdRef.current === actionId) {
+      return;
+    }
+    const cachedValue = draftCacheRef.current[actionId];
+    setMessage(cachedValue ?? "");
+    previousActionIdRef.current = actionId;
+  }, [actionId]);
 
   // Auto-scroll to bottom - scroll the messages container, not the page
   useEffect(() => {
@@ -1514,9 +1238,15 @@ export function AssistantChat({
         container.scrollTop = container.scrollHeight;
       };
       // Use requestAnimationFrame to ensure DOM is updated
-      requestAnimationFrame(() => {
-        scrollToBottom();
-      });
+      if (typeof requestAnimationFrame !== "undefined") {
+        requestAnimationFrame(() => {
+          scrollToBottom();
+        });
+      } else {
+        setTimeout(() => {
+          scrollToBottom();
+        }, 0);
+      }
     }
   }, [messages, isTyping]);
 
@@ -1539,6 +1269,7 @@ export function AssistantChat({
   }, [message]);
 
   const handleSend = useCallback(async () => {
+    markActivity(); // Mark activity when user sends a message
     if (!message.trim()) {
       return;
     }
@@ -1681,9 +1412,15 @@ export function AssistantChat({
     }, showDelayMs);
 
     // Restore focus after state update
-    requestAnimationFrame(() => {
-      textareaRef.current?.focus();
-    });
+    if (typeof requestAnimationFrame !== "undefined") {
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+      });
+    } else {
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 0);
+    }
 
     // Retry logic with exponential backoff
     const MAX_RETRIES = 2;
@@ -1736,6 +1473,41 @@ export function AssistantChat({
                 });
                 if (suggestResponse?.ok) {
                   applyOperationsResponse(suggestResponse);
+
+                  // Optimistic surfaces: store surfaces immediately if present
+                  if (
+                    suggestResponse.surfaces &&
+                    Array.isArray(suggestResponse.surfaces)
+                  ) {
+                    const parsedSurfaces = parseInteractiveSurfaces(
+                      suggestResponse.surfaces
+                    );
+                    if (parsedSurfaces.length > 0) {
+                      // Create or update optimistic assistant message with surfaces
+                      setMessages((prev) => {
+                        // Find existing optimistic assistant message or create new one
+                        const existingOptimistic = prev.find(
+                          (msg) => msg.role === "assistant" && msg.optimistic
+                        );
+                        if (existingOptimistic) {
+                          // Update existing optimistic message with surfaces
+                          return prev.map((msg) =>
+                            msg.id === existingOptimistic.id
+                              ? { ...msg, surfaces: parsedSurfaces }
+                              : msg
+                          );
+                        } else {
+                          // Create new optimistic assistant message with surfaces
+                          const optimisticMsg: Message = {
+                            ...createAssistantMessage(""),
+                            optimistic: true,
+                            surfaces: parsedSurfaces,
+                          };
+                          return [...prev, optimisticMsg];
+                        }
+                      });
+                    }
+                  }
 
                   const hasChatOp = (suggestResponse.applied || []).some(
                     (op: any) => op.op === "chat"
@@ -2052,6 +1824,79 @@ export function AssistantChat({
     [threadId, mutateThread, isTyping, clearTyping]
   );
 
+  const handleSurfaceInvokeOp = useCallback(
+    async (opToken: string, options?: { confirm?: boolean }) => {
+      if (
+        options?.confirm &&
+        !window.confirm("Are you sure you want to run this action?")
+      ) {
+        return;
+      }
+      const operation = convertOpTokenToOperation(opToken);
+      if (!operation) {
+        showInlineNotice("Couldn't run that action. Please try again.");
+        return;
+      }
+      try {
+        const result = await runOperationApi("approve", {
+          operation: sanitizeOperationForApi(operation, {
+            forceCurrentProject,
+          }),
+        });
+        if (!result?.ok) {
+          const errorDetail =
+            result?.detail?.assistant_message ||
+            result?.detail?.detail ||
+            result?.detail ||
+            result?.error ||
+            "Failed to run that action.";
+          pushOperationError(errorDetail, {
+            op: operation.op,
+            params: operation.params,
+          });
+          return;
+        }
+        scheduleThreadRefreshForChat();
+      } catch (err: any) {
+        pushOperationError(err?.message || "Failed to run that action.", {
+          op: operation.op,
+          params: operation.params,
+        });
+      }
+    },
+    [
+      runOperationApi,
+      forceCurrentProject,
+      showInlineNotice,
+      pushOperationError,
+      scheduleThreadRefreshForChat,
+    ]
+  );
+
+  const handleSurfaceNavigate = useCallback(
+    (nav: SurfaceNavigateTo) => {
+      switch (nav.destination) {
+        case "workroom_task":
+          onOpenWorkroom?.();
+          break;
+        case "hub_queue":
+          window.location.hash = "#queue";
+          break;
+        case "hub":
+          window.location.hash = `#${nav.section ?? "today"}`;
+          break;
+        case "calendar_event":
+          showInlineNotice(
+            "Opening calendar events is not yet supported in this build."
+          );
+          break;
+        default:
+          showInlineNotice("Navigation target not supported yet.");
+      }
+    },
+    [onOpenWorkroom, showInlineNotice]
+  );
+
   const formatTimestamp = useCallback((ts: string) => {
     const date = new Date(ts);
     const now = new Date();
@@ -2108,6 +1953,64 @@ export function AssistantChat({
   // Memoize grouped messages to prevent recreation on every render
   const groupedMessages = useMemo(() => groupMessages(messages), [messages]);
 
+  const latestAssistantSurfaces = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const candidate = messages[i];
+      if (candidate.role === "assistant" && candidate.surfaces?.length) {
+        return candidate.surfaces;
+      }
+    }
+    return null;
+  }, [messages]);
+
+  const hideActionSummaryForSurfaces =
+    (latestAssistantSurfaces?.some(
+      (surface) => surface.kind === "triage_table_v1"
+    ) ??
+      false) &&
+    !hasErrors;
+
+  const shouldShowActionSummary =
+    !hideActionSummaryForSurfaces &&
+    (appliedOps.length > 0 || pendingOps.length > 0 || hasErrors);
+
+  // Memoize ActionSummary props to prevent unnecessary re-renders
+  // Create a hash of ops to use as memo key
+  const opsHash = useMemo(() => {
+    if (!shouldShowActionSummary) {
+      return "hidden";
+    }
+    // Create deterministic hash from ops state
+    const opsString = JSON.stringify({
+      applied: appliedOps.map((op) => ({ op: op.op, params: op.params })),
+      pending: pendingOps.map((op) => ({ op: op.op, params: op.params })),
+      errors: operationsState.errors.map((err) => ({
+        id: err.id,
+        message: err.message,
+      })),
+    });
+    return opsString;
+  }, [shouldShowActionSummary, appliedOps, pendingOps, operationsState.errors]);
+
+  // Memoized ActionSummary component props
+  const actionSummaryProps = useMemo(() => {
+    if (!shouldShowActionSummary) {
+      return null;
+    }
+    return {
+      appliedOps,
+      pendingOps,
+      trustMode,
+      errors: operationsState.errors,
+    };
+  }, [
+    shouldShowActionSummary,
+    appliedOps,
+    pendingOps,
+    trustMode,
+    operationsState.errors,
+  ]);
+
   // Stable callback for embed updates
   const handleEmbedUpdate = useCallback(
     (messageId: string, updatedEmbed: any) => {
@@ -2163,6 +2066,7 @@ export function AssistantChat({
         role: msg.role,
         content: msg.content,
         embeds: msg.embeds,
+        surfaces: msg.surfaces,
         marginTop,
         timestampLabel,
         showTimestamp,
@@ -2284,6 +2188,8 @@ export function AssistantChat({
               onEmbedUpdate={handleEmbedUpdate}
               animatedRef={animatedRef}
               activeAssistantId={activeAssistantId}
+              onInvokeSurfaceOp={handleSurfaceInvokeOp}
+              onNavigateSurface={handleSurfaceNavigate}
             />
           )}
           <div ref={messagesEndRef} />
@@ -2325,50 +2231,42 @@ export function AssistantChat({
               onActiveIndexChange={setReferenceActiveIndex}
             />
           )}
-          {parsedTokens.length > 0 && (
-            <div className="flex flex-wrap gap-2 pb-2">
-              {parsedTokens.map((token, idx) => (
-                <span
-                  key={`${token.raw}-${idx}`}
-                  className="inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-700 px-2 py-0.5 text-xs"
-                >
-                  <span>{token.label}</span>
-                  <button
-                    onClick={() => handleRemoveToken(token.raw)}
-                    className="text-slate-500 hover:text-slate-900"
-                    aria-label="Remove token"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
           {inlineNotice && (
             <div className="text-xs text-slate-500 pb-2">{inlineNotice}</div>
           )}
           {/* Input Row */}
           <div className="flex items-end gap-2 pb-4">
-            <textarea
-              ref={textareaRef}
-              value={message}
-              onChange={(e) => {
-                updateMessageValue(e.target.value);
-              }}
-              onFocus={() => {
-                onInputFocus?.();
-              }}
-              onMouseDown={(e) => e.stopPropagation()}
-              onKeyDown={handleKeyDown}
-              onKeyUp={syncSelectionFromEvent}
-              onSelect={syncSelectionFromEvent}
-              onClick={syncSelectionFromEvent}
-              placeholder="Message Assistant"
-              aria-label="Message Assistant"
-              disabled={!threadId}
-              className="w-full resize-none max-h-24 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-300 px-3 py-2 text-sm"
-              rows={1}
-            />
+            <div className="relative flex-1">
+              <TokenOverlay
+                message={message}
+                tokenSegments={tokenSegments}
+                activeTokenDetailId={activeTokenDetailId}
+                tokenOverlayRef={tokenOverlayRef}
+                onToggleDetail={handleTokenDetailToggle}
+                onRemoveToken={handleOverlayRemoveToken}
+              />
+              <textarea
+                ref={textareaRef}
+                value={message}
+                onChange={(e) => {
+                  updateMessageValue(e.target.value);
+                }}
+                onFocus={() => {
+                  onInputFocus?.();
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onKeyDown={handleKeyDown}
+                onKeyUp={syncSelectionFromEvent}
+                onSelect={syncSelectionFromEvent}
+                onClick={syncSelectionFromEvent}
+                onScroll={syncOverlayScroll}
+                placeholder="Message Assistant"
+                aria-label="Message Assistant"
+                disabled={!threadId}
+                className="w-full resize-none max-h-24 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-300 px-3 py-2 text-sm bg-transparent relative z-10 text-transparent caret-slate-900 placeholder:text-transparent selection:bg-slate-200/60"
+                rows={1}
+              />
+            </div>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -2382,15 +2280,15 @@ export function AssistantChat({
             </button>
           </div>
 
-          {/* Action Summary */}
-          {(appliedOps.length > 0 || pendingOps.length > 0 || hasErrors) && (
-            <div className="border-t border-slate-200">
+          {/* Action Summary - Memoized to prevent unnecessary re-renders */}
+          {shouldShowActionSummary && actionSummaryProps && (
+            <div className="border-t border-slate-200" key={opsHash}>
               {/* TODO(LucidWork Contract): ActionSummary will surface/edit explicit target IDs here. */}
               <ActionSummary
-                appliedOps={appliedOps}
-                pendingOps={pendingOps}
-                trustMode={trustMode}
-                errors={operationsState.errors}
+                appliedOps={actionSummaryProps.appliedOps}
+                pendingOps={actionSummaryProps.pendingOps}
+                trustMode={actionSummaryProps.trustMode}
+                errors={actionSummaryProps.errors}
                 onDismissError={dismissOperationError}
                 onApprove={async (op) => {
                   if (!op?.localId) {
@@ -2535,293 +2433,5 @@ export function AssistantChat({
         />
       )}
     </>
-  );
-}
-
-type ModalShellProps = {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-};
-
-function ModalShell({ title, onClose, children }: ModalShellProps) {
-  useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="bg-white rounded-xl shadow-xl w-full max-w-md p-4 relative"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="text-slate-500 hover:text-slate-900"
-          >
-            ×
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-type ReferenceSearchPanelProps = {
-  anchorRef: React.RefObject<HTMLDivElement | null>;
-  query: string;
-  onQueryChange: (value: string) => void;
-  projectOptions: ProjectOption[];
-  projectId: string | null;
-  onProjectChange: (value: string | null) => void;
-  results: TaskSuggestion[];
-  loading: boolean;
-  onSelect: (task: TaskOption) => void;
-  onClose: () => void;
-  activeIndex: number;
-  onActiveIndexChange: (index: number) => void;
-};
-
-function ReferenceSearchPanel({
-  anchorRef,
-  query,
-  onQueryChange,
-  projectOptions,
-  projectId,
-  onProjectChange,
-  results,
-  loading,
-  onSelect,
-  onClose,
-  activeIndex,
-  onActiveIndexChange,
-}: ReferenceSearchPanelProps) {
-  const panelRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const [position, setPosition] = useState({
-    left: 0,
-    bottom: 0,
-    width: 0,
-  });
-
-  useEffect(() => {
-    const updatePosition = () => {
-      if (!anchorRef.current) return;
-      const rect = anchorRef.current.getBoundingClientRect();
-      setPosition({
-        left: rect.left,
-        bottom: window.innerHeight - rect.top + 12,
-        width: rect.width,
-      });
-    };
-    updatePosition();
-    window.addEventListener("resize", updatePosition);
-    return () => window.removeEventListener("resize", updatePosition);
-  }, [anchorRef]);
-
-  useEffect(() => {
-    const handleClick = (event: MouseEvent) => {
-      if (
-        panelRef.current &&
-        !panelRef.current.contains(event.target as Node)
-      ) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [onClose]);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      onActiveIndexChange(
-        Math.min(activeIndex + 1, Math.max(results.length - 1, 0))
-      );
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      onActiveIndexChange(Math.max(activeIndex - 1, 0));
-    } else if (event.key === "Enter") {
-      event.preventDefault();
-      const task = results[activeIndex];
-      if (task) {
-        onSelect(task);
-      }
-    } else if (event.key === "Escape") {
-      event.preventDefault();
-      onClose();
-    }
-  };
-
-  const hasProjects = projectOptions.length > 0;
-
-  return (
-    <div
-      className="fixed z-40"
-      style={{
-        left: position.left,
-        bottom: position.bottom,
-        width: position.width || "100%",
-      }}
-    >
-      <div
-        ref={panelRef}
-        className="rounded-2xl border border-slate-200 bg-slate-950/95 text-white shadow-2xl backdrop-blur-md p-3"
-      >
-        <div className="flex items-center gap-2 mb-3">
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(e) => onQueryChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Search tasks…"
-            className="flex-1 bg-transparent text-white placeholder:text-slate-400 text-sm focus:outline-none"
-          />
-          {hasProjects && (
-            <select
-              value={projectId || ""}
-              onChange={(e) => onProjectChange(e.target.value || null)}
-              className="text-xs bg-slate-800 rounded-lg px-2 py-1 text-slate-200 focus:outline-none"
-            >
-              <option value="">All projects</option>
-              {projectOptions.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.title}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-        <div className="max-h-72 overflow-y-auto">
-          {loading && (
-            <div className="px-3 py-2 text-sm text-slate-400">Searching…</div>
-          )}
-          {!loading && results.length === 0 && (
-            <div className="px-3 py-2 text-sm text-slate-400">
-              {query
-                ? "No matches yet. Keep typing."
-                : "Start typing to search tasks."}
-            </div>
-          )}
-          {results.map((task, index) => {
-            const isActive = index === activeIndex;
-            return (
-              <button
-                key={`${task.id}-${task.meta || "result"}`}
-                onClick={() => onSelect(task)}
-                onMouseEnter={() => onActiveIndexChange(index)}
-                className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                  isActive ? "bg-slate-800" : "hover:bg-slate-900"
-                }`}
-              >
-                <div className="text-sm font-medium text-white">
-                  {task.title}
-                </div>
-                <div className="text-xs text-slate-400 flex items-center justify-between">
-                  <span>{task.projectTitle || "No project"}</span>
-                  {task.meta && <span>{task.meta}</span>}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-type CreateTaskOpModalProps = {
-  projects: ProjectOption[];
-  initialProjectId?: string | null;
-  onSubmit: (payload: { projectId: string; title: string }) => void;
-  onClose: () => void;
-};
-
-function CreateTaskOpModal({
-  projects,
-  initialProjectId,
-  onSubmit,
-  onClose,
-}: CreateTaskOpModalProps) {
-  const [projectId, setProjectId] = useState<string>(
-    initialProjectId && projects.some((p) => p.id === initialProjectId)
-      ? initialProjectId
-      : projects[0]?.id || ""
-  );
-  const [title, setTitle] = useState("");
-
-  useEffect(() => {
-    if (
-      initialProjectId &&
-      projects.some((project) => project.id === initialProjectId)
-    ) {
-      setProjectId(initialProjectId);
-    }
-  }, [initialProjectId, projects]);
-
-  return (
-    <ModalShell title="Create task operation" onClose={onClose}>
-      {projects.length === 0 ? (
-        <p className="text-sm text-slate-600">
-          No projects available. Create a project first.
-        </p>
-      ) : (
-        <>
-          <label className="text-xs text-slate-500 uppercase tracking-wide">
-            Project
-          </label>
-          <select
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            className="mt-1 w-full border border-slate-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
-          >
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.title}
-              </option>
-            ))}
-          </select>
-          <label className="text-xs text-slate-500 uppercase tracking-wide mt-4 block">
-            Task title
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 w-full border border-slate-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
-            placeholder="e.g., Draft launch brief"
-          />
-          <button
-            onClick={() => {
-              if (!projectId || !title.trim()) return;
-              onSubmit({ projectId, title: title.trim() });
-            }}
-            disabled={!projectId || !title.trim()}
-            className="mt-4 inline-flex justify-center items-center px-3 py-2 rounded-md bg-slate-900 text-white text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Insert operation
-          </button>
-        </>
-      )}
-    </ModalShell>
   );
 }

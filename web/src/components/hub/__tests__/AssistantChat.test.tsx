@@ -1,17 +1,21 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { AssistantChat } from "../AssistantChat";
 import { api } from "../../../lib/api";
+import { clearSurfaceCache } from "../../../lib/llm/surfaces";
+
+// Create stable mock data to prevent reference changes
+const stableMockData = {
+  ok: true,
+  thread: {
+    id: "test-thread",
+    messages: [],
+  },
+};
 
 const mockUseSWR = vi.hoisted(() =>
   vi.fn(() => ({
-    data: {
-      ok: true,
-      thread: {
-        id: "test-thread",
-        messages: [],
-      },
-    },
+    data: stableMockData, // Use stable reference
     mutate: vi.fn(),
     isLoading: false,
   }))
@@ -39,6 +43,8 @@ vi.mock("../../../lib/workroomApi", () => ({
   workroomApi: {
     getProjects: vi.fn().mockResolvedValue({ ok: true, projects: [] }),
     getTasks: vi.fn().mockResolvedValue({ ok: true, tasks: [] }),
+    listProjectsLite: vi.fn().mockResolvedValue({ ok: true, projects: [] }),
+    searchTasksLite: vi.fn().mockResolvedValue({ ok: true, tasks: [] }),
   },
 }));
 
@@ -66,6 +72,20 @@ describe("AssistantChat Layout", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
+    clearSurfaceCache(); // Clear surface parsing cache
+    // Mock requestAnimationFrame to prevent accumulation
+    global.requestAnimationFrame = vi.fn((cb) => {
+      setTimeout(cb, 0);
+      return 0;
+    });
+  });
+
+  afterEach(() => {
+    cleanup(); // Ensure components are unmounted
+    clearSurfaceCache(); // Clear cache after each test
+    vi.useRealTimers();
+    vi.clearAllTimers();
   });
 
   it("renders with correct layout structure", () => {
@@ -129,6 +149,21 @@ describe("AssistantChat Layout", () => {
     const mainContainer = container.firstChild?.nextSibling as HTMLElement;
     expect(mainContainer).toHaveClass("flex", "flex-col", "h-full", "min-h-0");
   });
+
+  it("renders inline token chips when tokens are present", () => {
+    render(<AssistantChat {...defaultProps} />);
+
+    const textarea = screen.getByPlaceholderText("Message Assistant");
+    const token =
+      '[ref v:1 type:"task" id:"task-123" name:"Sample Task" project:"Project X"]';
+    fireEvent.change(textarea, { target: { value: token } });
+
+    expect(screen.getByText("task: Sample Task")).toBeInTheDocument();
+
+    const removeButtons = screen.getAllByLabelText("Remove token");
+    fireEvent.click(removeButtons[0]);
+    expect(screen.queryByText("task: Sample Task")).not.toBeInTheDocument();
+  });
 });
 
 describe("AssistantChat Serial Sequencing", () => {
@@ -140,6 +175,19 @@ describe("AssistantChat Serial Sequencing", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
+    clearSurfaceCache();
+    global.requestAnimationFrame = vi.fn((cb) => {
+      setTimeout(cb, 0);
+      return 0;
+    });
+  });
+
+  afterEach(() => {
+    cleanup();
+    clearSurfaceCache();
+    vi.useRealTimers();
+    vi.clearAllTimers();
   });
 
   it("only animates the newest assistant message when multiple arrive", async () => {

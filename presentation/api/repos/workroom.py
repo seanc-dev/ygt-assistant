@@ -274,6 +274,7 @@ def add_message(
     thread_id: str,
     role: str,
     content: str,
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Insert a message and update the thread timestamp."""
     tenant_id, resolved_user_id = _resolve_identity(user_id)
@@ -285,7 +286,7 @@ def add_message(
         "user_id": resolved_user_id if role == "user" else None,
         "role": role,
         "content": content,
-        "metadata": {},
+        "metadata": metadata or {},
     }
     message = _insert("messages", payload)
     message["ts"] = message.get("created_at")
@@ -339,6 +340,20 @@ def get_pending_user_messages(
             pending.append(msg)
 
     return pending
+
+
+def get_recent_assistant_messages(
+    user_id: str, limit: int = 20
+) -> List[Dict[str, Any]]:
+    """Fetch recent assistant messages for the caller's tenant."""
+    tenant_id, _ = _resolve_identity(user_id)
+    params: Dict[str, Any] = {
+        "tenant_id": f"eq.{tenant_id}",
+        "role": "eq.assistant",
+        "order": "created_at.desc",
+        "limit": str(limit),
+    }
+    return _select("messages", params)
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,122 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AssistantSurfacesRenderer > matches snapshot 1`] = `
+<div>
+  <div
+    class="flex flex-col gap-4 w-full"
+    data-testid="assistant-surfaces-root"
+  >
+    <div
+      class="w-full"
+      data-testid="surface-what_next_v1"
+    >
+      <div
+        class="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 text-slate-900"
+      >
+        <div
+          class="text-xs uppercase tracking-wide text-slate-500 mb-1"
+        >
+          What's Next
+        </div>
+        <h3
+          class="font-semibold text-lg leading-tight"
+        >
+          Finish pitch deck
+        </h3>
+        <p
+          class="text-sm text-slate-600 mt-1"
+        >
+          Needs final polish before tomorrow
+        </p>
+        <div
+          class="flex flex-wrap gap-2 mt-4"
+        >
+          <button
+            class="px-3 py-1.5 rounded-full bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition"
+            type="button"
+          >
+            Open task
+          </button>
+          <button
+            class="px-3 py-1.5 rounded-full border border-slate-300 text-sm text-slate-700 hover:bg-slate-50 transition"
+            type="button"
+          >
+            Mark done
+          </button>
+        </div>
+        <ul
+          class="mt-4 space-y-1 text-sm text-slate-500"
+        >
+          <li
+            class="flex gap-2 items-start"
+          >
+            <span>
+              Due today
+            </span>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div
+      class="w-full"
+      data-testid="surface-priority_list_v1"
+    >
+      <div
+        class="rounded-2xl border border-slate-200 bg-white shadow-sm p-5"
+      >
+        <div
+          class="text-xs uppercase tracking-wide text-slate-500 mb-2"
+        >
+          Priorities
+        </div>
+        <ol
+          class="space-y-3 list-none"
+        >
+          <li
+            class="rounded-xl border border-slate-100 bg-slate-50/80 p-3"
+          >
+            <div
+              class="flex items-start gap-3"
+            >
+              <div
+                class="text-2xl font-semibold text-slate-300 leading-none"
+              >
+                1
+              </div>
+              <div
+                class="flex-1"
+              >
+                <button
+                  class="text-left w-full disabled:cursor-default"
+                  type="button"
+                >
+                  <p
+                    class="font-semibold text-sm text-slate-900"
+                  >
+                    Finish pitch deck
+                  </p>
+                  <p
+                    class="text-xs text-slate-500"
+                  >
+                    Exec review tomorrow
+                  </p>
+                </button>
+              </div>
+              <div
+                class="flex flex-col gap-1"
+              >
+                <button
+                  class="text-xs font-medium text-slate-700 hover:text-slate-900"
+                  type="button"
+                >
+                  Mark doing
+                </button>
+              </div>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+`;

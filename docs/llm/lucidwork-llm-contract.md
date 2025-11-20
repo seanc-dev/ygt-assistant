@@ -237,7 +237,71 @@ Frontend may:
 
 =====================================================================
 
-## 7. HARD CONSTRAINTS (NON-NEGOTIABLE)
+## 7. INTERACTIVE SURFACES v0
+
+=====================================================================
+
+Interactive surfaces let the LLM return **structured UI blocks** alongside the normal chat text + operations. They are optional, versioned, and must never bypass the existing op → validation → ActionSummary pipeline.
+
+### 7.1 Envelope & transport
+
+Every surface is delivered inside the `surfaces` array of the LLM JSON response:
+
+```jsonc
+{
+  "operations": [ … ],
+  "surfaces": [
+    {
+      "surface_id": "whatsnext-123",
+      "kind": "what_next_v1",
+      "title": "What's Next",
+      "payload": { …kind-specific… }
+    }
+  ]
+}
+```
+
+- `surface_id`: stable string for dedupe/updates.
+- `kind`: discriminated union (listed below).
+- `title`: user-facing heading.
+- `payload`: schema per kind.
+- Unknown kinds or malformed payloads are ignored.
+
+### 7.2 Shared helper types
+
+- **SurfaceNavigateTo**:
+  - `{ destination: "workroom_task", taskId }`
+  - `{ destination: "hub_queue" }`
+  - `{ destination: "hub", section?: "today" | "metrics" | "priority" }`
+  - `{ destination: "calendar_event", eventId }`
+
+- **SurfaceOpTrigger**: `{ label, opToken, confirm? }`
+  - `opToken` is the literal `[op v:1 …]` string that already flows through validation.
+
+Buttons/links in the UI may only call `onInvokeOp(opToken)` or `onNavigate(navigateTo)`. No other side effects are allowed.
+
+### 7.3 v0 surface kinds
+
+| Kind               | Purpose / payload summary |
+|--------------------|---------------------------|
+| `what_next_v1`     | Primary headline + optional body, target, `primaryAction`, `secondaryActions`, and secondary notes. |
+| `today_schedule_v1`| List of schedule blocks (`event`/`focus`, start/end, lock flag) plus optional suggestions (`previewChange`, `acceptOp`) and controls (`suggestAlternativesOp`). |
+| `priority_list_v1` | Ranked task list with label, reason, estimate, navigation target, and quick `opToken` actions. |
+| `triage_table_v1`  | Inbox triage groups (summary + group-level approve/decline ops) containing queue items with item-level `approveOp` / `declineOp`, suggested task/action metadata. |
+
+All payloads must be valid JSON objects; missing required fields cause the surface to be discarded.
+
+### 7.4 Safety & degradation
+
+- Surfaces **augment** the chat text; they do **not** replace operations.
+- All actions still go through the op validation pipeline using `opToken`.
+- Backend logs every op via ActionSummary for audit, even if the UI hides the card (e.g., triage flows).
+- If the LLM cannot build a valid surface, it should omit the entry; the chat continues as before.
+- Versioning allows future `*_v2` kinds without breaking old clients.
+
+=====================================================================
+
+## 8. HARD CONSTRAINTS (NON-NEGOTIABLE)
 
 =====================================================================
 
@@ -254,7 +318,7 @@ Frontend may:
 
 =====================================================================
 
-## 8. SUMMARY
+## 9. SUMMARY
 
 =====================================================================
 
