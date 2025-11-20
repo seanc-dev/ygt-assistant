@@ -1,45 +1,41 @@
-YGT Assistant
+LucidWork (working name)
 
-Intent
-
-- Microsoft-first, web-only MVP. Calm web “control tower”.
-- LLM-first flows: propose actions (approve/edit/skip) with undo and history.
-- Multi-level memory core (episodic, semantic, procedural, narrative).
-- Provider abstractions with Microsoft Graph implementations for mail and calendar.
+LucidWork is a FastAPI + Next.js workspace built around a Hub (control room) and Workroom (node-based workspace). The current implementation focuses on Microsoft Graph-first email/calendar flows, Notion context, and a guided queue of suggested actions that can be approved or edited from the web app. Providers default to in-memory stubs in local dev and can target Supabase for persistence.
 
 High-level architecture
 
-- Backend: FastAPI (`presentation/api`) with modular routers and request-id middleware.
-- Web: Next.js (pages) in `web/`, React 19, shared UI in `shared-ui`.
-- DB: Postgres (Supabase), optional `pgvector` for semantic recall.
-- Services: provider registry delegates to selected implementations by env.
-- Testing/dev: in-memory stores and chat stand‑in endpoint until WhatsApp is live.
+- Backend: FastAPI (`presentation/api`) with route modules for actions, calendar/email helpers, brief/summary data, workroom APIs, and connection flows for Microsoft Graph + Notion (Google connector remains experimental).
+- Web: Next.js app in `web/` (React 19) with Hub, Workroom, Review, Drafts, Connections, History, and Chat pages; shared UI primitives live in `shared-ui`.
+- Data: Supabase/Postgres schema under `supabase/` (optional; in-memory repos remain the default during development).
+- Services: provider registry for Microsoft Graph mail/calendar, Notion adapter, LLM stubs, WhatsApp webhook handler, and translation/weather/news helpers.
 
-Key features
+Key features (implemented)
 
-- Approvals: `/actions/scan` → list of low-risk actions; Approve/Edit/Skip/Undo.
-- Drafts: create/send drafts; WhatsApp cards supported when Meta is enabled.
-- Calendar: plan-today and reschedule flows (provider-backed).
-- Core memory: deterministic recall; vectors off by default.
-- Connections: Microsoft OAuth (store encrypted tokens in Supabase).
+- Hub: aggregated queue (`/api/queue`), today’s agenda (`/api/schedule/today`), sync status (`/connections/ms/status`), and brief cards (`/api/brief/today`).
+- Workroom: projects/tasks workspace backed by `/workroom/*` APIs with Kanban and document views.
+- Actions: `/actions/scan` plus Approve/Edit/Skip/Undo endpoints; queue surfaced in Hub and Review pages.
+- Drafts & email: compose/send via `/email/drafts` + `/email/send/{draft_id}` with provider-backed Graph calls when enabled.
+- Calendar helpers: `/calendar/plan-today` and `/calendar/reschedule`.
+- Core memory/context: `/core/context`, `/core/notes`, `/core/preview` for deterministic recall; vector recall is disabled by default.
+- Connections: Microsoft OAuth (`/connections/ms/oauth/*`) with encrypted token storage; Notion OAuth (`/oauth/notion/*`) for context; Google connector routed through `presentation/api/routes/connections_google.py` (experimental/off by default).
+- WhatsApp: webhook verify/ingest at `/whatsapp/webhook` (Meta Cloud payloads), currently stubbed for local dev.
 
-Repo layout
+Repository layout
 
-- `presentation/api`: FastAPI app, middleware, routes, in-memory state.
-- `services`: provider shims, Google provider scaffolding, LLM stubs, WhatsApp client.
-- `core`: memory store/retrieval/writer/policy/glue.
-- `supabase/migrations`: idempotent SQL migrations (oauth_tokens, profiles, core tables).
-- `web`: Next.js app (pages). Chat stand‑in at `/chat`.
-- `shared-ui`: small UI kit published via workspace alias `@ygt-assistant/ui`.
-- `docs`: reference docs and inventory/cutover plans.
+- `presentation/api`: FastAPI app, middleware, and routers (actions, brief/summary, queue, workroom, chat, connections, WhatsApp).
+- `services`: provider shims (Microsoft Graph, Notion, Google stub), LLM/testing helpers, WhatsApp client, translation/weather/news utilities.
+- `core`: memory store/retrieval/writer/policy/glue and triage engine used by `/actions/scan`.
+- `supabase/migrations`: SQL for oauth tokens, profiles, memory, and audit tables (optional).
+- `web`: Next.js app with Hub/Workroom and related pages; uses shared UI from `shared-ui`.
+- `docs`: reference docs, inventory, and cutover plans.
 
 Prerequisites
 
 - Python 3.11+; Node 18+; Supabase CLI (optional for DB push).
-- A Supabase project (optional during POC with in‑memory stores).
+- A Supabase project if `USE_DB=true` (otherwise in-memory repos are used).
 
 Environment
-Create `.env.local` at repo root (Microsoft-first):
+Create `.env.local` at repo root (Microsoft-first defaults):
 
 ```
 # Core
@@ -55,7 +51,7 @@ WEB_ORIGIN=http://localhost:3001
 ADMIN_UI_ORIGIN=http://localhost:3001
 CLIENT_UI_ORIGIN=http://localhost:3001
 
-# DB (optional; set USE_DB=true to enable)
+# DB (optional; set USE_DB=true to enable Supabase)
 USE_DB=false
 SUPABASE_URL=
 SUPABASE_API_SECRET=
@@ -65,6 +61,11 @@ MS_CLIENT_ID=
 MS_CLIENT_SECRET=
 MS_REDIRECT_URI=http://localhost:8000/connections/ms/oauth/callback
 MS_TENANT_ID=common
+
+# Notion OAuth
+NOTION_CLIENT_ID=
+NOTION_CLIENT_SECRET=
+NOTION_REDIRECT_URI=http://localhost:8000/oauth/notion/callback
 
 # WhatsApp (Meta) — optional
 WHATSAPP_VERIFY_TOKEN=
@@ -111,7 +112,8 @@ Smoke test:
 ```
 curl http://localhost:8000/health
 curl -X POST http://localhost:8000/chat -H 'Content-Type: application/json' -d '{"text":"scan"}'
-open http://localhost:3001/chat
+open http://localhost:3001/hub
+open http://localhost:3001/workroom
 ```
 
 Supabase migrations (optional)
@@ -142,46 +144,24 @@ make ms-test-cal USER_ID=local-user
 make live-smoke         # requires FEATURE_GRAPH_LIVE=true locally
 ```
 
-API surface (selected)
-
-- WhatsApp webhook verify/handler: `/whatsapp/webhook` (GET/POST)
-- Actions: `/actions/scan`, `/actions/approve/{id}`, `/actions/edit/{id}`, `/actions/skip/{id}`, `/actions/undo/{id}`
-- Email: `/email/drafts`, `/email/send/{draft_id}`, `/drafts`
-- Calendar: `/calendar/plan-today`, `/calendar/reschedule`
-- Core memory: `/core/context`, `/core/notes`, `/core/preview`
-- Chat stand‑in: `/chat` (scan/approve/skip text interface)
-- Connections (Microsoft): `/connections/ms/oauth/start|callback|status|disconnect`
-
-LLM scenarios (mock-only)
-
-```
-python -m llm_testing.runner --scenarios \
-  llm_testing/scenarios/plan_today_buffers.yaml \
-  llm_testing/scenarios/triage_sla.yaml \
-  llm_testing/scenarios/reschedule_ranked.yaml \
-  llm_testing/scenarios/reconnect_retry.yaml
-```
-
-See `docs/graph/01-live-slice.md` and `docs/graph/02-observability.md` for live flags and metrics.
-
 Design principles
 
-- Calm UI: one primary action per page, keyboard shortcuts, undo, history.
+- Calm UI: Hub/Workroom layouts focus on one primary action at a time with undo/history affordances.
 - Safety: request-id tracing; dev stubs avoid leaking secrets; no logging of message bodies or tokens.
-- Modularity: providers behind clean interfaces; env‑driven selection; feature flags.
+- Modularity: providers behind clean interfaces; env-driven selection; feature flags.
 
 Troubleshooting
 
-- Chat hangs in web: verify backend `/chat` returns 200; see terminal for dev server port (3001).
-- Module not found or hook errors: ensure `web/next.config.js` transpiles `@ygt-assistant/ui` and aliases React to `web/node_modules`.
-- ADMIN_SECRET error on startup: `.env.local` or `DEV_MODE=true` (dev auto-generates safe values).
+- Chat or Hub hangs: verify backend `/chat`, `/api/queue`, and `/api/schedule/today` return 200; ensure backend is on port 8000.
+- Next.js module resolution errors: ensure `web/next.config.js` transpiles `@ygt-assistant/ui` and aliases React to `web/node_modules`.
+- ADMIN_SECRET error on startup: set `.env.local` or `DEV_MODE=true` (dev auto-generates safe values).
 
-Roadmap
+Roadmap (near-term)
 
 - Harden Microsoft Graph providers with retries and metrics.
 - Persist approvals/drafts/history in DB when `USE_DB=true`.
-- WhatsApp cards end‑to‑end and reconnection UX.
-- Vector recall behind `CORE_ENABLE_VECTORS=true`.
+- Complete WhatsApp cards end-to-end and reconnection UX.
+- Enable vector recall behind `CORE_ENABLE_VECTORS=true` once embeddings store is wired to Postgres/pgvector.
 
 License
 

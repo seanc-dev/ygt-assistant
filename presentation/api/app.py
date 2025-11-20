@@ -15,7 +15,6 @@ except Exception:
 from fastapi import FastAPI, HTTPException, Request, Query, Depends, Response
 from pydantic import BaseModel, Field
 
-from utils.command_dispatcher import dispatch
 from core.services.triage_engine import EmailEnvelope, triage_email
 from dotenv import load_dotenv
 
@@ -26,17 +25,11 @@ except Exception:
     pass
 load_dotenv()
 from settings import (
-    VERIFY_NYLAS,
-    NYLAS_SIGNING_SECRET,
     TENANT_DEFAULT,
     MOCK_OAUTH,
     NOTION_CLIENT_ID,
     NOTION_CLIENT_SECRET,
     NOTION_REDIRECT_URI,
-    NYLAS_CLIENT_ID,
-    NYLAS_CLIENT_SECRET,
-    NYLAS_API_URL,
-    NYLAS_REDIRECT_URI,
     ENCRYPTION_KEY,
     ADMIN_EMAIL,
     ADMIN_SECRET,
@@ -46,8 +39,6 @@ from settings import (
     ENABLE_ADMIN,
 )
 from core.services.action_executor import execute_actions
-import hmac
-import hashlib
 import inspect
 import json
 import urllib.parse
@@ -175,7 +166,10 @@ except Exception:  # pragma: no cover
             return []
 
         def list_exists_for_tenants(self, ids: List[str]):
-            return {tid: {"notion": False, "nylas": False} for tid in ids}
+            return {
+                tid: {"notion": False, "microsoft": False, "google": False}
+                for tid in ids
+            }
 
     class connections_factory:  # type: ignore
         @staticmethod
@@ -197,6 +191,11 @@ import re
 from services.whatsapp import parse_webhook as _wa_parse
 from services.whatsapp import send_buttons as _wa_send_buttons
 from services.whatsapp import send_text as _wa_send_text
+from presentation.api.state import (
+    approvals_store as _approvals_store,
+    history_log as _history_log,
+    drafts_store as _drafts_store,
+)
 
 
 app = FastAPI(title="YGT Integration API", version="0.1.0")
@@ -207,9 +206,6 @@ _user_prefs_store: Dict[str, Dict[str, Any]] = {}
 _user_rules_store: Dict[str, List[Dict[str, Any]]] = {}
 # Dev-only in-memory actions store keyed by user_id
 _user_actions_store: Dict[str, List[Dict[str, Any]]] = {}
-_approvals_store: Dict[str, Dict[str, Any]] = {}
-_history_log: List[Dict[str, Any]] = []
-_drafts_store: Dict[str, Dict[str, Any]] = {}
 
 
 class DevEmailIn(BaseModel):
@@ -598,46 +594,6 @@ async def health() -> Dict[str, str]:
     return {"status": "ok"}
 
 
-class CalendarAction(BaseModel):
-    """Request model describing a calendar action to perform.
-
-    Attributes:
-        action: The calendar action, e.g. "create_event", "move_event", "delete_event".
-        details: Arbitrary details required by the action.
-        dry_run: If true, returns a plan without executing any side effects.
-    """
-
-    action: str = Field(..., description="create_event|move_event|delete_event")
-    details: Dict[str, Any] = Field(default_factory=dict)
-    dry_run: bool = False
-
-
-@app.post("/calendar/actions")
-async def calendar_actions(payload: CalendarAction) -> Dict[str, Any]:
-    """Execute or plan a calendar action via the existing dispatcher.
-
-    When ``dry_run`` is true, returns a plan without invoking the dispatcher.
-    """
-
-    if payload.dry_run:
-        return {
-            "dry_run": True,
-            "plan": {"action": payload.action, "details": payload.details},
-        }
-    try:
-        result = dispatch(payload.action, payload.details)
-        return {"ok": True, "result": result}
-    except Exception as exc:  # pragma: no cover - behavior is surfaced via HTTP status
-        raise HTTPException(status_code=400, detail=str(exc))
-
-
-def _valid_nylas_sig(raw_body: bytes, provided_sig: str, secret: str) -> bool:
-    if not secret:
-        return True
-    mac = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(mac, provided_sig or "")
-
-
 def _require_admin(req: Request):
     tok = req.cookies.get(cookie_name(), "")
     email = verify_session(tok) or ""
@@ -646,42 +602,12 @@ def _require_admin(req: Request):
     return email
 
 
-@app.get("/webhooks/nylas")
-async def nylas_challenge(challenge: str = Query("")):
-    """Handle Nylas webhook challenge verification."""
-    # Nylas verifies webhook by GET ?challenge=<token>; echo it
-    return Response(content=challenge, media_type="text/plain")
-
-
-@app.post("/webhooks/nylas")
-async def nylas_webhook(req: Request) -> Dict[str, Any]:
-    body = await req.body()
-    # Read verification flags dynamically; disable during pytest
-    is_pytest = bool(os.getenv("PYTEST_CURRENT_TEST"))
-    verify_flag = os.getenv("VERIFY_NYLAS", "false").lower() == "true"
-    secret = os.getenv("NYLAS_SIGNING_SECRET", "")
-    provided = req.headers.get("X-Nylas-Signature", "")
-    if verify_flag and provided:
-        if not _valid_nylas_sig(body, provided, secret):
-            raise HTTPException(status_code=401, detail="invalid_signature")
-    try:
-        payload = json.loads(body.decode() or "{}")
-    except Exception:
-        payload = {}
-    evt_type = payload.get("type")
-    if evt_type == "email.created":
-        msg = payload.get("data", {})
-        env = EmailEnvelope(
-            message_id=str(msg.get("id", "")),
-            sender=str((msg.get("from") or [{}])[0].get("email", "")),
-            subject=str(msg.get("subject", "")),
-            body_text=str(msg.get("snippet", "") or msg.get("body", "")),
-            received_at=str(msg.get("date", "")),
-        )
-        triaged = triage_email(env)
-        return {"ok": True, "triage": triaged.dict()}
-    return {"ok": True, "ignored": True}
-
+def _require_admin(req: Request):
+    tok = req.cookies.get(cookie_name(), "")
+    email = verify_session(tok) or ""
+    if not email:
+        raise HTTPException(status_code=401, detail="unauthorized")
+    return email
 
 # WhatsApp webhook verification and handler
 @app.get("/whatsapp/webhook")
@@ -1908,31 +1834,21 @@ async def audit_get(request_id: str, _: str = Depends(_require_admin)):
 
 @app.get("/oauth/start")
 async def oauth_start(
-    provider: str = Query(..., pattern="^(notion|nylas)$"),
+    provider: str = Query(..., pattern="^(notion)$"),
     tenant_id: str = Query(TENANT_DEFAULT),
 ) -> Dict[str, Any]:
     state = state_store.new(provider, tenant_id)
-    if provider == "notion":
-        base = "https://api.notion.com/v1/oauth/authorize"
-        dynamic_client_id = (
-            os.getenv("NOTION_CLIENT_ID") or NOTION_CLIENT_ID or "test_client_id"
-        )
-        query = {
-            "client_id": dynamic_client_id,
-            "response_type": "code",
-            "redirect_uri": NOTION_REDIRECT_URI,
-            "owner": "user",
-            "state": state,
-        }
-    else:
-        base = f"{NYLAS_API_URL}/v3/connect/auth"
-        query = {
-            "client_id": NYLAS_CLIENT_ID or "test_client_id",
-            "response_type": "code",
-            "redirect_uri": NYLAS_REDIRECT_URI,
-            "scope": "email.read_only calendar",
-            "state": state,
-        }
+    base = "https://api.notion.com/v1/oauth/authorize"
+    dynamic_client_id = (
+        os.getenv("NOTION_CLIENT_ID") or NOTION_CLIENT_ID or "test_client_id"
+    )
+    query = {
+        "client_id": dynamic_client_id,
+        "response_type": "code",
+        "redirect_uri": NOTION_REDIRECT_URI,
+        "owner": "user",
+        "state": state,
+    }
     return {"state": state, "authorize_url": f"{base}?{urllib.parse.urlencode(query)}"}
 
 
@@ -1948,7 +1864,7 @@ async def oauth_callback(data: OAuthCallbackIn) -> Dict[str, Any]:
     if not ctx or ctx.get("provider") != data.provider:
         raise HTTPException(status_code=401, detail="invalid_state")
     tenant_id = ctx["tenant_id"]
-    if MOCK_OAUTH or data.provider not in ("notion", "nylas"):
+    if MOCK_OAUTH or data.provider not in ("notion",):
         access_token = f"mock_access_token_for_{data.provider}"
         refresh_token = f"mock_refresh_token_for_{data.provider}"
     else:
@@ -1969,153 +1885,6 @@ async def oauth_callback(data: OAuthCallbackIn) -> Dict[str, Any]:
     return {"ok": True, "tenant_id": tenant_id, "provider": data.provider}
 
 
-# Nylas Hosted Auth endpoints
-@app.get("/oauth/nylas/start")
-async def nylas_oauth_start(
-    provider: str = Query(..., pattern="^(google|microsoft)$"),
-    tenant_id: str = Query(TENANT_DEFAULT),
-) -> RedirectResponse:
-    """Start Nylas OAuth flow for Google or Microsoft."""
-
-    # Generate CSRF state and store it
-    state = state_store.new(
-        f"nylas_{provider}", tenant_id, extra={"provider": provider}
-    )
-
-    # Provider-specific scopes
-    scopes = {
-        "google": "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly",
-        "microsoft": "https://graph.microsoft.com/calendars.readwrite https://graph.microsoft.com/mail.read",
-    }
-
-    # Build Nylas OAuth URL
-    params = {
-        "client_id": NYLAS_CLIENT_ID,
-        "provider": provider,
-        "redirect_uri": NYLAS_REDIRECT_URI,
-        "response_type": "code",
-        "state": state,
-        "scope": scopes[provider],
-    }
-
-    auth_url = f"{NYLAS_API_URL}/v3/connect/auth?{urllib.parse.urlencode(params)}"
-
-    return RedirectResponse(url=auth_url, status_code=302)
-
-
-@app.get("/oauth/nylas/callback")
-async def nylas_oauth_callback(
-    code: Optional[str] = Query(default=None),
-    state: Optional[str] = Query(default=None),
-    provider: Optional[str] = Query(default=None, pattern="^(google|microsoft)$"),
-) -> RedirectResponse:
-    """Handle Nylas OAuth callback and exchange code for tokens."""
-
-    # Validate presence (provider may be omitted by Nylas; infer from state)
-    if not code or not state:
-        return RedirectResponse(
-            url=f"{ADMIN_UI_ORIGIN}/oauth/error?reason=missing_code_or_state",
-            status_code=302,
-        )
-
-    # Validate state and infer provider when not provided
-    stored_state = state_store.pop(state)
-    if not stored_state:
-        raise HTTPException(status_code=400, detail="invalid_state")
-    effective_provider = stored_state.get("provider")
-    if provider and provider != effective_provider:
-        raise HTTPException(status_code=400, detail="invalid_state")
-    provider = provider or effective_provider
-
-    tenant_id = stored_state.get("tenant_id", TENANT_DEFAULT)
-
-    if MOCK_OAUTH:
-        # Mock mode for testing
-        grant_id = f"mock_grant_{secrets.token_hex(8)}"
-        email = f"test@{provider}.com"
-        scopes = ["calendar", "email"]
-
-        access_token = f"mock_access_{secrets.token_hex(16)}"
-        refresh_token = f"mock_refresh_{secrets.token_hex(16)}"
-        grant = NylasGrant(
-            grant_id=grant_id,
-            provider=provider,
-            email=email,
-            scopes=scopes,
-            access_token=access_token,
-            refresh_token=refresh_token,
-        )
-    else:
-        # Real Nylas token exchange
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{NYLAS_API_URL}/v3/connect/token",
-                    data={
-                        "client_id": NYLAS_CLIENT_ID,
-                        "client_secret": NYLAS_CLIENT_SECRET,
-                        "code": code,
-                        "grant_type": "authorization_code",
-                        "redirect_uri": NYLAS_REDIRECT_URI,
-                    },
-                    headers={"Content-Type": "application/x-www-form-urlencoded"},
-                )
-                response.raise_for_status()
-                token_data = response.json()
-        except httpx.HTTPError as e:
-            raise HTTPException(
-                status_code=400, detail=f"token_exchange_failed: {str(e)}"
-            )
-
-        # Extract grant info from Nylas response
-        grant_id = token_data.get("grant_id")
-        email = token_data.get("email")
-        scopes = token_data.get("scope", "").split()
-        access_token = token_data.get("access_token")
-        refresh_token = token_data.get("refresh_token")
-
-        if not grant_id or not email:
-            raise HTTPException(status_code=400, detail="invalid_token_response")
-
-        grant = NylasGrant(
-            grant_id=grant_id,
-            provider=provider,
-            email=email,
-            scopes=scopes,
-            access_token=access_token,
-            refresh_token=refresh_token,
-        )
-
-    # Persist grant
-    grants_repo = nylas_grants_repo()
-    grants_repo.create(grant)
-
-    # Also persist connection for glanceable UI status and future API usage
-    try:
-        f, _ = fernet_from(ENCRYPTION_KEY)
-        conn_repo = connections_factory.repo()
-        conn_repo.upsert(
-            tenant_id=tenant_id,
-            provider="nylas",
-            access_token_encrypted=encrypt(f, access_token),
-            refresh_token_encrypted=(
-                encrypt(f, refresh_token) if refresh_token else None
-            ),
-            meta={
-                "grant_id": grant.grant_id,
-                "email": grant.email,
-                "scopes": grant.scopes,
-            },
-        )
-    except Exception:
-        # Non-fatal; connection presence affects badges but should not break OAuth
-        pass
-
-    # State already cleaned up by pop() above
-
-    # Redirect to client-ui success page for end-user UX
-    success_url = f"{CLIENT_UI_ORIGIN}/oauth/success?provider={provider}&email={urllib.parse.quote(grant.email)}&tenant_id={urllib.parse.quote(tenant_id)}"
-    return RedirectResponse(url=success_url, status_code=302)
 
 
 class AdminLoginIn(BaseModel):
@@ -2230,14 +1999,14 @@ async def admin_list_tenants(_: str = Depends(_require_admin)):
         has_client_email = bool(st.get("client_email"))
         flags = conn_flags.get(tid) or {}
         has_notion = bool(flags.get("notion"))
-        has_nylas = bool(flags.get("nylas"))
-        complete = has_client_email and has_db_ids and has_notion and has_nylas
+        has_ms = bool(flags.get("microsoft"))
+        complete = has_client_email and has_db_ids and has_notion
         overall = (
             "complete"
             if complete
             else (
                 "partial"
-                if any([has_client_email, has_db_ids, has_notion, has_nylas])
+                if any([has_client_email, has_db_ids, has_notion])
                 else "blocked"
             )
         )
@@ -2248,7 +2017,7 @@ async def admin_list_tenants(_: str = Depends(_require_admin)):
                     "has_client_email": has_client_email,
                     "has_db_ids": has_db_ids,
                     "has_notion_connection": has_notion,
-                    "has_nylas_connection": has_nylas,
+                    "has_ms_connection": has_ms,
                     "overall_status": overall,
                 },
             }
@@ -2347,14 +2116,14 @@ async def admin_get_config(tenant_id: str, _: str = Depends(_require_admin)):
     )
     has_client_email = bool((s or {}).get("client_email"))
     has_notion = bool(crep.list_for_tenant(tenant_id, "notion"))
-    has_nylas = bool(crep.list_for_tenant(tenant_id, "nylas"))
-    complete = has_client_email and has_db_ids and has_notion and has_nylas
+    has_ms = bool(crep.list_for_tenant(tenant_id, "microsoft"))
+    complete = has_client_email and has_db_ids and has_notion
     overall = (
         "complete"
         if complete
         else (
             "partial"
-            if any([has_client_email, has_db_ids, has_notion, has_nylas])
+            if any([has_client_email, has_db_ids, has_notion])
             else "blocked"
         )
     )
@@ -2386,7 +2155,7 @@ async def admin_get_config(tenant_id: str, _: str = Depends(_require_admin)):
             "has_client_email": has_client_email,
             "has_db_ids": has_db_ids,
             "has_notion_connection": has_notion,
-            "has_nylas_connection": has_nylas,
+            "has_ms_connection": has_ms,
             "overall_status": overall,
         },
     }
@@ -2540,27 +2309,17 @@ async def admin_triage_dry_run(
 
 @app.get("/connect")
 async def connect(provider: str, tenant_id: str = TENANT_DEFAULT):
-    if provider not in ("notion", "nylas"):
+    if provider != "notion":
         raise HTTPException(status_code=400, detail="unsupported_provider")
     state = state_store.new(provider, tenant_id)
-    if provider == "notion":
-        base = "https://api.notion.com/v1/oauth/authorize"
-        query = {
-            "client_id": NOTION_CLIENT_ID or "test_client_id",
-            "response_type": "code",
-            "redirect_uri": NOTION_REDIRECT_URI,
-            "owner": "user",
-            "state": state,
-        }
-    else:
-        base = f"{NYLAS_API_URL}/v3/connect/auth"
-        query = {
-            "client_id": NYLAS_CLIENT_ID or "test_client_id",
-            "response_type": "code",
-            "redirect_uri": NYLAS_REDIRECT_URI,
-            "scope": "email.read_only calendar",
-            "state": state,
-        }
+    base = "https://api.notion.com/v1/oauth/authorize"
+    query = {
+        "client_id": NOTION_CLIENT_ID or "test_client_id",
+        "response_type": "code",
+        "redirect_uri": NOTION_REDIRECT_URI,
+        "owner": "user",
+        "state": state,
+    }
     url = f"{base}?{urllib.parse.urlencode(query)}"
     return RedirectResponse(url=url, status_code=307)
 
@@ -2610,8 +2369,7 @@ async def admin_send_invite(
     base = str(req.base_url).rstrip("/")
     links = {
         "notion": f"{base}/connect?provider=notion&tenant_id={tenant_id}",
-        # Prefer hosted Nylas start which issues state and redirects to login.nylas.com
-        "nylas": f"{base}/oauth/nylas/start?provider=google&tenant_id={tenant_id}",
+        "microsoft": f"{base}/connections/ms/oauth/start?tenant={tenant_id}",
     }
     # Resolve tenant name for friendlier email greeting
     try:
@@ -2702,10 +2460,17 @@ async def admin_debug_oauth(_: str = Depends(_require_admin)):
             ),
             "redirect_uri": NOTION_REDIRECT_URI,
         },
-        "nylas": {
-            "client_id_present": bool(NYLAS_CLIENT_ID),
-            "redirect_uri": NYLAS_REDIRECT_URI,
-            "api_url": NYLAS_API_URL,
+        "microsoft": {
+            "client_id_present": bool(os.getenv("MS_CLIENT_ID")),
+            "redirect_uri": os.getenv("MS_REDIRECT_URI", ""),
+        },
+        "google": {
+            "client_id_present": bool(
+                os.getenv("GMAIL_CLIENT_ID") or os.getenv("GOOGLE_CLIENT_ID")
+            ),
+            "redirect_uri": os.getenv("GMAIL_REDIRECT_URI")
+            or os.getenv("GOOGLE_REDIRECT_URI")
+            or "",
         },
     }
 
@@ -2860,13 +2625,6 @@ async def legacy_oauth_callback(
         return RedirectResponse(
             url=f"{base}/oauth/notion/callback?code={urllib.parse.quote(code)}&state={urllib.parse.quote(state)}",
             status_code=307,
-        )
-    if provider == "nylas":
-        # Classic Nylas (non-hosted) flows used /oauth/callback; redirect is not applicable here.
-        # Prefer the existing hosted callback route when applicable.
-        return RedirectResponse(
-            url=f"{ADMIN_UI_ORIGIN}/oauth/error?reason=use_nylas_hosted",
-            status_code=302,
         )
     return RedirectResponse(
         url=f"{ADMIN_UI_ORIGIN}/oauth/error?reason=unsupported_provider",

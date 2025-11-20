@@ -1,19 +1,21 @@
-# CoachFlow
+# LucidWork docs
 
-CoachFlow integrates Notion, email, and calendars with an LLM-assisted workflow to propose triage actions you can approve via the admin portal. It uses Nylas for email/calendar, Notion API for data, Postmark for email, and OpenAI for LLM features. The API is FastAPI on Fly.io; the site is Next.js on Vercel.
+LucidWork (working name) is a FastAPI + Next.js workspace focused on Microsoft Graph-first email/calendar flows, a Hub control room, and a Workroom for project/task navigation. Notion OAuth is supported for context; Google connectors are experimental. All envs default to in-memory repos unless `USE_DB=true` enables the Supabase/Postgres layer.
 
-For detailed architecture, see `docs/CODEBASE_OVERVIEW.md`.
+See `docs/CODEBASE_OVERVIEW.md` for architecture and `README.md` for setup.
 
-## Quick Start
+## Quick start
 
 ```bash
-git clone https://github.com/seanc-dev/coach-flow-app.git
-cd coach-flow-app
-pip install -r requirements.txt
-cp env.production.sample .env
-# Fill in secrets
-uvicorn presentation.api.app:app --reload
+python -m pip install -r requirements.txt
+PYTHONPATH=. uvicorn presentation.api.app:app --reload --port 8000
+
+cd web
+npm install
+npm run dev
 ```
+
+Then open `http://localhost:3001/hub`.
 
 ## Tests
 
@@ -23,9 +25,9 @@ pytest -q
 
 ## Deploy
 
-- Fly app: `coach-flow-app`
-- `flyctl deploy`
+- FastAPI backend: Fly.io-ready `Dockerfile` + `fly.toml`
+- Web app: Next.js (Pages router) deployable to Vercel or any Node host
 
 ---
 
-The remainder of this document refers to internal testing utilities in `llm_testing/`. These tools are optional and not required for production.
+Internal utilities in `llm_testing/` help exercise LLM-driven flows; they are optional for day-to-day development.

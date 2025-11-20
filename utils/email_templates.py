@@ -10,7 +10,7 @@ def render_onboarding_email(
 Please connect your accounts so we can get you up and running:
 
 - Connect Notion: {links.get('notion')}
-- Connect Email/Calendar: {links.get('nylas')}
+- Connect Email/Calendar (Microsoft): {links.get('microsoft')}
 
 {note or ''}
 
@@ -21,7 +21,7 @@ Coach Flow"""
 <p>Please connect your accounts so we can get you up and running:</p>
 <ul>
   <li><a href="{links.get('notion')}">Connect Notion</a></li>
-  <li><a href="{links.get('nylas')}">Connect Email/Calendar</a></li>
+  <li><a href="{links.get('microsoft')}">Connect Email/Calendar (Microsoft)</a></li>
   </ul>
 <p>{note or ''}</p>
 <p>Thanks,<br/>Sean<br/>Coach Flow</p>"""
