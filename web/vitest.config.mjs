@@ -25,6 +25,8 @@ export default defineConfig({
     hookTimeout: 30000,
     // Increase memory limits for large component tests
     isolate: false, // Disable isolation to reduce memory overhead
+    // Exclude Playwright e2e tests - they should be run separately
+    exclude: ["**/node_modules/**", "**/dist/**", "**/tests/e2e/**"],
   },
   resolve: {
     alias: {
