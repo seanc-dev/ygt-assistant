@@ -416,23 +416,6 @@ async def assistant_suggest_for_action(
     if not thread_id and action.get("thread_id"):
         thread_id = action["thread_id"]
     
-    # Aggregate pending user messages if thread_id provided
-    input_messages = None
-    if thread_id:
-        # Acquire lock for this thread to prevent concurrent processing
-        thread_lock = await _get_thread_lock(thread_id)
-        async with thread_lock:
-            # Get pending user messages since last assistant response
-            pending_messages = workroom.get_pending_user_messages(thread_id, user_id)
-            if pending_messages:
-                input_messages = [msg.get("content", "") for msg in pending_messages]
-    
-    # Fallback to single message if no thread_id or no pending messages
-    if not input_messages:
-        if not body.message:
-            raise HTTPException(status_code=400, detail="Either message or thread_id must be provided")
-        input_messages = [body.message]
-    
     # Build context for resolution (shared across pipeline)
     from core.services.llm_context_builder import build_context_for_user
     
@@ -443,86 +426,116 @@ async def assistant_suggest_for_action(
     )
 
     context_thread_id = thread_id or f"action:{action_id}"
-    thread_context = load_thread_context(context_thread_id)
-    ui_context = UiContext(
-        mode="hub",
-        hub_suggested_task_id=action.get("task_id"),
-    )
-
-    latest_message = input_messages[-1] if input_messages else ""
-    parsed_message = parse_message_with_tokens(latest_message)
-    validation_ok: Optional[ValidationOk] = None
-
-    if input_messages:
-        llm_input_messages = list(input_messages)
-        llm_input_messages[-1] = parsed_message.llm_text
-    else:
-        llm_input_messages = [parsed_message.llm_text]
-
-    if parsed_message.references or parsed_message.operations:
-        validation_result = validate_parsed_message(
-            parsed_message,
-            user_context={
-                "userId": user_id,
-                "tenantId": tenant_id,
-                "threadContext": thread_context.to_dict(),
-            },
+    
+    # Define a helper function to execute the operation pipeline
+    async def execute_pipeline():
+        # Aggregate pending user messages if thread_id provided
+        input_messages = None
+        if thread_id:
+            # Get pending user messages since last assistant response
+            pending_messages = workroom.get_pending_user_messages(thread_id, user_id)
+            if pending_messages:
+                input_messages = [msg.get("content", "") for msg in pending_messages]
+        
+        # Fallback to single message if no thread_id or no pending messages
+        if not input_messages:
+            if not body.message:
+                raise HTTPException(status_code=400, detail="Either message or thread_id must be provided")
+            input_messages = [body.message]
+        
+        thread_context = load_thread_context(context_thread_id)
+        ui_context = UiContext(
+            mode="hub",
+            hub_suggested_task_id=action.get("task_id"),
         )
-        if isinstance(validation_result, ValidationOk):
-            validation_ok = validation_result
-            thread_context = update_thread_context_with_refs(
-                thread_context, parsed_message.references
-            )
+
+        latest_message = input_messages[-1] if input_messages else ""
+        parsed_message = parse_message_with_tokens(latest_message)
+        validation_ok: Optional[ValidationOk] = None
+
+        if input_messages:
+            llm_input_messages = list(input_messages)
+            llm_input_messages[-1] = parsed_message.llm_text
         else:
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "error": "token_validation_failed",
-                    "code": getattr(validation_result, "error_code", "UNKNOWN"),
-                    "details": getattr(validation_result, "details", {}),
+            llm_input_messages = [parsed_message.llm_text]
+
+        if parsed_message.references or parsed_message.operations:
+            validation_result = validate_parsed_message(
+                parsed_message,
+                user_context={
+                    "userId": user_id,
+                    "tenantId": tenant_id,
+                    "threadContext": thread_context.to_dict(),
                 },
             )
+            if isinstance(validation_result, ValidationOk):
+                validation_ok = validation_result
+                thread_context = update_thread_context_with_refs(
+                    thread_context, parsed_message.references
+                )
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "error": "token_validation_failed",
+                        "code": getattr(validation_result, "error_code", "UNKNOWN"),
+                        "details": getattr(validation_result, "details", {}),
+                    },
+                )
 
-    focus_candidates = resolve_focus_candidates(thread_context, ui_context, parsed_message)
-    contract_payload = build_contract_payload(
-        parsed_message=parsed_message,
-        thread_context=thread_context,
-        ui_context=ui_context,
-        focus_candidates=focus_candidates,
-        validation=validation_ok,
-        context=context,
-    )
+        focus_candidates = resolve_focus_candidates(thread_context, ui_context, parsed_message)
+        contract_payload = build_contract_payload(
+            parsed_message=parsed_message,
+            thread_context=thread_context,
+            ui_context=ui_context,
+            focus_candidates=focus_candidates,
+            validation=validation_ok,
+            context=context,
+        )
+        
+        # Propose operations with aggregated messages
+        operations = llm_service.propose_ops_for_user(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            input_messages=llm_input_messages,
+            focus_action_id=action_id,
+            context_override=context,
+            contract_payload=contract_payload,
+        )
+
+        # Convert to typed operations for executor
+        from core.domain.llm_ops import validate_operation
+        typed_ops = []
+        for op_dict in operations:
+            try:
+                op = validate_operation(op_dict)
+                typed_ops.append(op)
+            except ValueError as e:
+                logger.warning(f"Invalid operation skipped: {e}")
+
+        # Execute with trust gating and context for resolution
+        result = execute_ops(
+            typed_ops,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            trust_mode=trust_mode,
+            thread_id=thread_id,
+            context=context,
+        )
+        save_thread_context(context_thread_id, thread_context)
+        
+        return operations, result
     
-    # Propose operations with aggregated messages
-    operations = llm_service.propose_ops_for_user(
-        tenant_id=tenant_id,
-        user_id=user_id,
-        input_messages=llm_input_messages,
-        focus_action_id=action_id,
-        context_override=context,
-        contract_payload=contract_payload,
-    )
-
-    # Convert to typed operations for executor
-    from core.domain.llm_ops import validate_operation
-    typed_ops = []
-    for op_dict in operations:
-        try:
-            op = validate_operation(op_dict)
-            typed_ops.append(op)
-        except ValueError as e:
-            logger.warning(f"Invalid operation skipped: {e}")
-
-    # Execute with trust gating and context for resolution
-    result = execute_ops(
-        typed_ops,
-        tenant_id=tenant_id,
-        user_id=user_id,
-        trust_mode=trust_mode,
-        thread_id=thread_id,
-        context=context,
-    )
-    save_thread_context(context_thread_id, thread_context)
+    # Execute pipeline with thread lock if thread_id is present
+    if thread_id:
+        # Acquire lock for this thread to prevent concurrent processing
+        # Lock wraps entire pipeline: message reading, LLM calls, operation execution, and context save
+        thread_lock = await _get_thread_lock(thread_id)
+        async with thread_lock:
+            operations, result = await execute_pipeline()
+    else:
+        # No thread_id, execute without lock
+        operations, result = await execute_pipeline()
     
     # Refresh action item
     try:

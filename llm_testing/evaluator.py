@@ -479,10 +479,10 @@ def offline_eval(
         if not snapshot_result["match"]:
             if use_fixtures:
                 # With fixtures, transcript should be deterministic (infrastructure testing)
-            ok = False
-            reasons.append(
-                f"snapshot_mismatch: {snapshot_result.get('diff', '')[:200]}"
-            )
+                ok = False
+                reasons.append(
+                    f"snapshot_mismatch: {snapshot_result.get('diff', '')[:200]}"
+                )
             else:
                 # With live LLM, transcript content varies - just warn (expected for chat responses)
                 reasons.append(
@@ -651,7 +651,7 @@ def evaluate(report_path: str) -> Dict[str, Any]:
             }
             if use_fixtures:
                 # With fixtures, transcript should be deterministic (infrastructure testing)
-            ok = False
+                ok = False
             # With live LLM, snapshot mismatch is expected (chat responses vary)
         
         result = {
