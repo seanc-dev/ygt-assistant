@@ -65,7 +65,7 @@ export function Navigator({
   // Expand selected project on mount
   useEffect(() => {
     if (selectedProjectId) {
-      setExpandedProjects((prev) => new Set([...prev, selectedProjectId]));
+      setExpandedProjects(new Set([selectedProjectId]));
     }
   }, [selectedProjectId]);
 
@@ -86,13 +86,10 @@ export function Navigator({
 
   const toggleProject = (projectId: string) => {
     setExpandedProjects((prev) => {
-      const next = new Set(prev);
-      if (next.has(projectId)) {
-        next.delete(projectId);
-      } else {
-        next.add(projectId);
+      if (prev.has(projectId)) {
+        return new Set();
       }
-      return next;
+      return new Set([projectId]);
     });
   };
 

@@ -44,5 +44,5 @@ steps:
     expect:
       status: 409
       jsonpath:
-        "detail.stock_message": "This project already has a task with that name. Would you like to name it something else?"
+        "detail.assistant_message": "This project already has a task with that name. Would you like to name it something else?"
 

@@ -3,9 +3,8 @@ import { render, screen } from "@testing-library/react";
 import { AssistantChat } from "../AssistantChat";
 import { api } from "../../../lib/api";
 
-// Mock SWR
-vi.mock("swr", () => ({
-  default: vi.fn(() => ({
+const mockUseSWR = vi.hoisted(() =>
+  vi.fn(() => ({
     data: {
       ok: true,
       thread: {
@@ -15,7 +14,14 @@ vi.mock("swr", () => ({
     },
     mutate: vi.fn(),
     isLoading: false,
-  })),
+  }))
+);
+
+// Mock SWR
+vi.mock("swr", () => ({
+  __esModule: true,
+  default: mockUseSWR,
+  useSWR: mockUseSWR,
 }));
 
 // Mock API
@@ -26,6 +32,13 @@ vi.mock("../../../lib/api", () => ({
     createThreadFromAction: vi.fn(),
     assistantSuggestForAction: vi.fn(),
     assistantSuggestForTask: vi.fn(),
+  },
+}));
+
+vi.mock("../../../lib/workroomApi", () => ({
+  workroomApi: {
+    getProjects: vi.fn().mockResolvedValue({ ok: true, projects: [] }),
+    getTasks: vi.fn().mockResolvedValue({ ok: true, tasks: [] }),
   },
 }));
 

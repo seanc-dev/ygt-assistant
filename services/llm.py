@@ -224,6 +224,8 @@ def propose_ops_for_user(
     focus_action_id: Optional[str] = None,
     focus_task_id: Optional[str] = None,
     use_tools: bool = True,
+    context_override: Optional[Dict[str, Any]] = None,
+    contract_payload: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """Propose LLM operations for a user based on their message(s) and context.
 
@@ -235,6 +237,8 @@ def propose_ops_for_user(
         focus_action_id: Optional action ID to focus on
         focus_task_id: Optional task ID to focus on
         use_tools: If True, use OpenAI function calling; else use JSON-only mode
+        context_override: Precomputed context dict (skips redundant DB fetches)
+        contract_payload: Structured token/context information from the caller
 
     Returns:
         List of operation dicts: [{"op": "...", "params": {...}}, ...]
@@ -247,13 +251,39 @@ def propose_ops_for_user(
     from core.services.llm_context_builder import build_context_for_user
     from core.domain.llm_ops import parse_operations_response
 
-    # Build context
-    context = build_context_for_user(
+    # Build or reuse context snapshot
+    context = context_override or build_context_for_user(
         tenant_id,
         user_id,
         focus_action_id=focus_action_id,
         focus_task_id=focus_task_id,
     )
+
+    focus_item = context.get("focus_item") if context else None
+    current_project_name = None
+    if focus_item and focus_item.get("type") == "task":
+        focus_task_id_from_context = focus_item.get("id")
+        focus_task = next(
+            (
+                t
+                for t in context.get("tasks", [])
+                if t.get("id") == focus_task_id_from_context
+            ),
+            None,
+        )
+        if focus_task:
+            project_id = focus_task.get("project_id")
+            project = next(
+                (p for p in context.get("projects", []) if p.get("id") == project_id),
+                None,
+            )
+            if project:
+                current_project_name = project.get("name") or None
+
+    if current_project_name:
+        current_project_label = f'"{current_project_name}"'
+    else:
+        current_project_label = "the current project shown in the UI"
 
     # LLM_TESTING_MODE: return deterministic fixture operations
     if os.getenv("LLM_TESTING_MODE", "false").lower() in {"1", "true", "yes", "on"}:
@@ -427,13 +457,19 @@ def propose_ops_for_user(
         client = openai.OpenAI(api_key=api_key)
 
         # Build system prompt
-        system_prompt = """You are a helpful assistant that helps users manage their work.
+        system_prompt = f"""You are a helpful assistant that helps users manage their work.
 You can propose operations to create tasks, update task status, link actions to tasks, update action states, and delete projects or tasks.
 Always respond with a JSON object containing an "operations" array.
 Each operation must have an "op" field and a "params" field.
 
 CRITICAL: Use semantic references (names, titles, "current project", "this task") instead of UUIDs or IDs.
 NEVER output UUIDs, IDs, or placeholders like "current_project_id". Use human-readable identifiers.
+
+PROJECT CONTEXT RULES:
+- The current project is {current_project_label}. Assume any task-related request refers to this project unless the user explicitly names a different one.
+- When the user confirms a task belongs to {current_project_label}, proceed with the requested operation.
+- If the user explicitly asks to work in another project (e.g., "Create a task in Project ABC"), respond with a chat operation such as: "I can only act on tasks within {current_project_label}. To work with Project ABC, please navigate to a chat within that project." Do NOT emit create_task, update_task_status, delete_task, or link_action_to_task operations for the other project.
+- When creating tasks, ALWAYS use "project": "current project" in the params—never insert the other project's name.
 
 Allowed enum values (adhere exactly):
 - priority: low | medium | high | urgent
@@ -442,13 +478,13 @@ Allowed enum values (adhere exactly):
 If the user requests something outside these lists, ask for a valid option or choose the closest allowed value and mention the adjustment.
 
 Available operations:
-- chat: {"op": "chat", "params": {"message": "..."}}
-- create_task: {"op": "create_task", "params": {"title": "...", "project": "project name or 'current project'", "description": "...", "priority": "low|medium|high|urgent", "from_action": "action preview"}}
-- update_task_status: {"op": "update_task_status", "params": {"task": "task title or 'this task'", "status": "backlog|ready|doing|blocked|done|todo"}}
-- link_action_to_task: {"op": "link_action_to_task", "params": {"action": "action preview", "task": "task title"}}
-- update_action_state: {"op": "update_action_state", "params": {"action": "action preview", "state": "queued|deferred|completed|dismissed|converted_to_task", "defer_until": "...", "added_to_today": true/false}}
-- delete_project: {"op": "delete_project", "params": {"projects": ["project name 1", "project name 2", ...]}}
-- delete_task: {"op": "delete_task", "params": {"tasks": ["task title 1", "task title 2", ...]}}
+- chat: {{"op": "chat", "params": {{"message": "..."}}}}
+- create_task: {{"op": "create_task", "params": {{"title": "...", "project": "'current project'", "description": "...", "priority": "low|medium|high|urgent", "from_action": "action preview"}}}}
+- update_task_status: {{"op": "update_task_status", "params": {{"task": "task title or 'this task'", "status": "backlog|ready|doing|blocked|done|todo"}}}}
+- link_action_to_task: {{"op": "link_action_to_task", "params": {{"action": "action preview", "task": "task title"}}}}
+- update_action_state: {{"op": "update_action_state", "params": {{"action": "action preview", "state": "queued|deferred|completed|dismissed|converted_to_task", "defer_until": "...", "added_to_today": true/false}}}}
+- delete_project: {{"op": "delete_project", "params": {{"projects": ["project name 1", "project name 2", ...]}}}}
+- delete_task: {{"op": "delete_task", "params": {{"tasks": ["task title 1", "task title 2", ...]}}}}
 
 Semantic reference rules:
 - For projects: Use the project name (e.g., "Launch Readiness") or "current project" if referring to the focus task's project
@@ -457,18 +493,18 @@ Semantic reference rules:
 - If context shows duplicate names, ask the user to clarify before proposing operations (e.g., "There are two tasks named 'Review Q4 metrics' - which one?")
 
 Important notes:
-- When deleting multiple items, use a single operation with a list of names (e.g., {"op": "delete_project", "params": {"projects": ["Project A", "Project B"]}})
+- When deleting multiple items, use a single operation with a list of names (e.g., {{"op": "delete_project", "params": {{"projects": ["Project A", "Project B"]}}}})
 - Deleting a project will also delete all tasks in that project (cascade deletion)
 - Deletion is soft delete (items are archived, not permanently removed)
 - Check the provided context for available projects, tasks, and actions before proposing operations
 
 Respond ONLY with JSON matching this schema:
-{
+{{
   "operations": [
-    {"op": "...", "params": {...}},
+    {{"op": "...", "params": {{...}}}},
     ...
   ]
-}
+}}
 """
 
         # Build user message with context - aggregate multiple messages if provided
@@ -482,6 +518,59 @@ Respond ONLY with JSON matching this schema:
             user_content = f"""User messages:
 {messages_text}"""
 
+        if contract_payload:
+            metadata = contract_payload.get("candidate_metadata", {})
+            tasks_meta = metadata.get("tasks", {})
+            projects_meta = metadata.get("projects", {})
+            actions_meta = metadata.get("actions", {})
+            structured_lines: List[str] = []
+
+            for ref in contract_payload.get("resolved_references", []):
+                display_name = (
+                    ref.get("meta", {}).get("name")
+                    or ref.get("record", {}).get("title")
+                    or ref.get("record", {}).get("name")
+                    or ref.get("record", {}).get("preview")
+                    or ref.get("id")
+                )
+                structured_lines.append(
+                    f"- {ref.get('placeholder')}: {ref.get('type')} → {display_name} ({ref.get('id')})"
+                )
+
+            focus_candidates = contract_payload.get("focus_candidates", {})
+            if focus_candidates:
+                default_task_id = focus_candidates.get("default_task_id")
+                if default_task_id:
+                    structured_lines.append(
+                        f"- Default task target: {tasks_meta.get(default_task_id, default_task_id)} ({default_task_id})"
+                    )
+                default_project_id = focus_candidates.get("default_project_id")
+                if default_project_id:
+                    structured_lines.append(
+                        f"- Default project target: {projects_meta.get(default_project_id, default_project_id)} ({default_project_id})"
+                    )
+                candidate_tasks = focus_candidates.get("candidate_task_ids") or []
+                if candidate_tasks:
+                    task_names = [
+                        tasks_meta.get(t_id, t_id) for t_id in candidate_tasks[:3]
+                    ]
+                    structured_lines.append(
+                        "- Candidate tasks: " + ", ".join(task_names)
+                    )
+                candidate_projects = focus_candidates.get("candidate_project_ids") or []
+                if candidate_projects:
+                    project_names = [
+                        projects_meta.get(p_id, p_id) for p_id in candidate_projects[:3]
+                    ]
+                    structured_lines.append(
+                        "- Candidate projects: " + ", ".join(project_names)
+                    )
+
+            if structured_lines:
+                user_content += "\n\nStructured identity hints:\n" + "\n".join(
+                    structured_lines
+                )
+
         user_content += f"""
 
 Context:
@@ -489,9 +578,8 @@ Context:
 - Tasks: {len(context.get('tasks', []))} tasks available
 - Actions: {len(context.get('actions', []))} action items in queue
 """
-        if context.get("focus_item"):
-            focus = context["focus_item"]
-            user_content += f"\nFocus item: {focus.get('type')} {focus.get('id')} - {focus.get('title') or focus.get('preview', '')}"
+        if focus_item:
+            user_content += f"\nFocus item: {focus_item.get('type')} {focus_item.get('id')} - {focus_item.get('title') or focus_item.get('preview', '')}"
 
         messages = [
             {"role": "system", "content": system_prompt},

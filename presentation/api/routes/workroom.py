@@ -6,10 +6,20 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 from pydantic import BaseModel, Field
 from presentation.api.repos import workroom as workroom_repo, audit_log
 from presentation.api.routes.queue import _get_user_id
+from presentation.api.routes.llm_contract_support import build_contract_payload
 from datetime import datetime, timezone
 import uuid
 import os
 import asyncio
+
+from core.chat.context import (
+    load_thread_context,
+    save_thread_context,
+    update_thread_context_with_refs,
+)
+from core.chat.focus import UiContext, resolve_focus_candidates
+from core.chat.tokens import parse_message_with_tokens
+from core.chat.validation import ValidationOk, validate_parsed_message
 
 router = APIRouter()
 
@@ -835,28 +845,7 @@ async def assistant_suggest_for_task(
     if not thread_id and task.get("thread_id"):
         thread_id = task["thread_id"]
 
-    # Aggregate pending user messages if thread_id provided
-    input_messages = None
-    if thread_id:
-        # Acquire lock for this thread to prevent concurrent processing
-        thread_lock = await _get_thread_lock(thread_id)
-        async with thread_lock:
-            # Get pending user messages since last assistant response
-            pending_messages = workroom_repo.get_pending_user_messages(
-                thread_id, user_id
-            )
-            if pending_messages:
-                input_messages = [msg.get("content", "") for msg in pending_messages]
-
-    # Fallback to single message if no thread_id or no pending messages
-    if not input_messages:
-        if not body.message:
-            raise HTTPException(
-                status_code=400, detail="Either message or thread_id must be provided"
-            )
-        input_messages = [body.message]
-
-    # Build context for resolution
+    # Build context for resolution (shared between LLM + executor)
     from core.services.llm_context_builder import build_context_for_user
 
     context = build_context_for_user(
@@ -865,34 +854,127 @@ async def assistant_suggest_for_task(
         focus_task_id=task_id,
     )
 
-    # Propose operations with aggregated messages
-    operations = llm_service.propose_ops_for_user(
-        tenant_id=tenant_id,
-        user_id=user_id,
-        input_messages=input_messages,
-        focus_task_id=task_id,
-    )
+    context_thread_id = thread_id or f"task:{task_id}"
 
-    # Convert to typed operations for executor
-    from core.domain.llm_ops import validate_operation
+    # Define a helper function to execute the operation pipeline
+    async def execute_pipeline():
+        # Aggregate pending user messages if thread_id provided
+        input_messages = None
+        if thread_id:
+            # Get pending user messages since last assistant response
+            pending_messages = workroom_repo.get_pending_user_messages(
+                thread_id, user_id
+            )
+            if pending_messages:
+                input_messages = [msg.get("content", "") for msg in pending_messages]
 
-    typed_ops = []
-    for op_dict in operations:
-        try:
-            op = validate_operation(op_dict)
-            typed_ops.append(op)
-        except ValueError as e:
-            logger.warning(f"Invalid operation skipped: {e}")
+        # Fallback to single message if no thread_id or no pending messages
+        if not input_messages:
+            if not body.message:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Either message or thread_id must be provided",
+                )
+            input_messages = [body.message]
 
-    # Execute with trust gating and context for resolution
-    result = execute_ops(
-        typed_ops,
-        tenant_id=tenant_id,
-        user_id=user_id,
-        trust_mode=trust_mode,
-        thread_id=thread_id,
-        context=context,
-    )
+        thread_context = load_thread_context(context_thread_id)
+        ui_context = UiContext(
+            mode="workroom-task",
+            workroom_task_id=task_id,
+            workroom_project_id=task.get("project_id"),
+        )
+
+        latest_message = input_messages[-1] if input_messages else ""
+        parsed_message = parse_message_with_tokens(latest_message)
+        validation_ok: Optional[ValidationOk] = None
+
+        if input_messages:
+            llm_input_messages = list(input_messages)
+            llm_input_messages[-1] = parsed_message.llm_text
+        else:
+            llm_input_messages = [parsed_message.llm_text]
+
+        if parsed_message.references or parsed_message.operations:
+            validation_result = validate_parsed_message(
+                parsed_message,
+                user_context={
+                    "userId": user_id,
+                    "tenantId": tenant_id,
+                    "threadContext": thread_context.to_dict(),
+                },
+            )
+            if isinstance(validation_result, ValidationOk):
+                validation_ok = validation_result
+                thread_context = update_thread_context_with_refs(
+                    thread_context, parsed_message.references
+                )
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "error": "token_validation_failed",
+                        "code": getattr(validation_result, "error_code", "UNKNOWN"),
+                        "details": getattr(validation_result, "details", {}),
+                    },
+                )
+
+        focus_candidates = resolve_focus_candidates(
+            thread_context, ui_context, parsed_message
+        )
+
+        contract_payload = build_contract_payload(
+            parsed_message=parsed_message,
+            thread_context=thread_context,
+            ui_context=ui_context,
+            focus_candidates=focus_candidates,
+            validation=validation_ok,
+            context=context,
+        )
+
+        # Propose operations with aggregated messages
+        operations = llm_service.propose_ops_for_user(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            input_messages=llm_input_messages,
+            focus_task_id=task_id,
+            context_override=context,
+            contract_payload=contract_payload,
+        )
+
+        # Convert to typed operations for executor
+        from core.domain.llm_ops import validate_operation
+
+        typed_ops = []
+        for op_dict in operations:
+            try:
+                op = validate_operation(op_dict)
+                typed_ops.append(op)
+            except ValueError as e:
+                logger.warning(f"Invalid operation skipped: {e}")
+
+        # Execute with trust gating and context for resolution
+        result = execute_ops(
+            typed_ops,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            trust_mode=trust_mode,
+            thread_id=thread_id,
+            context=context,
+        )
+        save_thread_context(context_thread_id, thread_context)
+
+        return operations, result, input_messages
+
+    # Execute pipeline with thread lock if thread_id is present
+    if thread_id:
+        # Acquire lock for this thread to prevent concurrent processing
+        # Lock wraps entire pipeline: message reading, LLM calls, operation execution, and context save
+        thread_lock = await _get_thread_lock(thread_id)
+        async with thread_lock:
+            operations, result, input_messages = await execute_pipeline()
+    else:
+        # No thread_id, execute without lock
+        operations, result, input_messages = await execute_pipeline()
 
     # Refresh task
     try:
@@ -985,13 +1067,13 @@ async def assistant_approve_operation_for_task(
         op, tenant_id=tenant_id, user_id=user_id, thread_id=thread_id, context=context
     )
 
-    # Check for duplicate errors and return 409 with stock message
-    if not result.get("ok") and result.get("stock_message"):
+    # Check for duplicate errors and return 409 with assistant-facing message
+    if not result.get("ok") and result.get("assistant_message"):
         raise HTTPException(
             status_code=409,
             detail={
                 "error": result.get("error"),
-                "stock_message": result.get("stock_message"),
+                "assistant_message": result.get("assistant_message"),
                 "operation": body.operation,
             },
         )
@@ -1209,4 +1291,69 @@ async def assistant_undo_operation_for_task(
         "ok": result.get("ok", False),
         "result": result,
         "task": refreshed_task,
+    }
+
+
+@router.get("/api/workroom/picker/projects")
+async def workroom_picker_projects(
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Lightweight list of projects for slash command pickers."""
+
+    projects = workroom_repo.get_projects(user_id)
+    return {
+        "ok": True,
+        "projects": [
+            {
+                "id": project["id"],
+                "title": project.get("name")
+                or project.get("title")
+                or "Untitled Project",
+            }
+            for project in projects
+        ],
+    }
+
+
+@router.get("/api/workroom/picker/tasks")
+async def workroom_picker_tasks(
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+    project_id: Optional[str] = None,
+    q: Optional[str] = None,
+    limit: int = 25,
+) -> Dict[str, Any]:
+    """Lightweight task search for slash command pickers."""
+
+    if limit <= 0:
+        limit = 10
+    limit = min(limit, 100)
+
+    tasks = workroom_repo.get_tasks(user_id, project_id=project_id)
+    project_lookup = {
+        project["id"]: project.get("name") or project.get("title") or "Untitled Project"
+        for project in workroom_repo.get_projects(user_id)
+    }
+
+    q_normalized = q.lower().strip() if q else None
+    results: List[Dict[str, Any]] = []
+    for task in tasks:
+        title = task.get("title", "") or ""
+        if q_normalized and q_normalized not in title.lower():
+            continue
+        results.append(
+            {
+                "id": task["id"],
+                "title": title or "Untitled Task",
+                "projectId": task.get("project_id"),
+                "projectTitle": project_lookup.get(task.get("project_id")),
+            }
+        )
+        if len(results) >= limit:
+            break
+
+    return {
+        "ok": True,
+        "tasks": results,
     }

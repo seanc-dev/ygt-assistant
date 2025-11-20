@@ -19,7 +19,7 @@ interface WorkspaceProps {
   projectTitle?: string;
 }
 
-export function Workspace({ taskId }: WorkspaceProps) {
+export function Workspace({ taskId, projectId, projectTitle }: WorkspaceProps) {
   const {
     view,
     setView,
@@ -280,6 +280,8 @@ export function Workspace({ taskId }: WorkspaceProps) {
                 <ThreadView
                   threadId={taskState.activeChatId}
                   taskId={taskId}
+                  projectId={projectId}
+                  projectTitle={projectTitle}
                   mode="workroom"
                 />
               ) : (

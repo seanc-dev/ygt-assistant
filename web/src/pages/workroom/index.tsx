@@ -313,6 +313,30 @@ export default function WorkroomPage() {
     }
   };
 
+  const handleCreateFirstTask = async () => {
+    if (!projectId) return;
+    const defaultTitle = "New Task";
+    const title =
+      typeof window !== "undefined"
+        ? window.prompt("Name your new task", defaultTitle)?.trim()
+        : defaultTitle;
+    if (!title) {
+      return;
+    }
+    try {
+      const response = await workroomApi.createTask({
+        projectId,
+        title,
+      });
+      if (response.ok && response.task) {
+        await loadTasks(projectId);
+        openTask(projectId, response.task.id);
+      }
+    } catch (err) {
+      console.error("Failed to create first task:", err);
+    }
+  };
+
   const handleStatusChange = async (taskId: string, status: string) => {
     try {
       await workroomApi.updateTaskStatus(taskId, status);
@@ -588,6 +612,25 @@ export default function WorkroomPage() {
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full">
+                      {projectId && tasks.length === 0 ? (
+                        <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center max-w-md">
+                          <Text variant="muted" className="text-sm mb-2">
+                            No tasks in {selectedProject?.title || "this project"}
+                          </Text>
+                          <Text
+                            variant="caption"
+                            className="text-xs text-slate-500 mb-4 block"
+                          >
+                            Add your first task to start collaborating here.
+                          </Text>
+                          <Button
+                            variant="primary"
+                            onClick={handleCreateFirstTask}
+                          >
+                            Add a task
+                          </Button>
+                        </div>
+                      ) : (
                       <div className="text-center">
                         <Text variant="muted" className="text-sm mb-2">
                           Select a task to view
@@ -599,6 +642,7 @@ export default function WorkroomPage() {
                           Use Navigator or press ⌘K to search
                         </Text>
                       </div>
+                      )}
                     </div>
                   )}
                 </div>
