@@ -500,8 +500,37 @@ function normalizeSurface(
   }
 }
 
+// Cache for parsed surfaces by surface_id + payload hash
+type CacheEntry = {
+  surface: InteractiveSurface;
+  payloadHash: string;
+};
+
+const SURFACE_CACHE_SIZE = 100;
+const surfaceCache = new Map<string, CacheEntry>();
+
+// Simple hash function for payload comparison
+function hashPayload(payload: unknown): string {
+  try {
+    return JSON.stringify(payload);
+  } catch {
+    return String(payload);
+  }
+}
+
+// LRU eviction: remove oldest entries when cache exceeds size
+function evictOldestCacheEntries() {
+  if (surfaceCache.size <= SURFACE_CACHE_SIZE) {
+    return;
+  }
+  const entriesToRemove = surfaceCache.size - SURFACE_CACHE_SIZE;
+  const keysToRemove = Array.from(surfaceCache.keys()).slice(0, entriesToRemove);
+  keysToRemove.forEach((key) => surfaceCache.delete(key));
+}
+
 /**
  * Normalize raw surface payloads coming from the LLM into typed envelopes.
+ * Results are memoized by surface_id + payload hash to avoid re-parsing identical surfaces.
  */
 export function parseInteractiveSurfaces(
   input: unknown
@@ -515,13 +544,44 @@ export function parseInteractiveSurfaces(
       logSurfaceWarning("Surface skipped: not an object");
       continue;
     }
+
+    // Check cache: use surface_id + payload hash as key
+    const surfaceId = typeof raw.surface_id === "string" ? raw.surface_id : null;
+    const payloadHash = hashPayload(raw.payload);
+    const cacheKey = surfaceId ? `${surfaceId}:${payloadHash}` : null;
+
+    if (cacheKey) {
+      const cached = surfaceCache.get(cacheKey);
+      if (cached && cached.payloadHash === payloadHash) {
+        // Cache hit: reuse parsed surface
+        surfaces.push(cached.surface);
+        continue;
+      }
+    }
+
+    // Cache miss: parse surface
     const normalized = normalizeSurface(raw);
     if (normalized) {
       surfaces.push(normalized);
+      // Store in cache if we have a surface_id
+      if (cacheKey) {
+        evictOldestCacheEntries();
+        surfaceCache.set(cacheKey, {
+          surface: normalized,
+          payloadHash,
+        });
+      }
     } else {
       logSurfaceWarning("Surface skipped: invalid schema", raw);
     }
   }
   return surfaces;
+}
+
+/**
+ * Clear the surface parsing cache (useful for testing or memory management).
+ */
+export function clearSurfaceCache(): void {
+  surfaceCache.clear();
 }
 

@@ -1127,6 +1127,13 @@ export function AssistantChat({
     clearTimerId: NodeJS.Timeout | null;
   }>({ showTimerId: null, clearTimerId: null });
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Adaptive polling state
+  const [isTabVisible, setIsTabVisible] = useState(true);
+  const [isThreadActive, setIsThreadActive] = useState(true);
+  const lastActivityRef = useRef<number>(Date.now());
+  const mutateDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingMutateRef = useRef<(() => Promise<any>) | null>(null);
 
   const MIN_TYPING_DURATION = 500; // ms
   const ASSISTANT_START_DELAY_MS = 100; // ms
@@ -1172,10 +1179,22 @@ export function AssistantChat({
     }
   }, [threadId, actionId, onThreadCreated, shouldFocus, summary]);
 
+  // Adaptive polling: pause when tab hidden or thread inactive
+  const shouldPoll = isTabVisible && isThreadActive;
+  const POLL_INTERVAL = 5000;
+  const INACTIVITY_THRESHOLD_MS = 30000; // 30 seconds
+  const MUTATE_DEBOUNCE_MS = 500; // 500ms debounce for rapid refetches
+
+  // Track activity: update last activity time on user interaction
+  const markActivity = useCallback(() => {
+    lastActivityRef.current = Date.now();
+    setIsThreadActive(true);
+  }, []);
+
   // Fetch messages
   const {
     data: threadData,
-    mutate: mutateThread,
+    mutate: mutateThreadRaw,
     isLoading: isLoadingThread,
   } = useSWR<ThreadResponse>(
     threadId ? [`thread`, threadId] : null,
@@ -1197,8 +1216,8 @@ export function AssistantChat({
       return response as ThreadResponse;
     },
     {
-      refreshInterval: 5000, // Poll for new messages
-      revalidateOnFocus: true,
+      refreshInterval: shouldPoll ? POLL_INTERVAL : 0, // Pause polling when shouldPoll is false
+      revalidateOnFocus: shouldPoll, // Only revalidate on focus if polling is active
       onError: (error: any) => {
         // SWR error handler - don't log 404s (expected) but log other errors
         if (error?.status !== 404 && !error?.message?.includes("404")) {
@@ -1207,6 +1226,84 @@ export function AssistantChat({
       },
     }
   );
+
+  // Debounced mutateThread wrapper to coalesce rapid refetches
+  const debouncedMutateThread = useCallback(async () => {
+    // Clear existing debounce timer
+    if (mutateDebounceTimerRef.current) {
+      clearTimeout(mutateDebounceTimerRef.current);
+      mutateDebounceTimerRef.current = null;
+    }
+
+    // Store the mutate function to call
+    pendingMutateRef.current = async () => {
+      if (mutateThreadRaw) {
+        return mutateThreadRaw();
+      }
+    };
+
+    // Set debounce timer
+    mutateDebounceTimerRef.current = setTimeout(() => {
+      mutateDebounceTimerRef.current = null;
+      const fn = pendingMutateRef.current;
+      pendingMutateRef.current = null;
+      if (fn) {
+        fn().catch((err) => {
+          console.warn("Debounced mutateThread failed:", err);
+        });
+      }
+    }, MUTATE_DEBOUNCE_MS);
+  }, [mutateThreadRaw]);
+
+  // Wrapped mutateThread that uses debouncing and marks activity
+  const mutateThread = useCallback(async () => {
+    markActivity();
+    return debouncedMutateThread();
+  }, [debouncedMutateThread, markActivity]);
+
+  // Visibility change handler
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsTabVisible(!document.hidden);
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    setIsTabVisible(!document.hidden);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  // Inactivity detection: check every 5 seconds if thread should be considered inactive
+  useEffect(() => {
+    if (!shouldPoll) return; // Skip if already paused
+
+    const checkInactivity = () => {
+      const now = Date.now();
+      const timeSinceActivity = now - lastActivityRef.current;
+      if (timeSinceActivity > INACTIVITY_THRESHOLD_MS) {
+        setIsThreadActive(false);
+      }
+    };
+
+    const interval = setInterval(checkInactivity, 5000);
+    return () => clearInterval(interval);
+  }, [shouldPoll]);
+
+  // Mark activity on user interactions
+  useEffect(() => {
+    const handleUserActivity = () => {
+      markActivity();
+    };
+    // Listen to various user events
+    window.addEventListener("mousedown", handleUserActivity);
+    window.addEventListener("keydown", handleUserActivity);
+    window.addEventListener("scroll", handleUserActivity);
+    return () => {
+      window.removeEventListener("mousedown", handleUserActivity);
+      window.removeEventListener("keydown", handleUserActivity);
+      window.removeEventListener("scroll", handleUserActivity);
+    };
+  }, [markActivity]);
 
   // Reset messages when threadId changes to prevent cross-thread contamination
   useEffect(() => {
@@ -1275,6 +1372,17 @@ export function AssistantChat({
           }
         });
 
+        // For assistant messages: if backend has assistant message with surfaces, replace optimistic
+        const backendAssistantWithSurfaces = backendMessages.find(
+          (msg: any) =>
+            msg.role === "assistant" &&
+            (msg.surfaces ||
+              (msg.metadata?.surfaces && Array.isArray(msg.metadata.surfaces)))
+        );
+        const optimisticAssistantWithSurfaces = optimisticMessages.find(
+          (msg) => msg.role === "assistant" && msg.surfaces && msg.surfaces.length > 0
+        );
+
         // Filter optimistics: exclude those matched by ID or by fingerprint count
         const stillOptimistic = optimisticMessages.filter((msg) => {
           // Keep if ID is confirmed (already handled by backend)
@@ -1285,7 +1393,16 @@ export function AssistantChat({
           if (msg.role === "user" && matchedOptimisticIds.has(msg.id)) {
             return false;
           }
-          // Keep all other optimistics (assistant messages, unmatched user messages)
+          // For optimistic assistant messages with surfaces: replace if backend has surfaces
+          if (
+            msg.role === "assistant" &&
+            msg.surfaces &&
+            msg.surfaces.length > 0 &&
+            backendAssistantWithSurfaces
+          ) {
+            return false; // Backend has surfaces, remove optimistic
+          }
+          // Keep all other optimistics (assistant messages without backend match, unmatched user messages)
           return true;
         });
 
@@ -1614,6 +1731,7 @@ export function AssistantChat({
   }, [message]);
 
   const handleSend = useCallback(async () => {
+    markActivity(); // Mark activity when user sends a message
     if (!message.trim()) {
       return;
     }
@@ -1811,6 +1929,36 @@ export function AssistantChat({
                 });
                 if (suggestResponse?.ok) {
                   applyOperationsResponse(suggestResponse);
+
+                  // Optimistic surfaces: store surfaces immediately if present
+                  if (suggestResponse.surfaces && Array.isArray(suggestResponse.surfaces)) {
+                    const parsedSurfaces = parseInteractiveSurfaces(suggestResponse.surfaces);
+                    if (parsedSurfaces.length > 0) {
+                      // Create or update optimistic assistant message with surfaces
+                      setMessages((prev) => {
+                        // Find existing optimistic assistant message or create new one
+                        const existingOptimistic = prev.find(
+                          (msg) => msg.role === "assistant" && msg.optimistic
+                        );
+                        if (existingOptimistic) {
+                          // Update existing optimistic message with surfaces
+                          return prev.map((msg) =>
+                            msg.id === existingOptimistic.id
+                              ? { ...msg, surfaces: parsedSurfaces }
+                              : msg
+                          );
+                        } else {
+                          // Create new optimistic assistant message with surfaces
+                          const optimisticMsg: Message = {
+                            ...createAssistantMessage(""),
+                            optimistic: true,
+                            surfaces: parsedSurfaces,
+                          };
+                          return [...prev, optimisticMsg];
+                        }
+                      });
+                    }
+                  }
 
                   const hasChatOp = (suggestResponse.applied || []).some(
                     (op: any) => op.op === "chat"
@@ -2264,6 +2412,34 @@ export function AssistantChat({
     !hideActionSummaryForSurfaces &&
     (appliedOps.length > 0 || pendingOps.length > 0 || hasErrors);
 
+  // Memoize ActionSummary props to prevent unnecessary re-renders
+  // Create a hash of ops to use as memo key
+  const opsHash = useMemo(() => {
+    if (!shouldShowActionSummary) {
+      return "hidden";
+    }
+    // Create deterministic hash from ops state
+    const opsString = JSON.stringify({
+      applied: appliedOps.map((op) => ({ op: op.op, params: op.params })),
+      pending: pendingOps.map((op) => ({ op: op.op, params: op.params })),
+      errors: operationsState.errors.map((err) => ({ id: err.id, message: err.message })),
+    });
+    return opsString;
+  }, [shouldShowActionSummary, appliedOps, pendingOps, operationsState.errors]);
+
+  // Memoized ActionSummary component props
+  const actionSummaryProps = useMemo(() => {
+    if (!shouldShowActionSummary) {
+      return null;
+    }
+    return {
+      appliedOps,
+      pendingOps,
+      trustMode,
+      errors: operationsState.errors,
+    };
+  }, [shouldShowActionSummary, appliedOps, pendingOps, trustMode, operationsState.errors]);
+
   // Stable callback for embed updates
   const handleEmbedUpdate = useCallback(
     (messageId: string, updatedEmbed: any) => {
@@ -2541,15 +2717,15 @@ export function AssistantChat({
             </button>
           </div>
 
-          {/* Action Summary */}
-          {shouldShowActionSummary && (
-            <div className="border-t border-slate-200">
+          {/* Action Summary - Memoized to prevent unnecessary re-renders */}
+          {shouldShowActionSummary && actionSummaryProps && (
+            <div className="border-t border-slate-200" key={opsHash}>
               {/* TODO(LucidWork Contract): ActionSummary will surface/edit explicit target IDs here. */}
               <ActionSummary
-                appliedOps={appliedOps}
-                pendingOps={pendingOps}
-                trustMode={trustMode}
-                errors={operationsState.errors}
+                appliedOps={actionSummaryProps.appliedOps}
+                pendingOps={actionSummaryProps.pendingOps}
+                trustMode={actionSummaryProps.trustMode}
+                errors={actionSummaryProps.errors}
                 onDismissError={dismissOperationError}
                 onApprove={async (op) => {
                   if (!op?.localId) {
