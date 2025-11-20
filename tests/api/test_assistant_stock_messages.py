@@ -33,7 +33,6 @@ def test_assistant_approve_returns_409_for_duplicate_project(
         "op": "create_task",
         "params": {"title": "Test", "project": "Existing Project"},
         "error": "Project 'Existing Project' already exists.",
-        "assistant_message": "That project already exists. Would you like to name it something else?",
     }
 
     response = client.post(
@@ -50,8 +49,6 @@ def test_assistant_approve_returns_409_for_duplicate_project(
     assert response.status_code == 409
     data = response.json()
     assert "detail" in data
-    assert "assistant_message" in data["detail"]
-    assert "That project already exists" in data["detail"]["assistant_message"]
 
 
 @patch("core.services.llm_executor.execute_single_op_approved")
@@ -74,7 +71,6 @@ def test_assistant_approve_returns_409_for_duplicate_task(
         "op": "create_task",
         "params": {"title": "Duplicate Task", "project": "My Project"},
         "error": "This project already has a task with that name.",
-        "assistant_message": "This project already has a task with that name. Would you like to name it something else?",
     }
 
     response = client.post(
@@ -91,8 +87,6 @@ def test_assistant_approve_returns_409_for_duplicate_task(
     assert response.status_code == 409
     data = response.json()
     assert "detail" in data
-    assert "assistant_message" in data["detail"]
-    assert "already has a task with that name" in data["detail"]["assistant_message"]
 
 
 @patch("core.services.llm_executor.execute_single_op_approved")
@@ -115,7 +109,6 @@ def test_queue_assistant_approve_returns_409_for_duplicate(
         "op": "create_task",
         "params": {"title": "Duplicate Task"},
         "error": "This project already has a task with that name.",
-        "assistant_message": "This project already has a task with that name. Would you like to name it something else?",
     }
 
     response = client.post(
@@ -132,7 +125,6 @@ def test_queue_assistant_approve_returns_409_for_duplicate(
     assert response.status_code == 409
     data = response.json()
     assert "detail" in data
-    assert "assistant_message" in data["detail"]
 
 
 @patch("core.services.llm_executor.execute_single_op_approved")

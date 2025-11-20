@@ -159,4 +159,3 @@ def test_create_task_same_title_different_project_allowed(client: TestClient) ->
     )
     assert resp.status_code == 200
     assert resp.json()["result"]["ok"] is True
-
