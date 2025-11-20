@@ -37,7 +37,10 @@ async def email_send(draft_id: str) -> Dict[str, Any]:
     g = GmailService()
     out = g.send(draft_id)
     if draft_id in drafts_store:
-        drafts_store[draft_id]["status"] = "sent"
+        draft = drafts_store.get(draft_id)
+        if draft:
+            draft["status"] = "sent"
+            drafts_store[draft_id] = draft
     history_log.append({"ts": "now", "verb": "send", "object": "draft", "id": draft_id})
     return out
 

@@ -23,6 +23,7 @@ type StatusResponse = {
   has_notion_connection?: boolean;
   has_db_ids?: boolean;
   has_nylas_connection?: boolean;
+  has_ms_connection?: boolean;
 };
 
 type SettingsResponse = {
