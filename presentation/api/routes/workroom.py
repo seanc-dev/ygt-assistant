@@ -63,6 +63,11 @@ DEV_MODE = os.getenv("DEV_MODE", "false").strip().lower() in {
     "yes",
     "on",
 }
+
+
+def _is_duplicate_error(error: str) -> bool:
+    lowered = error.lower()
+    return "already exists" in lowered or "already has a task with that name" in lowered
 USE_MOCK_GRAPH = os.getenv("USE_MOCK_GRAPH", "true").strip().lower() in {
     "1",
     "true",
@@ -1068,15 +1073,19 @@ async def assistant_approve_operation_for_task(
     )
 
     # Check for duplicate errors and return 409 with assistant-facing message
-    if not result.get("ok") and result.get("assistant_message"):
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "error": result.get("error"),
-                "assistant_message": result.get("assistant_message"),
-                "operation": body.operation,
-            },
-        )
+    if not result.get("ok"):
+        error_text = result.get("error") or ""
+        if result.get("assistant_message") or _is_duplicate_error(error_text):
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": error_text or "duplicate_operation",
+                    "assistant_message": result.get("assistant_message")
+                    or error_text
+                    or "This item already exists.",
+                    "operation": body.operation,
+                },
+            )
 
     # Refresh task - if this was a create_task op, we need to get the newly created task
     # Otherwise, refresh the focus task

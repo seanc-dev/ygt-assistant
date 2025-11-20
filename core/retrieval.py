@@ -16,10 +16,22 @@ def recall_similar(text: str, top_k: int = 5) -> List[CoreMemoryItem]:
     return []
 
 
-def context_for(target: str) -> Dict[str, List[CoreMemoryItem]]:
-    # Simple heuristic: group latest items by level for now
+def context_for(target: str, *, limit_per_level: int = 5) -> Dict[str, List[CoreMemoryItem]]:
+    """Return recent core memories grouped by level.
+
+    The previous implementation returned empty context buckets because it
+    queried a placeholder "*" key that no memories used. To ensure the
+    assistant can actually "learn" from stored user facts and journals, this
+    now pulls the latest items for each level directly.
+    """
+
     levels = ["episodic", "semantic", "procedural", "narrative"]
     ctx: Dict[str, List[CoreMemoryItem]] = {}
+
     for lvl in levels:
-        ctx[lvl] = _store.get_by_key(key="*", level=lvl)  # using wildcard pattern as placeholder
+        items = _store.list_by_level(lvl)
+        if limit_per_level > 0:
+            items = items[:limit_per_level]
+        ctx[lvl] = items
+
     return ctx
