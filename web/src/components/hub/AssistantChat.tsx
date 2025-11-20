@@ -13,6 +13,12 @@ import { ActionEmbedComponent } from "../workroom/ActionEmbed";
 import { ActionSummary } from "../shared/ActionSummary";
 import type { LlmOperation as SummaryOperation } from "../shared/ActionSummary";
 import { SlashMenu, SlashCommand } from "../ui/SlashMenu";
+import { AssistantSurfacesRenderer } from "../assistant/AssistantSurfacesRenderer";
+import {
+  parseInteractiveSurfaces,
+  type InteractiveSurface,
+  type SurfaceNavigateTo,
+} from "../../lib/llm/surfaces";
 
 // Custom scrollbar styles
 const scrollbarStyles = `
@@ -42,6 +48,7 @@ type Message = {
   retryable?: boolean;
   errorMessage?: string;
   embeds?: any[]; // ActionEmbed[]
+  surfaces?: InteractiveSurface[];
 };
 
 type MessageView = {
@@ -49,6 +56,7 @@ type MessageView = {
   role: "user" | "assistant";
   content: string;
   embeds?: any[];
+  surfaces?: InteractiveSurface[];
   marginTop: string;
   timestampLabel: string;
   showTimestamp: boolean;
@@ -153,6 +161,7 @@ const createAssistantMessage = (content: string): Message => ({
 
 const TOKEN_REGEX = /\[(ref|op)\s+([^\]]+)\]/gi;
 const KEY_VALUE_REGEX = /(\w+):(?:"([^"]*)"|([^\s]+))/g;
+const OP_TOKEN_REGEX = /^\[op\s+([^\]]+)\]$/i;
 
 const escapeTokenValue = (value: string) => value.replace(/"/g, '\\"');
 
@@ -167,6 +176,30 @@ const parseTokenBody = (body: string): Record<string, string> => {
     }
   );
   return pairs;
+};
+
+const convertOpTokenToOperation = (
+  token: string
+): SummaryOperation | null => {
+  const match = token.match(OP_TOKEN_REGEX);
+  if (!match) {
+    return null;
+  }
+  const pairs = parseTokenBody(match[1]);
+  const opType = pairs.type;
+  if (!opType) {
+    return null;
+  }
+  const params: Record<string, string> = {};
+  Object.entries(pairs).forEach(([key, value]) => {
+    if (key !== "type" && key !== "v") {
+      params[key] = value;
+    }
+  });
+  return {
+    op: opType,
+    params,
+  };
 };
 
 const extractTokensFromMessage = (text: string): ParsedTokenChip[] => {
@@ -246,12 +279,19 @@ const MessageItem = memo(
     onEmbedUpdate,
     animatedRef,
     activeAssistantId,
+    onInvokeSurfaceOp,
+    onNavigateSurface,
   }: {
     view: MessageView;
     onRetry: (id: string) => void;
     onEmbedUpdate: (messageId: string, embed: any) => void;
     animatedRef: React.MutableRefObject<Set<string>>;
     activeAssistantId: string | null;
+    onInvokeSurfaceOp?: (
+      opToken: string,
+      options?: { confirm?: boolean }
+    ) => void;
+    onNavigateSurface?: (nav: SurfaceNavigateTo) => void;
   }) => {
     return (
       <div
@@ -319,6 +359,15 @@ const MessageItem = memo(
             )}
           </div>
         </div>
+        {view.surfaces && view.surfaces.length > 0 && (
+          <div className="mt-3 w-full">
+            <AssistantSurfacesRenderer
+              surfaces={view.surfaces}
+              onInvokeOp={onInvokeSurfaceOp}
+              onNavigate={onNavigateSurface}
+            />
+          </div>
+        )}
         {/* Render ActionEmbeds after message content */}
         {view.embeds && view.embeds.length > 0 && (
           <div className="mt-2 space-y-2">
@@ -357,10 +406,13 @@ const MessageItem = memo(
       prev.timestampLabel === next.timestampLabel &&
       prev.showTimestamp === next.showTimestamp &&
       prev.shouldAnimate === next.shouldAnimate &&
+      prev.surfaces === next.surfaces &&
       prevProps.onRetry === nextProps.onRetry &&
       prevProps.onEmbedUpdate === nextProps.onEmbedUpdate &&
       prevProps.animatedRef === nextProps.animatedRef &&
-      prevProps.activeAssistantId === nextProps.activeAssistantId
+      prevProps.activeAssistantId === nextProps.activeAssistantId &&
+      prevProps.onInvokeSurfaceOp === nextProps.onInvokeSurfaceOp &&
+      prevProps.onNavigateSurface === nextProps.onNavigateSurface
     );
   }
 );
@@ -509,6 +561,8 @@ const MessageList = memo(
     onEmbedUpdate,
     animatedRef,
     activeAssistantId,
+    onInvokeSurfaceOp,
+    onNavigateSurface,
   }: {
     messageViews: MessageView[];
     isTyping: boolean;
@@ -516,6 +570,11 @@ const MessageList = memo(
     onEmbedUpdate: (messageId: string, embed: any) => void;
     animatedRef: React.MutableRefObject<Set<string>>;
     activeAssistantId: string | null;
+    onInvokeSurfaceOp?: (
+      opToken: string,
+      options?: { confirm?: boolean }
+    ) => void;
+    onNavigateSurface?: (nav: SurfaceNavigateTo) => void;
   }) => {
     return (
       <>
@@ -532,6 +591,8 @@ const MessageList = memo(
               onEmbedUpdate={onEmbedUpdate}
               animatedRef={animatedRef}
               activeAssistantId={activeAssistantId}
+              onInvokeSurfaceOp={onInvokeSurfaceOp}
+              onNavigateSurface={onNavigateSurface}
             />
           ))
         )}
@@ -563,7 +624,9 @@ const MessageList = memo(
       prevProps.onRetryMessage === nextProps.onRetryMessage &&
       prevProps.onEmbedUpdate === nextProps.onEmbedUpdate &&
       prevProps.animatedRef === nextProps.animatedRef &&
-      prevProps.activeAssistantId === nextProps.activeAssistantId
+      prevProps.activeAssistantId === nextProps.activeAssistantId &&
+      prevProps.onInvokeSurfaceOp === nextProps.onInvokeSurfaceOp &&
+      prevProps.onNavigateSurface === nextProps.onNavigateSurface
     );
   }
 );
@@ -1229,6 +1292,17 @@ export function AssistantChat({
         // Ensure roles are correct - fix any role mismatches
         const correctedBackendMessages = backendMessages.map((msg: any) => {
           // Normalize message structure - ensure it has content, role, id, ts
+          const metadata =
+            msg.metadata && typeof msg.metadata === "object"
+              ? msg.metadata
+              : {};
+          const surfacesSource =
+            msg.surfaces ??
+            (Array.isArray(metadata?.surfaces) ? metadata.surfaces : metadata?.surfaces);
+          const parsedSurfaces =
+            msg.role === "assistant"
+              ? parseInteractiveSurfaces(surfacesSource)
+              : [];
           const normalizedMsg = {
             id: msg.id || String(Math.random()),
             role: (msg.role === "user" ? "user" : "assistant") as
@@ -1237,6 +1311,7 @@ export function AssistantChat({
             content: msg.content || msg.text || "",
             ts: msg.ts || msg.created_at || new Date().toISOString(),
             embeds: msg.embeds || [],
+            surfaces: parsedSurfaces.length ? parsedSurfaces : undefined,
           };
 
           // If message was sent by user (check by matching content with optimistic), ensure role is user
@@ -2052,6 +2127,69 @@ export function AssistantChat({
     [threadId, mutateThread, isTyping, clearTyping]
   );
 
+  const handleSurfaceInvokeOp = useCallback(
+    async (opToken: string, options?: { confirm?: boolean }) => {
+      if (options?.confirm && !window.confirm("Are you sure you want to run this action?")) {
+        return;
+      }
+      const operation = convertOpTokenToOperation(opToken);
+      if (!operation) {
+        showInlineNotice("Couldn't run that action. Please try again.");
+        return;
+      }
+      try {
+        const result = await runOperationApi("approve", {
+          operation: sanitizeOperationForApi(operation, { forceCurrentProject }),
+        });
+        if (!result?.ok) {
+          const errorDetail =
+            result?.detail?.assistant_message ||
+            result?.detail?.detail ||
+            result?.detail ||
+            result?.error ||
+            "Failed to run that action.";
+          pushOperationError(errorDetail, { op: operation.op, params: operation.params });
+          return;
+        }
+        scheduleThreadRefreshForChat();
+      } catch (err: any) {
+        pushOperationError(
+          err?.message || "Failed to run that action.",
+          { op: operation.op, params: operation.params }
+        );
+      }
+    },
+    [
+      runOperationApi,
+      forceCurrentProject,
+      showInlineNotice,
+      pushOperationError,
+      scheduleThreadRefreshForChat,
+    ]
+  );
+
+  const handleSurfaceNavigate = useCallback(
+    (nav: SurfaceNavigateTo) => {
+      switch (nav.destination) {
+        case "workroom_task":
+          onOpenWorkroom?.();
+          break;
+        case "hub_queue":
+          window.location.hash = "#queue";
+          break;
+        case "hub":
+          window.location.hash = `#${nav.section ?? "today"}`;
+          break;
+        case "calendar_event":
+          showInlineNotice("Opening calendar events is not yet supported in this build.");
+          break;
+        default:
+          showInlineNotice("Navigation target not supported yet.");
+      }
+    },
+    [onOpenWorkroom, showInlineNotice]
+  );
+
   const formatTimestamp = useCallback((ts: string) => {
     const date = new Date(ts);
     const now = new Date();
@@ -2108,6 +2246,24 @@ export function AssistantChat({
   // Memoize grouped messages to prevent recreation on every render
   const groupedMessages = useMemo(() => groupMessages(messages), [messages]);
 
+  const latestAssistantSurfaces = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const candidate = messages[i];
+      if (candidate.role === "assistant" && candidate.surfaces?.length) {
+        return candidate.surfaces;
+      }
+    }
+    return null;
+  }, [messages]);
+
+  const hideActionSummaryForSurfaces =
+    (latestAssistantSurfaces?.some((surface) => surface.kind === "triage_table_v1") ??
+      false) && !hasErrors;
+
+  const shouldShowActionSummary =
+    !hideActionSummaryForSurfaces &&
+    (appliedOps.length > 0 || pendingOps.length > 0 || hasErrors);
+
   // Stable callback for embed updates
   const handleEmbedUpdate = useCallback(
     (messageId: string, updatedEmbed: any) => {
@@ -2163,6 +2319,7 @@ export function AssistantChat({
         role: msg.role,
         content: msg.content,
         embeds: msg.embeds,
+        surfaces: msg.surfaces,
         marginTop,
         timestampLabel,
         showTimestamp,
@@ -2284,6 +2441,8 @@ export function AssistantChat({
               onEmbedUpdate={handleEmbedUpdate}
               animatedRef={animatedRef}
               activeAssistantId={activeAssistantId}
+              onInvokeSurfaceOp={handleSurfaceInvokeOp}
+              onNavigateSurface={handleSurfaceNavigate}
             />
           )}
           <div ref={messagesEndRef} />
@@ -2383,7 +2542,7 @@ export function AssistantChat({
           </div>
 
           {/* Action Summary */}
-          {(appliedOps.length > 0 || pendingOps.length > 0 || hasErrors) && (
+          {shouldShowActionSummary && (
             <div className="border-t border-slate-200">
               {/* TODO(LucidWork Contract): ActionSummary will surface/edit explicit target IDs here. */}
               <ActionSummary

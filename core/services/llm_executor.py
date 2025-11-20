@@ -984,11 +984,16 @@ def _execute_single_op(
             return
 
         try:
+            metadata: Dict[str, Any] = {}
+            surfaces = op.params.get("surfaces")
+            if surfaces:
+                metadata["surfaces"] = surfaces
             workroom.add_message(
                 user_id=user_id,
                 thread_id=thread_id,
                 role="assistant",
                 content=message_content,
+                metadata=metadata or None,
             )
             logger.debug(f"Created assistant message in thread {thread_id}")
         except Exception as e:

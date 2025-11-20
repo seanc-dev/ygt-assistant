@@ -7,6 +7,10 @@ from pydantic import BaseModel, Field
 from presentation.api.repos import workroom as workroom_repo, audit_log
 from presentation.api.routes.queue import _get_user_id
 from presentation.api.routes.llm_contract_support import build_contract_payload
+from presentation.api.services.interactive_surfaces import (
+    attach_surfaces_to_first_chat_op,
+    normalize_surfaces,
+)
 from datetime import datetime, timezone
 import uuid
 import os
@@ -932,7 +936,7 @@ async def assistant_suggest_for_task(
         )
 
         # Propose operations with aggregated messages
-        operations = llm_service.propose_ops_for_user(
+        proposal = llm_service.propose_ops_for_user(
             tenant_id=tenant_id,
             user_id=user_id,
             input_messages=llm_input_messages,
@@ -940,6 +944,10 @@ async def assistant_suggest_for_task(
             context_override=context,
             contract_payload=contract_payload,
         )
+        operations = proposal.operations
+        surfaces = normalize_surfaces(proposal.surfaces)
+        if surfaces:
+            attach_surfaces_to_first_chat_op(operations, surfaces)
 
         # Convert to typed operations for executor
         from core.domain.llm_ops import validate_operation
@@ -963,7 +971,7 @@ async def assistant_suggest_for_task(
         )
         save_thread_context(context_thread_id, thread_context)
 
-        return operations, result, input_messages
+        return operations, result, input_messages, surfaces
 
     # Execute pipeline with thread lock if thread_id is present
     if thread_id:
@@ -971,10 +979,10 @@ async def assistant_suggest_for_task(
         # Lock wraps entire pipeline: message reading, LLM calls, operation execution, and context save
         thread_lock = await _get_thread_lock(thread_id)
         async with thread_lock:
-            operations, result, input_messages = await execute_pipeline()
+            operations, result, input_messages, surfaces = await execute_pipeline()
     else:
         # No thread_id, execute without lock
-        operations, result, input_messages = await execute_pipeline()
+        operations, result, input_messages, surfaces = await execute_pipeline()
 
     # Refresh task
     try:
@@ -1014,6 +1022,7 @@ async def assistant_suggest_for_task(
         "pending": result["pending"],
         "errors": result["errors"],
         "task": refreshed_task,
+        "surfaces": surfaces,
     }
 
 

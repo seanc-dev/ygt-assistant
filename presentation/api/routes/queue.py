@@ -11,6 +11,10 @@ from pydantic import BaseModel, Field
 from settings import DEFAULT_TZ
 from presentation.api.repos import user_settings, audit_log, workroom
 from presentation.api.routes.llm_contract_support import build_contract_payload
+from presentation.api.services.interactive_surfaces import (
+    attach_surfaces_to_first_chat_op,
+    normalize_surfaces,
+)
 from presentation.api.utils.defer import compute_defer_until
 from presentation.api.stores import proposed_blocks_store
 from core.chat.context import (
@@ -494,7 +498,7 @@ async def assistant_suggest_for_action(
         )
         
         # Propose operations with aggregated messages
-        operations = llm_service.propose_ops_for_user(
+        proposal = llm_service.propose_ops_for_user(
             tenant_id=tenant_id,
             user_id=user_id,
             input_messages=llm_input_messages,
@@ -502,6 +506,10 @@ async def assistant_suggest_for_action(
             context_override=context,
             contract_payload=contract_payload,
         )
+        operations = proposal.operations
+        surfaces = normalize_surfaces(proposal.surfaces)
+        if surfaces:
+            attach_surfaces_to_first_chat_op(operations, surfaces)
 
         # Convert to typed operations for executor
         from core.domain.llm_ops import validate_operation
@@ -524,7 +532,7 @@ async def assistant_suggest_for_action(
         )
         save_thread_context(context_thread_id, thread_context)
         
-        return operations, result, input_messages
+        return operations, result, input_messages, surfaces
     
     # Execute pipeline with thread lock if thread_id is present
     if thread_id:
@@ -532,10 +540,10 @@ async def assistant_suggest_for_action(
         # Lock wraps entire pipeline: message reading, LLM calls, operation execution, and context save
         thread_lock = await _get_thread_lock(thread_id)
         async with thread_lock:
-            operations, result, input_messages = await execute_pipeline()
+            operations, result, input_messages, surfaces = await execute_pipeline()
     else:
         # No thread_id, execute without lock
-        operations, result, input_messages = await execute_pipeline()
+        operations, result, input_messages, surfaces = await execute_pipeline()
     
     # Refresh action item
     try:
@@ -567,6 +575,7 @@ async def assistant_suggest_for_action(
         "pending": result["pending"],
         "errors": result["errors"],
         "action": refreshed_action,
+        "surfaces": surfaces,
     }
 
 

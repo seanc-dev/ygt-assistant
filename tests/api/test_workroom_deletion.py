@@ -3,6 +3,7 @@ import pytest
 from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 from presentation.api.app import app
+from services.llm import LlmProposedContent
 
 
 @pytest.fixture
@@ -46,9 +47,10 @@ def test_delete_project_via_assistant_suggest(
     mock_workroom.get_projects.return_value = [mock_workroom_data["project"]]
     
     # LLM proposes delete_project operation
-    mock_llm.propose_ops_for_user.return_value = [
-        {"op": "delete_project", "params": {"project_ids": ["project-1"]}},
-    ]
+    mock_llm.propose_ops_for_user.return_value = LlmProposedContent(
+        operations=[{"op": "delete_project", "params": {"project_ids": ["project-1"]}}],
+        surfaces=[],
+    )
     
     # Executor returns pending (training_wheels mode)
     mock_execute.return_value = {
@@ -93,9 +95,10 @@ def test_delete_task_via_assistant_suggest(
     mock_workroom.get_task.return_value = mock_workroom_data["task"]
     
     # LLM proposes delete_task operation
-    mock_llm.propose_ops_for_user.return_value = [
-        {"op": "delete_task", "params": {"task_ids": ["task-1"]}},
-    ]
+    mock_llm.propose_ops_for_user.return_value = LlmProposedContent(
+        operations=[{"op": "delete_task", "params": {"task_ids": ["task-1"]}}],
+        surfaces=[],
+    )
     
     # Executor returns pending (training_wheels mode)
     mock_execute.return_value = {
@@ -141,9 +144,10 @@ def test_delete_project_autonomous_mode(
     mock_workroom.get_projects.return_value = [mock_workroom_data["project"]]
     
     # LLM proposes delete_project operation
-    mock_llm.propose_ops_for_user.return_value = [
-        {"op": "delete_project", "params": {"project_ids": ["project-1"]}},
-    ]
+    mock_llm.propose_ops_for_user.return_value = LlmProposedContent(
+        operations=[{"op": "delete_project", "params": {"project_ids": ["project-1"]}}],
+        surfaces=[],
+    )
     
     # Executor applies the operation (autonomous mode)
     mock_execute.return_value = {
@@ -188,9 +192,10 @@ def test_delete_error_handling(
     mock_workroom.get_task.return_value = mock_workroom_data["task"]
     
     # LLM proposes delete_project operation
-    mock_llm.propose_ops_for_user.return_value = [
-        {"op": "delete_project", "params": {"project_ids": ["non-existent"]}},
-    ]
+    mock_llm.propose_ops_for_user.return_value = LlmProposedContent(
+        operations=[{"op": "delete_project", "params": {"project_ids": ["non-existent"]}}],
+        surfaces=[],
+    )
     
     # Executor fails and generates error chat message
     mock_execute.return_value = {

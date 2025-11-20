@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, List
 from fastapi import APIRouter, Request, Depends, Query
 from presentation.api.routes.queue import _get_user_id
+from presentation.api.repos import workroom as workroom_repo
 from presentation.api.services.unified_actions import generate_unified_action_items
 
 router = APIRouter()
@@ -114,4 +115,21 @@ async def summary_recent(
         "items": recent_items,
         "total": len(recent_items),
     }
+
+
+@router.get("/api/summary/what-next")
+async def summary_what_next(
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Return the most recent what_next_v1 surface."""
+    messages = workroom_repo.get_recent_assistant_messages(user_id, limit=25)
+    for message in messages:
+        metadata = message.get("metadata") or {}
+        surfaces = metadata.get("surfaces") or []
+        if isinstance(surfaces, list):
+            for surface in surfaces:
+                if isinstance(surface, dict) and surface.get("kind") == "what_next_v1":
+                    return {"ok": True, "surface": surface}
+    return {"ok": True, "surface": None}
 

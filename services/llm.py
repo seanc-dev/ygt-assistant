@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
 import os
 import json
 import re
@@ -28,6 +29,41 @@ RECOVERABLE_LLM_ERRORS = (
     ValueError,
     RuntimeError,
 )
+
+
+@dataclass
+class LlmProposedContent:
+    operations: List[Any]
+    surfaces: List[Dict[str, Any]]
+
+
+def _sanitize_surfaces(raw: Any) -> List[Dict[str, Any]]:
+    """Normalize surface envelopes returned by the LLM."""
+    if not isinstance(raw, list):
+        return []
+    surfaces: List[Dict[str, Any]] = []
+    for candidate in raw:
+        if not isinstance(candidate, dict):
+            continue
+        surface_id = candidate.get("surface_id") or candidate.get("surfaceId")
+        kind = candidate.get("kind")
+        title = candidate.get("title")
+        payload = candidate.get("payload")
+        if not all(isinstance(value, str) for value in (surface_id, kind, title)):
+            logger.debug("Skipping invalid surface envelope: %s", candidate)
+            continue
+        if not isinstance(payload, dict):
+            logger.debug("Skipping surface without payload: %s", candidate)
+            continue
+        surfaces.append(
+            {
+                "surface_id": surface_id,
+                "kind": kind,
+                "title": title,
+                "payload": payload,
+            }
+        )
+    return surfaces
 
 
 def generate_assistant_response(
@@ -441,17 +477,18 @@ def propose_ops_for_user(
                         params_str = params_str.replace("<action_id>", focus_action_id)
 
                     op["params"] = json.loads(params_str)
-                return ops
+                surfaces = _sanitize_surfaces(fixture.get("surfaces"))
+                return LlmProposedContent(operations=ops, surfaces=surfaces)
 
     # If OpenAI not available, return empty operations
     if not openai:
         logger.warning("OpenAI not available, returning empty operations")
-        return []
+        return LlmProposedContent(operations=[], surfaces=[])
 
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         logger.warning("OPENAI_API_KEY not set, returning empty operations")
-        return []
+        return LlmProposedContent(operations=[], surfaces=[])
 
     try:
         client = openai.OpenAI(api_key=api_key)
@@ -675,7 +712,10 @@ Context:
                 tool_calls = response.choices[0].message.tool_calls
                 if tool_calls:
                     function_args = json.loads(tool_calls[0].function.arguments)
-                    return parse_operations_response(function_args)
+                    return LlmProposedContent(
+                        operations=parse_operations_response(function_args),
+                        surfaces=_sanitize_surfaces(function_args.get("surfaces")),
+                    )
             except RECOVERABLE_LLM_ERRORS:
                 logger.warning(
                     "Function calling failed, falling back to JSON mode",
@@ -698,17 +738,20 @@ Context:
             # Parse JSON from response (may be wrapped in code fences or have stray text)
             json_data = _extract_json_from_text(content)
             if json_data:
-                return parse_operations_response(json_data)
+                return LlmProposedContent(
+                    operations=parse_operations_response(json_data),
+                    surfaces=_sanitize_surfaces(json_data.get("surfaces")),
+                )
 
             # If parsing failed, return empty
             logger.warning(
                 "Failed to parse JSON from LLM response: %.200s", content or ""
             )
-            return []
+            return LlmProposedContent(operations=[], surfaces=[])
 
     except RECOVERABLE_LLM_ERRORS:
         logger.exception("Error proposing operations")
-        return []
+        return LlmProposedContent(operations=[], surfaces=[])
 
 
 def _extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:

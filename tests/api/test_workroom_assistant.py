@@ -3,6 +3,7 @@ import pytest
 from unittest.mock import Mock, patch, AsyncMock
 from fastapi.testclient import TestClient
 from presentation.api.app import app
+from services.llm import LlmProposedContent
 
 
 @pytest.fixture
@@ -23,9 +24,12 @@ def test_assistant_suggest_for_task(
     mock_resolve.return_value = ("tenant-1", "user-1")
     mock_settings.get_settings.return_value = {"trust_level": "supervised"}
     mock_workroom.get_task.return_value = {"id": "task-1", "title": "Test Task"}
-    mock_llm.propose_ops_for_user.return_value = [
-        {"op": "update_task_status", "params": {"task_id": "task-1", "status": "done"}},
-    ]
+    mock_llm.propose_ops_for_user.return_value = LlmProposedContent(
+        operations=[
+            {"op": "update_task_status", "params": {"task_id": "task-1", "status": "done"}},
+        ],
+        surfaces=[],
+    )
     mock_execute.return_value = {
         "applied": [{"op": "update_task_status", "params": {"task_id": "task-1", "status": "done"}}],
         "pending": [],
@@ -66,9 +70,12 @@ def test_assistant_suggest_for_task_with_thread_id(
     mock_settings.get_settings.return_value = {"trust_level": "supervised"}
     mock_workroom.get_task.return_value = {"id": "task-1", "title": "Test Task", "thread_id": "thread-123"}
     mock_workroom.get_pending_user_messages.return_value = [{"content": "Do the thing"}]
-    mock_llm.propose_ops_for_user.return_value = [
-        {"op": "update_task_status", "params": {"task_id": "task-1", "status": "done"}},
-    ]
+    mock_llm.propose_ops_for_user.return_value = LlmProposedContent(
+        operations=[
+            {"op": "update_task_status", "params": {"task_id": "task-1", "status": "done"}},
+        ],
+        surfaces=[],
+    )
     mock_execute.return_value = {
         "applied": [{"op": "update_task_status", "params": {"task_id": "task-1", "status": "done"}}],
         "pending": [],
