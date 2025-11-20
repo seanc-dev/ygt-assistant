@@ -47,6 +47,11 @@ queue_store: Dict[str, Dict[str, Any]] = {}
 defer_store: Dict[str, Dict[str, Any]] = {}  # action_id -> defer info
 
 
+def _is_duplicate_error(error: str) -> bool:
+    lowered = error.lower()
+    return "already exists" in lowered or "already has a task with that name" in lowered
+
+
 class ActionItem(BaseModel):
     """Action item model."""
     action_id: str = Field(..., description="UUID")
@@ -626,15 +631,19 @@ async def assistant_approve_operation(
     )
     
     # Check for duplicate errors and return 409 with assistant-facing message
-    if not result.get("ok") and result.get("assistant_message"):
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "error": result.get("error"),
-                "assistant_message": result.get("assistant_message"),
-                "operation": body.operation,
-            }
-        )
+    if not result.get("ok"):
+        error_text = result.get("error") or ""
+        if result.get("assistant_message") or _is_duplicate_error(error_text):
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": error_text or "duplicate_operation",
+                    "assistant_message": result.get("assistant_message")
+                    or error_text
+                    or "This item already exists.",
+                    "operation": body.operation,
+                },
+            )
     
     # Refresh action
     try:

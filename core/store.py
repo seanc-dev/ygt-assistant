@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+CORE_ENABLE_VECTORS = os.getenv("CORE_ENABLE_VECTORS", "false").lower() == "true"
+
 
 def _store_path() -> str:
     base = os.getenv("DATA_DIR", ".data")
@@ -128,6 +130,41 @@ class PersistentCoreStore:
         with self._lock:
             rows = self._conn.execute(sql, params).fetchall()
         return [self._row_to_item(r) for r in rows]
+
+
+class InMemoryCoreStore:
+    """Lightweight in-memory store used by unit tests.
+
+    The production code now relies on :class:`PersistentCoreStore`, but a simple
+    in-memory implementation keeps existing unit tests fast while mirroring the
+    same interface shape.
+    """
+
+    def __init__(self) -> None:
+        self._items: Dict[str, CoreMemoryItem] = {}
+        self._lock = threading.Lock()
+
+    def upsert(self, item: CoreMemoryItem) -> None:
+        with self._lock:
+            self._items[item.id] = item
+
+    def get_by_id(self, item_id: str) -> Optional[CoreMemoryItem]:
+        with self._lock:
+            item = self._items.get(item_id)
+            if item:
+                item.last_used_at = datetime.now(timezone.utc)
+            return item
+
+    def get_by_key(self, key: str, level: Optional[str] = None) -> List[CoreMemoryItem]:
+        with self._lock:
+            matches = [i for i in self._items.values() if i.key == key and (level is None or i.level == level)]
+        # Sort newest first to mirror PersistentCoreStore ordering
+        return sorted(matches, key=lambda i: i.created_at, reverse=True)
+
+    def list_by_level(self, level: str) -> List[CoreMemoryItem]:
+        with self._lock:
+            matches = [i for i in self._items.values() if i.level == level]
+        return sorted(matches, key=lambda i: i.created_at, reverse=True)
 
 
 _STORE_SINGLETON: PersistentCoreStore | None = None

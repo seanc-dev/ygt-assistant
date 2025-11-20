@@ -183,7 +183,9 @@ class AuditRepo:
 
     def write(self, entry: Dict[str, Any]) -> str:
         rid = entry.get("request_id") or str(uuid.uuid4())
-        payload = json.dumps(entry)
+        payload = dict(entry)
+        payload["request_id"] = rid
+        payload = json.dumps(payload)
         self._db.execute(
             "INSERT OR REPLACE INTO audit_log(request_id, payload, created_at) VALUES(?,?,?)",
             (rid, payload, _utc_now_iso()),

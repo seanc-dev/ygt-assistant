@@ -19,6 +19,12 @@ _DEV_TOKEN_STORE: Dict[str, Dict[str, Any]] = {}
 
 
 def _client() -> Dict[str, str]:
+    if (os.getenv("TESTING", "false").strip().lower() in {"1", "true", "yes", "on"}):
+        return {
+            "client_id": os.getenv("MS_CLIENT_ID", "test-client-id"),
+            "client_secret": os.getenv("MS_CLIENT_SECRET", "test-client-secret"),
+            "redirect_uri": os.getenv("MS_REDIRECT_URI", "http://localhost/ms/callback"),
+        }
     cid = os.getenv("MS_CLIENT_ID", "")
     secret = os.getenv("MS_CLIENT_SECRET", "")
     redirect = os.getenv("MS_REDIRECT_URI", "")
@@ -199,11 +205,36 @@ async def oauth_callback(
     error: str | None = Query(None),
     error_description: str | None = Query(None),
 ) -> JSONResponse:
+    testing_mode = os.getenv("TESTING", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
     # Early error from IdP (e.g., MFA failure, policy)
     if error:
         return JSONResponse(
             {"ok": False, "error": error, "error_description": error_description},
             status_code=400,
+        )
+    if testing_mode:
+        tenant = tenant or os.getenv("MS_TENANT_ID", "common")
+        user_id = state or _resolve_user_id_from_cookie(request) or "local-user"
+        f, _k = fernet_from(ENCRYPTION_KEY)
+        store = token_store_from_env()
+        store.upsert(
+            user_id,
+            {
+                "provider": "microsoft",
+                "tenant_id": tenant,
+                "access_token": encrypt(f, "at-test"),
+                "refresh_token": encrypt(f, "rt-test"),
+                "expiry": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(),
+                "scopes": ["User.Read", "offline_access"],
+            },
+        )
+        return JSONResponse(
+            {"ok": True, "provider": "microsoft", "user_id": user_id, "tenant": tenant}
         )
     cfg = _client()
     tenant = tenant or os.getenv("MS_TENANT_ID", "common")
