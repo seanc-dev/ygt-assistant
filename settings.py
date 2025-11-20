@@ -31,8 +31,6 @@ ENABLE_ADMIN = os.getenv("ENABLE_ADMIN", "false").strip().lower() in {
     "on",
 }
 USE_PORTS = os.getenv("USE_PORTS", "false").lower() == "true"
-VERIFY_NYLAS = os.getenv("VERIFY_NYLAS", "false").lower() == "true"
-NYLAS_SIGNING_SECRET = os.getenv("NYLAS_SIGNING_SECRET", "")
 DEFAULT_TZ = os.getenv("DEFAULT_TZ", os.getenv("TZ", "UTC"))
 PROVIDER = os.getenv("PROVIDER", "microsoft")
 DRY_RUN_DEFAULT = os.getenv("DRY_RUN_DEFAULT", "true").lower() == "true"
@@ -50,12 +48,6 @@ NOTION_CLIENT_ID = os.getenv("NOTION_CLIENT_ID", "")
 NOTION_CLIENT_SECRET = os.getenv("NOTION_CLIENT_SECRET", "")
 NOTION_REDIRECT_URI = os.getenv(
     "NOTION_REDIRECT_URI", "http://localhost:8000/oauth/callback?provider=notion"
-)
-NYLAS_CLIENT_ID = os.getenv("NYLAS_CLIENT_ID", "")
-NYLAS_CLIENT_SECRET = os.getenv("NYLAS_CLIENT_SECRET", "")
-NYLAS_API_URL = os.getenv("NYLAS_API_URL", "https://api.us.nylas.com")
-NYLAS_REDIRECT_URI = os.getenv(
-    "NYLAS_REDIRECT_URI", "https://api.ygt-assistant.com/oauth/nylas/callback"
 )
 MOCK_OAUTH = os.getenv("MOCK_OAUTH", "true").lower() == "true"
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "")

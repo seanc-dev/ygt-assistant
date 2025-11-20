@@ -149,7 +149,7 @@ async def actions_undo(approval_id: str) -> Dict[str, Any]:
 
 @router.get("/history")
 async def history(limit: int = 100) -> List[Dict[str, Any]]:
-    return list(reversed(history_log))[: max(0, min(limit, 1000))]
+    return history_log.list(max(0, min(limit, 1000)))
 
 
 # Actions v2 (mock-only; deterministic)
