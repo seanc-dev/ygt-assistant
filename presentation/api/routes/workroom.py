@@ -855,7 +855,7 @@ async def assistant_suggest_for_task(
     )
 
     context_thread_id = thread_id or f"task:{task_id}"
-    
+
     # Define a helper function to execute the operation pipeline
     async def execute_pipeline():
         # Aggregate pending user messages if thread_id provided
@@ -872,7 +872,8 @@ async def assistant_suggest_for_task(
         if not input_messages:
             if not body.message:
                 raise HTTPException(
-                    status_code=400, detail="Either message or thread_id must be provided"
+                    status_code=400,
+                    detail="Either message or thread_id must be provided",
                 )
             input_messages = [body.message]
 
@@ -961,7 +962,7 @@ async def assistant_suggest_for_task(
             context=context,
         )
         save_thread_context(context_thread_id, thread_context)
-        
+
         return operations, result
 
     # Execute pipeline with thread lock if thread_id is present
