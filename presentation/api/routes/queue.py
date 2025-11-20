@@ -262,8 +262,11 @@ async def defer_action(
     }
     
     # Update queue item
-    queue_store[action_id]["defer_until"] = defer_until_iso
-    queue_store[action_id]["defer_bucket"] = defer_bucket
+    queue_item = queue_store.get(action_id)
+    if queue_item:
+        queue_item["defer_until"] = defer_until_iso
+        queue_item["defer_bucket"] = defer_bucket
+        queue_store[action_id] = queue_item
     
     # Write audit log
     audit_log.write_audit(
@@ -304,6 +307,7 @@ async def add_to_today(
     schedule_block_id = str(uuid.uuid4())
     
     # Create schedule block and add to proposed blocks store
+    queue_item = queue_store.get(action_id)
     schedule_block = {
         "id": schedule_block_id,
         "user_id": user_id,
@@ -311,12 +315,14 @@ async def add_to_today(
         "tasks": body.tasks or [],
         "action_id": action_id,
         "estimated_minutes": 60,  # Default, will be estimated by LLM later
-        "priority": queue_store[action_id].get("priority", "medium"),
+        "priority": queue_item.get("priority", "medium") if queue_item else "medium",
         "estimated_start": None,  # Will be resolved by collision resolver
     }
     proposed_blocks_store.append(schedule_block)
     
-    queue_store[action_id]["added_to_today"] = True
+    if queue_item:
+        queue_item["added_to_today"] = True
+        queue_store[action_id] = queue_item
     
     request_id = getattr(request.state, "request_id", None)
     
