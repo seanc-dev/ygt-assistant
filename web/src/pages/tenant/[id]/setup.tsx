@@ -23,6 +23,7 @@ type StatusResponse = {
   has_notion_connection?: boolean;
   has_db_ids?: boolean;
   has_nylas_connection?: boolean;
+  has_ms_connection?: boolean;
 };
 
 type SettingsResponse = {
@@ -83,7 +84,7 @@ export default function Setup() {
   const [isCheckingRules, setIsCheckingRules] = useState(false);
 
   const hasNotion = Boolean(data?.status?.has_notion_connection);
-  const hasNylas = Boolean(data?.status?.has_nylas_connection);
+  const hasMs = Boolean(data?.status?.has_ms_connection);
 
   useEffect(() => {
     if (data?.settings) {
@@ -500,25 +501,25 @@ export default function Setup() {
               </a>
               <a
                 className={`focus-outline inline-flex items-center rounded-md border border-slate-200 px-4 py-2 text-sm font-medium shadow-sm transition ${
-                  hasNylas
+                  hasMs
                     ? "cursor-not-allowed bg-slate-100 text-slate-400"
                     : "bg-white text-slate-700 hover:border-primary-300 hover:text-primary-700"
                 }`}
                 href={
-                  hasNylas
+                  hasMs
                     ? undefined
                     : buildApiUrl(
-                        `/oauth/nylas/start?provider=google&tenant_id=${id}`
+                        `/connections/ms/oauth/start?tenant=${id}`
                       )
                 }
-                aria-disabled={hasNylas}
+                aria-disabled={hasMs}
                 onClick={(e) => {
-                  if (hasNylas) e.preventDefault();
+                  if (hasMs) e.preventDefault();
                 }}
-                target={hasNylas ? undefined : "_blank"}
-                rel={hasNylas ? undefined : "noreferrer"}
+                target={hasMs ? undefined : "_blank"}
+                rel={hasMs ? undefined : "noreferrer"}
               >
-                {hasNylas
+                {hasMs
                   ? "Email & calendar connected"
                   : "Connect email & calendar"}
               </a>
