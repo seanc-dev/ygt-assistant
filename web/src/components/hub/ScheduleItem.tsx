@@ -9,7 +9,11 @@ import {
 } from "../../lib/schedule";
 import { OverflowMenu, OverflowMenuItem } from "./OverflowMenu";
 import { SmartCommandInput } from "./SmartCommandInput";
-import { Copy24Regular, Delete24Regular, MoreHorizontal24Regular } from "@fluentui/react-icons";
+import {
+  Copy24Regular,
+  Delete24Regular,
+  MoreHorizontal24Regular,
+} from "@fluentui/react-icons";
 
 interface ScheduleItemProps {
   item: ScheduleItem;
@@ -18,7 +22,10 @@ interface ScheduleItemProps {
   selected?: boolean;
   onSelect?: () => void;
   onOpenChat?: () => void;
-  onUpdate?: (id: string, updates: { start?: string; end?: string; title?: string; note?: string }) => Promise<void>;
+  onUpdate?: (
+    id: string,
+    updates: { start?: string; end?: string; title?: string; note?: string }
+  ) => Promise<void>;
   onDuplicate?: () => void;
   onDelete?: () => void;
 }
@@ -104,7 +111,7 @@ export function ScheduleItemComponent({
                 Conflict
               </div>
             )}
-            
+
             {/* Smart Command Input */}
             {selected && onUpdate && (
               <SmartCommandInput
@@ -175,7 +182,7 @@ export function ScheduleItemComponent({
               <OverflowMenu
                 open={showOverflow}
                 onClose={() => setShowOverflow(false)}
-                triggerRef={overflowTriggerRef}
+                triggerRef={overflowTriggerRef as React.RefObject<HTMLElement>}
               >
                 {onDuplicate && (
                   <OverflowMenuItem
@@ -208,5 +215,3 @@ export function ScheduleItemComponent({
     </div>
   );
 }
-
-

@@ -15,6 +15,16 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./src/__tests__/setup.ts"],
+    pool: "forks",
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
+    testTimeout: 30000,
+    hookTimeout: 30000,
+    // Increase memory limits for large component tests
+    isolate: false, // Disable isolation to reduce memory overhead
   },
   resolve: {
     alias: {

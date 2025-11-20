@@ -246,10 +246,13 @@ export default function WorkroomPage() {
         } else if (response.projects && response.projects.length === 0) {
           // Auto-seed if no projects
           try {
-            const seedResponse = await fetch(buildApiUrl("/dev/workroom/seed"), {
-              method: "POST",
-              credentials: "include",
-            });
+            const seedResponse = await fetch(
+              buildApiUrl("/dev/workroom/seed"),
+              {
+                method: "POST",
+                credentials: "include",
+              }
+            );
             if (seedResponse.ok) {
               const reloadResponse = await workroomApi.getProjects();
               if (
@@ -615,7 +618,8 @@ export default function WorkroomPage() {
                       {projectId && tasks.length === 0 ? (
                         <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center max-w-md">
                           <Text variant="muted" className="text-sm mb-2">
-                            No tasks in {selectedProject?.title || "this project"}
+                            No tasks in{" "}
+                            {selectedProject?.title || "this project"}
                           </Text>
                           <Text
                             variant="caption"
@@ -624,24 +628,24 @@ export default function WorkroomPage() {
                             Add your first task to start collaborating here.
                           </Text>
                           <Button
-                            variant="primary"
+                            variant="solid"
                             onClick={handleCreateFirstTask}
                           >
                             Add a task
                           </Button>
                         </div>
                       ) : (
-                      <div className="text-center">
-                        <Text variant="muted" className="text-sm mb-2">
-                          Select a task to view
-                        </Text>
-                        <Text
-                          variant="caption"
-                          className="text-xs text-slate-500"
-                        >
-                          Use Navigator or press ⌘K to search
-                        </Text>
-                      </div>
+                        <div className="text-center">
+                          <Text variant="muted" className="text-sm mb-2">
+                            Select a task to view
+                          </Text>
+                          <Text
+                            variant="caption"
+                            className="text-xs text-slate-500"
+                          >
+                            Use Navigator or press ⌘K to search
+                          </Text>
+                        </div>
                       )}
                     </div>
                   )}

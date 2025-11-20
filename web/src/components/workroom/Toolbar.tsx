@@ -29,12 +29,12 @@ export function Toolbar({
 
   return (
     <div className="flex items-center gap-2 p-2 border-b border-slate-100 bg-white">
-      <Button variant="ghost" size="xs" onClick={() => {}}>
+      <Button variant="ghost" size="sm" onClick={() => {}}>
         <Calendar24Regular className="w-3.5 h-3.5 mr-1" />
         Add focus block
       </Button>
 
-      <Button variant="ghost" size="xs" onClick={() => {}}>
+      <Button variant="ghost" size="sm" onClick={() => {}}>
         <Attach24Regular className="w-3.5 h-3.5 mr-1" />
         Attach source
       </Button>
@@ -52,7 +52,7 @@ export function Toolbar({
       </select>
 
       {onOpenKanban && (
-        <Button variant="ghost" size="xs" onClick={onOpenKanban}>
+        <Button variant="ghost" size="sm" onClick={onOpenKanban}>
           <Board24Regular className="w-3.5 h-3.5 mr-1" />
           Open Kanban
         </Button>

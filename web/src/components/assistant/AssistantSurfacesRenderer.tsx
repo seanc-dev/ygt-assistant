@@ -1,6 +1,10 @@
 import type {
   InteractiveSurface,
   SurfaceNavigateTo,
+  WhatNextV1Surface,
+  TodayScheduleV1Surface,
+  PriorityListV1Surface,
+  TriageTableV1Surface,
 } from "../../lib/llm/surfaces";
 import { WhatNextSurface } from "./WhatNextSurface";
 import { TodayScheduleSurface } from "./TodayScheduleSurface";
@@ -22,20 +26,39 @@ export function AssistantSurfacesRenderer({
   onNavigate,
 }: AssistantSurfacesRendererProps) {
   const renderSurface = (surface: InteractiveSurface) => {
-    const commonProps = {
-      surface,
-      onInvokeOp,
-      onNavigate,
-    };
     switch (surface.kind) {
       case "what_next_v1":
-        return <WhatNextSurface {...commonProps} />;
+        return (
+          <WhatNextSurface
+            surface={surface as WhatNextV1Surface}
+            onInvokeOp={onInvokeOp}
+            onNavigate={onNavigate}
+          />
+        );
       case "today_schedule_v1":
-        return <TodayScheduleSurface {...commonProps} />;
+        return (
+          <TodayScheduleSurface
+            surface={surface as TodayScheduleV1Surface}
+            onInvokeOp={onInvokeOp}
+            onNavigate={onNavigate}
+          />
+        );
       case "priority_list_v1":
-        return <PriorityListSurface {...commonProps} />;
+        return (
+          <PriorityListSurface
+            surface={surface as PriorityListV1Surface}
+            onInvokeOp={onInvokeOp}
+            onNavigate={onNavigate}
+          />
+        );
       case "triage_table_v1":
-        return <TriageTableSurface {...commonProps} />;
+        return (
+          <TriageTableSurface
+            surface={surface as TriageTableV1Surface}
+            onInvokeOp={onInvokeOp}
+            onNavigate={onNavigate}
+          />
+        );
       default:
         return null;
     }

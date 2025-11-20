@@ -91,9 +91,12 @@ export function TodayScheduleSurface({
         <button
           type="button"
           className="mt-4 text-sm text-slate-600 underline decoration-dotted decoration-slate-400 hover:text-slate-800"
-          onClick={() =>
-            onInvokeOp?.(controls.suggestAlternativesOp, { confirm: false })
-          }
+          onClick={() => {
+            const opToken = controls.suggestAlternativesOp;
+            if (opToken && onInvokeOp) {
+              onInvokeOp(opToken, { confirm: false });
+            }
+          }}
         >
           Suggest 3 alternatives
         </button>

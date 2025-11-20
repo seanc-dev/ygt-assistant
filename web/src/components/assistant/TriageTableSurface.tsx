@@ -44,9 +44,12 @@ export function TriageTableSurface({
                   <button
                     type="button"
                     className="text-xs font-medium text-slate-700 hover:text-slate-900"
-                    onClick={() =>
-                      onInvokeOp?.(group.groupActions!.approveAllOp, { confirm: false })
-                    }
+                    onClick={() => {
+                      const opToken = group.groupActions?.approveAllOp;
+                      if (opToken && onInvokeOp) {
+                        onInvokeOp(opToken, { confirm: false });
+                      }
+                    }}
                   >
                     Approve all
                   </button>
@@ -55,9 +58,12 @@ export function TriageTableSurface({
                   <button
                     type="button"
                     className="text-xs font-medium text-slate-700 hover:text-slate-900"
-                    onClick={() =>
-                      onInvokeOp?.(group.groupActions!.declineAllOp, { confirm: false })
-                    }
+                    onClick={() => {
+                      const opToken = group.groupActions?.declineAllOp;
+                      if (opToken && onInvokeOp) {
+                        onInvokeOp(opToken, { confirm: false });
+                      }
+                    }}
                   >
                     Decline all
                   </button>
