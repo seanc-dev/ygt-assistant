@@ -963,7 +963,7 @@ async def assistant_suggest_for_task(
         )
         save_thread_context(context_thread_id, thread_context)
 
-        return operations, result
+        return operations, result, input_messages
 
     # Execute pipeline with thread lock if thread_id is present
     if thread_id:
@@ -971,10 +971,10 @@ async def assistant_suggest_for_task(
         # Lock wraps entire pipeline: message reading, LLM calls, operation execution, and context save
         thread_lock = await _get_thread_lock(thread_id)
         async with thread_lock:
-            operations, result = await execute_pipeline()
+            operations, result, input_messages = await execute_pipeline()
     else:
         # No thread_id, execute without lock
-        operations, result = await execute_pipeline()
+        operations, result, input_messages = await execute_pipeline()
 
     # Refresh task
     try:
