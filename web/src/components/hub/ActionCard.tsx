@@ -15,6 +15,7 @@ import {
   MoreHorizontal24Regular,
 } from "@fluentui/react-icons";
 import { AssistantChat } from "./AssistantChat";
+import { useFocusContextStore } from "../../state/focusContextStore";
 
 type ActionCardProps = {
   item: {
@@ -85,6 +86,7 @@ export function ActionCard({
   trustMode = "training_wheels",
 }: ActionCardProps) {
   const router = useRouter();
+  const { pushFocus } = useFocusContextStore();
   const [openMenu, setOpenMenu] = useState<MenuType>(null);
   const [threadId, setThreadId] = useState<string | null>(
     item.thread_id || null
@@ -329,14 +331,15 @@ export function ActionCard({
   );
 
   const handleOpenInWorkroom = useCallback(
-    (threadId?: string) => {
-      if (threadId) {
-        router.push(`/workroom?thread=${threadId}`);
-      } else {
-        router.push("/workroom");
-      }
+    (_threadId?: string) => {
+      const anchorId = item.task_id || item.action_id;
+      pushFocus(
+        { type: "task", id: anchorId },
+        { source: "hub_surface", surfaceKind: "action_card", surfaceId: item.action_id }
+      );
+      router.push("/workroom");
     },
-    [router]
+    [item.action_id, item.task_id, pushFocus, router]
   );
 
   const handleThreadCreated = useCallback((newThreadId: string) => {
