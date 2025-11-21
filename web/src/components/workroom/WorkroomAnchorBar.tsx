@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@ygt-assistant/ui/primitives/Button";
-import { Text } from "@ygt-assistant/ui";
+import { Button } from "@lucid-work/ui/primitives/Button";
+import { Text } from "@lucid-work/ui";
 import { ChevronLeft24Regular } from "@fluentui/react-icons";
 import { useFocusContextStore } from "../../state/focusContextStore";
 import type { FocusContext, FocusMode } from "../../lib/focusContext";

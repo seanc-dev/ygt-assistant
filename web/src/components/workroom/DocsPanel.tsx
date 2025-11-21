@@ -1,4 +1,4 @@
-import { Text } from "@ygt-assistant/ui";
+import { Text } from "@lucid-work/ui";
 import { useWorkroomContext } from "../../hooks/useWorkroomContext";
 
 export function DocsPanel() {

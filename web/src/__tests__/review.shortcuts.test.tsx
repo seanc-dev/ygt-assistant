@@ -1,5 +1,13 @@
 import { render, fireEvent } from "@testing-library/react";
+import { vi } from "vitest";
 import ReviewPage from "../pages/review";
+
+// Mock API to prevent network calls during test
+vi.mock("../lib/api", () => ({
+  api: {
+    approvals: vi.fn().mockResolvedValue([]),
+  },
+}));
 
 // minimal smoke test for keybindings; environment may need Next.js test setup
 it("handles keyboard shortcuts without crashing", () => {
