@@ -1,7 +1,7 @@
 """Workroom endpoints."""
 
 from __future__ import annotations
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Literal
 from fastapi import APIRouter, Request, Depends, HTTPException
 from pydantic import BaseModel, Field
 from presentation.api.repos import workroom as workroom_repo, audit_log
@@ -10,6 +10,7 @@ from presentation.api.routes.llm_contract_support import build_contract_payload
 from presentation.api.services.interactive_surfaces import (
     attach_surfaces_to_first_chat_op,
     normalize_surfaces,
+    validate_workroom_surfaces,
 )
 from datetime import datetime, timezone
 import uuid
@@ -128,6 +129,76 @@ def _generate_dev_response(user_message: str) -> str:
         return (
             "I understand. I can help you with that. What would you like me to do next?"
         )
+
+
+def _build_surface_input_for_workroom(
+    context: Optional[Dict[str, Any]], focus_task: Optional[Dict[str, Any]]
+) -> Dict[str, Any]:
+    context = context or {}
+    tasks: List[Dict[str, Any]] = []
+    task_ids = set()
+    for task in context.get("tasks", []):
+        if not isinstance(task, dict) or not task.get("id"):
+            continue
+        task_ids.add(task["id"])
+        tasks.append(
+            {
+                "id": task["id"],
+                "title": task.get("title") or task.get("name") or task["id"],
+                "status": task.get("status"),
+                "priority": task.get("priority"),
+            }
+        )
+
+    if focus_task and focus_task.get("id") and focus_task.get("id") not in task_ids:
+        tasks.append(
+            {
+                "id": focus_task.get("id"),
+                "title": focus_task.get("title") or focus_task.get("name") or focus_task.get("id"),
+                "status": focus_task.get("status"),
+                "priority": focus_task.get("priority"),
+            }
+        )
+
+    events = []
+    for event in context.get("events", []):
+        if not isinstance(event, dict) or not event.get("id"):
+            continue
+        events.append(
+            {
+                "id": event["id"],
+                "title": event.get("title") or event["id"],
+                "start": event.get("start"),
+                "end": event.get("end"),
+            }
+        )
+
+    docs = []
+    for doc in context.get("docs", []):
+        if not isinstance(doc, dict) or not doc.get("id"):
+            continue
+        docs.append({"id": doc["id"], "title": doc.get("title") or doc["id"]})
+
+    queue_items = []
+    for action in context.get("actions", []):
+        if not isinstance(action, dict) or not action.get("id"):
+            continue
+        queue_items.append(
+            {
+                "id": action["id"],
+                "subject": action.get("preview")
+                or action.get("title")
+                or action.get("name")
+                or action["id"],
+            }
+        )
+
+    return {
+        "tasks": tasks,
+        "events": events,
+        "docs": docs,
+        "queueItems": queue_items,
+    }
 
 
 class CreateThreadRequest(BaseModel):
@@ -808,6 +879,9 @@ class AssistantSuggestRequest(BaseModel):
         None,
         description="Override trust level (training_wheels, supervised, autonomous)",
     )
+    mode: Optional[Literal["plan", "execute", "review"]] = Field(
+        default="execute", description="Workroom mode to tune surfaces"
+    )
 
 
 @router.post("/api/workroom/tasks/{task_id}/assistant-suggest")
@@ -862,6 +936,16 @@ async def assistant_suggest_for_task(
         user_id=user_id,
         focus_task_id=task_id,
     )
+
+    workroom_anchor = {
+        "type": "task",
+        "id": task_id,
+        "title": task.get("title"),
+        "status": task.get("status"),
+        "priority": task.get("priority"),
+    }
+    workroom_mode = body.mode or "execute"
+    surface_input = _build_surface_input_for_workroom(context, task)
 
     context_thread_id = thread_id or f"task:{task_id}"
 
@@ -948,11 +1032,16 @@ async def assistant_suggest_for_task(
             focus_task_id=task_id,
             context_override=context,
             contract_payload=contract_payload,
+            assistant_mode="workroom",
+            workroom_anchor=workroom_anchor,
+            workroom_mode=workroom_mode,
+            surface_input=surface_input,
         )
         operations = proposal.operations
         surfaces = normalize_surfaces(proposal.surfaces)
-        if surfaces:
-            attach_surfaces_to_first_chat_op(operations, surfaces)
+        validated_surfaces = validate_workroom_surfaces(surfaces, surface_input)
+        if validated_surfaces:
+            attach_surfaces_to_first_chat_op(operations, validated_surfaces)
 
         # Convert to typed operations for executor
         from core.domain.llm_ops import validate_operation
@@ -976,7 +1065,7 @@ async def assistant_suggest_for_task(
         )
         save_thread_context(context_thread_id, thread_context)
 
-        return operations, result, input_messages, surfaces
+        return operations, result, input_messages, validated_surfaces
 
     # Execute pipeline with thread lock if thread_id is present
     if thread_id:
