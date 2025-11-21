@@ -32,6 +32,8 @@ export default defineConfig({
     alias: {
       react: path.resolve(__dirname, "./node_modules/react"),
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
+      "@lucid-work/ui": path.resolve(__dirname, "../shared-ui/src"),
+      // Keep old alias for backward compatibility during transition
       "@ygt-assistant/ui": path.resolve(__dirname, "../shared-ui/src"),
       // Resolve shared-ui dependencies from web/node_modules
       clsx: path.resolve(__dirname, "./node_modules/clsx"),
@@ -40,6 +42,8 @@ export default defineConfig({
       "@/pages": path.resolve(__dirname, "./src/pages"),
       "@/data": path.resolve(__dirname, "./src/data"),
     },
+    // Ensure node_modules resolution works for shared-ui files
+    dedupe: ["react", "react-dom", "clsx"],
   },
   optimizeDeps: {
     include: ["react", "react-dom", "clsx"],
