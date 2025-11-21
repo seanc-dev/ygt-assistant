@@ -226,6 +226,15 @@ type AssistantChatProps = {
     pending: any[];
     errors: any[];
   }) => void;
+  /**
+   * When false, interactive surfaces will be suppressed from rendering
+   * (but still retained in message state) so Workroom can gate by mode.
+   */
+  surfaceRenderAllowed?: boolean;
+  /**
+   * Optional override to handle surface navigation (used by Workroom to push focus).
+   */
+  onSurfaceNavigateOverride?: (nav: SurfaceNavigateTo) => void;
 };
 
 export function AssistantChat({
@@ -246,6 +255,8 @@ export function AssistantChat({
   onInputFocus,
   trustMode = "training_wheels",
   onOperationsUpdate,
+  surfaceRenderAllowed = true,
+  onSurfaceNavigateOverride,
 }: AssistantChatProps) {
   const [threadId, setThreadId] = useState<string | null>(
     initialThreadId || null
@@ -1875,6 +1886,10 @@ export function AssistantChat({
 
   const handleSurfaceNavigate = useCallback(
     (nav: SurfaceNavigateTo) => {
+      if (onSurfaceNavigateOverride) {
+        onSurfaceNavigateOverride(nav);
+        return;
+      }
       switch (nav.destination) {
         case "workroom_task":
           onOpenWorkroom?.();
@@ -1894,7 +1909,7 @@ export function AssistantChat({
           showInlineNotice("Navigation target not supported yet.");
       }
     },
-    [onOpenWorkroom, showInlineNotice]
+    [onOpenWorkroom, onSurfaceNavigateOverride, showInlineNotice]
   );
 
   const formatTimestamp = useCallback((ts: string) => {
@@ -2066,7 +2081,7 @@ export function AssistantChat({
         role: msg.role,
         content: msg.content,
         embeds: msg.embeds,
-        surfaces: msg.surfaces,
+        surfaces: surfaceRenderAllowed ? msg.surfaces : undefined,
         marginTop,
         timestampLabel,
         showTimestamp,
@@ -2077,7 +2092,12 @@ export function AssistantChat({
         errorMessage: msg.errorMessage,
       } as MessageView;
     });
-  }, [groupedMessages, formatTimestamp, activeAssistantId]);
+  }, [
+    groupedMessages,
+    formatTimestamp,
+    activeAssistantId,
+    surfaceRenderAllowed,
+  ]);
 
   const containerStyle = useMemo(() => {
     return { height: "100%", minHeight: 0 };

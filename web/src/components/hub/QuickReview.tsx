@@ -1,6 +1,7 @@
 import { Panel, Stack, Text, Heading, Button } from "@ygt-assistant/ui";
 import { useRecent } from "../../hooks/useHubData";
 import { useRouter } from "next/router";
+import { useFocusContextStore } from "../../state/focusContextStore";
 
 interface RecentItem {
   id: string;
@@ -20,6 +21,7 @@ export function QuickReview() {
   const router = useRouter();
   const { data: recentData } = useRecent();
   const recent = recentData as RecentResponse | undefined;
+  const { pushFocus } = useFocusContextStore();
 
   const items = recent?.items || [];
   const displayItems = items.slice(0, 3);
@@ -38,7 +40,11 @@ export function QuickReview() {
   };
 
   const handleOpenInWorkroom = (item: RecentItem) => {
-    router.push(`/workroom${item.thread_id ? `?thread=${item.thread_id}` : ""}`);
+    pushFocus(
+      { type: "task", id: item.id },
+      { source: "hub_surface", surfaceKind: "quick_review", surfaceId: item.id }
+    );
+    router.push("/workroom");
   };
 
   if (displayItems.length === 0) {
@@ -96,10 +102,16 @@ export function QuickReview() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => router.push("/workroom")}
+            onClick={() => {
+              pushFocus(
+                { type: "portfolio", id: "my_work" },
+                { source: "hub_surface", surfaceKind: "quick_review" }
+              );
+              router.push("/workroom");
+            }}
             className="w-full"
           >
-            Open in Workroom
+            Open My Work board
           </Button>
         </div>
       </Stack>

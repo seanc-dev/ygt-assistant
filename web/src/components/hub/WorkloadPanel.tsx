@@ -19,6 +19,7 @@ import {
   ClipboardTask24Regular,
   MoreHorizontal24Regular,
 } from "@fluentui/react-icons";
+import { useFocusContextStore } from "../../state/focusContextStore";
 
 interface WorkloadPanelProps {
   onAddFocusBlock?: () => void;
@@ -33,6 +34,7 @@ export function WorkloadPanel({ onAddFocusBlock }: WorkloadPanelProps) {
   const router = useRouter();
   const [showOverflow, setShowOverflow] = useState(false);
   const overflowTriggerRef = useRef<HTMLButtonElement>(null);
+  const { pushFocus } = useFocusContextStore();
 
   const handleReviewQueue = useCallback(() => {
     router.push("/hub#action-queue");
@@ -52,8 +54,9 @@ export function WorkloadPanel({ onAddFocusBlock }: WorkloadPanelProps) {
   }, [router]);
 
   const handleOpenWorkroom = useCallback(() => {
+    pushFocus({ type: "portfolio", id: "my_work" }, { source: "hub_surface", surfaceKind: "workload" });
     router.push("/workroom");
-  }, [router]);
+  }, [pushFocus, router]);
 
   const handleOpenProjects = useCallback(() => {
     router.push("/projects");
