@@ -24,6 +24,8 @@ from core.chat.context import (
 from core.chat.focus import UiContext, resolve_focus_candidates
 from core.chat.tokens import parse_message_with_tokens
 from core.chat.validation import ValidationOk, validate_parsed_message
+from core.chat.workroom_context_space import build_workroom_context_space
+from services import llm as llm_service
 
 router = APIRouter()
 
@@ -822,7 +824,6 @@ async def assistant_suggest_for_task(
     Resolves tenant_id + user_id, calls propose_ops_for_user with focus_task_id,
     executes ops based on trust_mode, and returns operations, applied, pending.
     """
-    from services import llm as llm_service
     from core.services.llm_executor import execute_ops
     from presentation.api.repos import user_settings
     import presentation.api.repos.workroom as workroom_module
@@ -861,6 +862,15 @@ async def assistant_suggest_for_task(
         tenant_id=tenant_id,
         user_id=user_id,
         focus_task_id=task_id,
+    )
+
+    context_space = build_workroom_context_space(
+        context,
+        focus_task_id=task_id,
+        focus_project_id=task.get("project_id"),
+    )
+    context_input = (
+        context_space.to_context_input() if context_space else None
     )
 
     context_thread_id = thread_id or f"task:{task_id}"
@@ -948,6 +958,7 @@ async def assistant_suggest_for_task(
             focus_task_id=task_id,
             context_override=context,
             contract_payload=contract_payload,
+            context_input=context_input,
         )
         operations = proposal.operations
         surfaces = normalize_surfaces(proposal.surfaces)

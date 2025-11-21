@@ -262,6 +262,7 @@ def propose_ops_for_user(
     use_tools: bool = True,
     context_override: Optional[Dict[str, Any]] = None,
     contract_payload: Optional[Dict[str, Any]] = None,
+    context_input: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """Propose LLM operations for a user based on their message(s) and context.
 
@@ -502,6 +503,11 @@ Each operation must have an "op" field and a "params" field.
 CRITICAL: Use semantic references (names, titles, "current project", "this task") instead of UUIDs or IDs.
 NEVER output UUIDs, IDs, or placeholders like "current_project_id". Use human-readable identifiers.
 
+Workroom context_input rules:
+- Use ONLY the projects, tasks, and actions listed in the provided context_input JSON. If the requested item is missing, ask the user to surface it instead of inventing a name.
+- The anchor task/project reflects the current Workroom focus. Prefer these anchors when the user says "this task" or "current project".
+- If any list is truncated (see the "truncated" counts), ask the user to pick from the visible items before proposing operations that rely on the omitted ones.
+
 PROJECT CONTEXT RULES:
 - The current project is {current_project_label}. Assume any task-related request refers to this project unless the user explicitly names a different one.
 - When the user confirms a task belongs to {current_project_label}, proceed with the requested operation.
@@ -607,6 +613,10 @@ Respond ONLY with JSON matching this schema:
                 user_content += "\n\nStructured identity hints:\n" + "\n".join(
                     structured_lines
                 )
+
+        if context_input:
+            user_content += "\n\ncontext_input (WorkroomContextSpace):\n"
+            user_content += json.dumps(context_input, ensure_ascii=False, indent=2)
 
         user_content += f"""
 
