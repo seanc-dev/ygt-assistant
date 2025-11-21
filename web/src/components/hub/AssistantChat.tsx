@@ -21,6 +21,8 @@ import {
   type InteractiveSurface,
   type SurfaceNavigateTo,
 } from "../../lib/llm/surfaces";
+import type { WorkroomContext } from "../../lib/workroomContext";
+import { filterSurfacesByWorkroomContext } from "../../lib/workroomSurfaceValidation";
 import type {
   Message,
   MessageView,
@@ -235,6 +237,7 @@ type AssistantChatProps = {
    * Optional override to handle surface navigation (used by Workroom to push focus).
    */
   onSurfaceNavigateOverride?: (nav: SurfaceNavigateTo) => void;
+  workroomContext?: WorkroomContext | null;
 };
 
 export function AssistantChat({
@@ -257,6 +260,7 @@ export function AssistantChat({
   onOperationsUpdate,
   surfaceRenderAllowed = true,
   onSurfaceNavigateOverride,
+  workroomContext = null,
 }: AssistantChatProps) {
   const [threadId, setThreadId] = useState<string | null>(
     initialThreadId || null
@@ -2076,12 +2080,20 @@ export function AssistantChat({
           ? ASSISTANT_START_DELAY_MS
           : 0;
 
+      const validatedSurfaces =
+        mode === "workroom"
+          ? filterSurfacesByWorkroomContext(
+              msg.surfaces as InteractiveSurface[] | undefined,
+              workroomContext ?? null
+            )
+          : msg.surfaces;
+
       return {
         id: msg.id,
         role: msg.role,
         content: msg.content,
         embeds: msg.embeds,
-        surfaces: surfaceRenderAllowed ? msg.surfaces : undefined,
+        surfaces: surfaceRenderAllowed ? validatedSurfaces : undefined,
         marginTop,
         timestampLabel,
         showTimestamp,
@@ -2092,12 +2104,14 @@ export function AssistantChat({
         errorMessage: msg.errorMessage,
       } as MessageView;
     });
-  }, [
-    groupedMessages,
-    formatTimestamp,
-    activeAssistantId,
-    surfaceRenderAllowed,
-  ]);
+    }, [
+      groupedMessages,
+      formatTimestamp,
+      activeAssistantId,
+      surfaceRenderAllowed,
+      mode,
+      workroomContext,
+    ]);
 
   const containerStyle = useMemo(() => {
     return { height: "100%", minHeight: 0 };

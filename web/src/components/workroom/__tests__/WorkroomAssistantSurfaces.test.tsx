@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AssistantChat } from "../../hub/AssistantChat";
+import type { WorkroomContext } from "../../../lib/workroomContext";
 
 vi.mock("../../../lib/api", () => {
   const handlers: Record<string, any> = {};
@@ -57,6 +58,17 @@ const mockChatThreadResponse = (
 });
 
 const useChatThreadMock = vi.fn(mockChatThreadResponse);
+
+const workroomContext: WorkroomContext = {
+  anchor: { type: "task", id: "task-123", title: "Task 123" },
+  neighborhood: {
+    tasks: [
+      { id: "task-123", title: "Task 123" },
+      { id: "task-allowed", title: "Allowed Task" },
+    ],
+    events: [{ id: "event-allowed", title: "Allowed Event" }],
+  },
+};
 
 vi.mock("../../hub/assistantChat/useChatThread", () => ({
   useChatThread: (...args: any[]) => useChatThreadMock(...args),
@@ -264,6 +276,76 @@ describe("AssistantChat surfaces in workroom", () => {
         threadId="thread-b"
         mode="workroom"
         surfaceRenderAllowed
+      />
+    );
+
+    expect(screen.getByTestId("surfaces-assistant-1").textContent).toBe(
+      "no-surfaces"
+    );
+  });
+
+  it("keeps navigation surfaces that target visible workroom tasks", () => {
+    useChatThreadMock.mockReturnValueOnce(
+      mockChatThreadResponse([
+        {
+          surface_id: "s-nav-allowed",
+          kind: "what_next_v1",
+          title: "Next",
+          payload: {
+            primary: {
+              headline: "Do allowed task",
+              primaryAction: {
+                label: "Go",
+                navigateTo: { destination: "workroom_task", taskId: "task-allowed" },
+              },
+            },
+          },
+        },
+      ])
+    );
+
+    render(
+      <AssistantChat
+        actionId="task:123"
+        taskId="task-123"
+        mode="workroom"
+        surfaceRenderAllowed
+        workroomContext={workroomContext}
+      />
+    );
+
+    expect(screen.getByTestId("surfaces-assistant-1").textContent).toBe(
+      "has-surfaces"
+    );
+  });
+
+  it("filters navigation surfaces targeting hidden workroom tasks", () => {
+    useChatThreadMock.mockReturnValueOnce(
+      mockChatThreadResponse([
+        {
+          surface_id: "s-nav-hidden",
+          kind: "what_next_v1",
+          title: "Next",
+          payload: {
+            primary: {
+              headline: "Do hidden task",
+              primaryAction: {
+                label: "Skip",
+                navigateTo: { destination: "workroom_task", taskId: "task-hidden" },
+              },
+            },
+          },
+        },
+      ])
+    );
+
+    render(
+      <AssistantChat
+        actionId="task:123"
+        taskId="task-123"
+        mode="workroom"
+        surfaceRenderAllowed
+        workroomContext={workroomContext}
       />
     );
 
