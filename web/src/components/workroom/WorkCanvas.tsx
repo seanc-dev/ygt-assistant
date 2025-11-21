@@ -159,6 +159,7 @@ export function WorkCanvas() {
           shouldFocus={false}
           surfaceRenderAllowed={surfacesEnabled}
           onSurfaceNavigateOverride={handleSurfaceNavigate}
+          workroomContext={workroomContext}
         />
       </div>
 
