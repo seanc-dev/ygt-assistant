@@ -2158,7 +2158,11 @@ export function AssistantChat({
         role: msg.role,
         content: msg.content,
         embeds: msg.embeds,
+<<<<<<< HEAD
         surfaces: surfaceRenderAllowed ? validatedSurfaces : undefined,
+=======
+        surfaces: surfaceRenderAllowed ? msg.surfaces : undefined,
+>>>>>>> 9b238c7 (Integrate workroom surfaces with focus navigation)
         marginTop,
         timestampLabel,
         showTimestamp,
@@ -2169,6 +2173,7 @@ export function AssistantChat({
         errorMessage: msg.errorMessage,
       } as MessageView;
     });
+<<<<<<< HEAD
     }, [
       groupedMessages,
       formatTimestamp,
@@ -2177,6 +2182,14 @@ export function AssistantChat({
       mode,
       workroomContext,
     ]);
+=======
+  }, [
+    groupedMessages,
+    formatTimestamp,
+    activeAssistantId,
+    surfaceRenderAllowed,
+  ]);
+>>>>>>> 9b238c7 (Integrate workroom surfaces with focus navigation)
 
   const containerStyle = useMemo(() => {
     return { height: "100%", minHeight: 0 };
