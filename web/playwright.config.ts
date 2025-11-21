@@ -20,5 +20,11 @@ export default defineConfig({
       use: { browserName: "chromium" },
     },
   ],
+  webServer: {
+    command: "npm run dev -- -p 3000",
+    port: 3000,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+  },
 });
 

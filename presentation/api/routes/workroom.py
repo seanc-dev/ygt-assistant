@@ -1,7 +1,7 @@
 """Workroom endpoints."""
 
 from __future__ import annotations
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Literal
 from fastapi import APIRouter, Request, Depends, HTTPException
 from pydantic import BaseModel, Field
 from presentation.api.repos import workroom as workroom_repo, audit_log
@@ -10,6 +10,7 @@ from presentation.api.routes.llm_contract_support import build_contract_payload
 from presentation.api.services.interactive_surfaces import (
     attach_surfaces_to_first_chat_op,
     normalize_surfaces,
+    validate_workroom_surfaces,
 )
 from datetime import datetime, timezone
 import uuid
@@ -24,6 +25,8 @@ from core.chat.context import (
 from core.chat.focus import UiContext, resolve_focus_candidates
 from core.chat.tokens import parse_message_with_tokens
 from core.chat.validation import ValidationOk, validate_parsed_message
+from core.chat.workroom_context_space import build_workroom_context_space
+from services import llm as llm_service
 
 router = APIRouter()
 
@@ -128,6 +131,76 @@ def _generate_dev_response(user_message: str) -> str:
         return (
             "I understand. I can help you with that. What would you like me to do next?"
         )
+
+
+def _build_surface_input_for_workroom(
+    context: Optional[Dict[str, Any]], focus_task: Optional[Dict[str, Any]]
+) -> Dict[str, Any]:
+    context = context or {}
+    tasks: List[Dict[str, Any]] = []
+    task_ids = set()
+    for task in context.get("tasks", []):
+        if not isinstance(task, dict) or not task.get("id"):
+            continue
+        task_ids.add(task["id"])
+        tasks.append(
+            {
+                "id": task["id"],
+                "title": task.get("title") or task.get("name") or task["id"],
+                "status": task.get("status"),
+                "priority": task.get("priority"),
+            }
+        )
+
+    if focus_task and focus_task.get("id") and focus_task.get("id") not in task_ids:
+        tasks.append(
+            {
+                "id": focus_task.get("id"),
+                "title": focus_task.get("title") or focus_task.get("name") or focus_task.get("id"),
+                "status": focus_task.get("status"),
+                "priority": focus_task.get("priority"),
+            }
+        )
+
+    events = []
+    for event in context.get("events", []):
+        if not isinstance(event, dict) or not event.get("id"):
+            continue
+        events.append(
+            {
+                "id": event["id"],
+                "title": event.get("title") or event["id"],
+                "start": event.get("start"),
+                "end": event.get("end"),
+            }
+        )
+
+    docs = []
+    for doc in context.get("docs", []):
+        if not isinstance(doc, dict) or not doc.get("id"):
+            continue
+        docs.append({"id": doc["id"], "title": doc.get("title") or doc["id"]})
+
+    queue_items = []
+    for action in context.get("actions", []):
+        if not isinstance(action, dict) or not action.get("id"):
+            continue
+        queue_items.append(
+            {
+                "id": action["id"],
+                "subject": action.get("preview")
+                or action.get("title")
+                or action.get("name")
+                or action["id"],
+            }
+        )
+
+    return {
+        "tasks": tasks,
+        "events": events,
+        "docs": docs,
+        "queueItems": queue_items,
+    }
 
 
 class CreateThreadRequest(BaseModel):
@@ -808,6 +881,9 @@ class AssistantSuggestRequest(BaseModel):
         None,
         description="Override trust level (training_wheels, supervised, autonomous)",
     )
+    mode: Optional[Literal["plan", "execute", "review"]] = Field(
+        default="execute", description="Workroom mode to tune surfaces"
+    )
 
 
 @router.post("/api/workroom/tasks/{task_id}/assistant-suggest")
@@ -822,7 +898,6 @@ async def assistant_suggest_for_task(
     Resolves tenant_id + user_id, calls propose_ops_for_user with focus_task_id,
     executes ops based on trust_mode, and returns operations, applied, pending.
     """
-    from services import llm as llm_service
     from core.services.llm_executor import execute_ops
     from presentation.api.repos import user_settings
     import presentation.api.repos.workroom as workroom_module
@@ -861,6 +936,15 @@ async def assistant_suggest_for_task(
         tenant_id=tenant_id,
         user_id=user_id,
         focus_task_id=task_id,
+    )
+
+    context_space = build_workroom_context_space(
+        context,
+        focus_task_id=task_id,
+        focus_project_id=task.get("project_id"),
+    )
+    context_input = (
+        context_space.to_context_input() if context_space else None
     )
 
     context_thread_id = thread_id or f"task:{task_id}"
@@ -948,11 +1032,13 @@ async def assistant_suggest_for_task(
             focus_task_id=task_id,
             context_override=context,
             contract_payload=contract_payload,
+            context_input=context_input,
         )
         operations = proposal.operations
         surfaces = normalize_surfaces(proposal.surfaces)
-        if surfaces:
-            attach_surfaces_to_first_chat_op(operations, surfaces)
+        validated_surfaces = validate_workroom_surfaces(surfaces, context_input or {})
+        if validated_surfaces:
+            attach_surfaces_to_first_chat_op(operations, validated_surfaces)
 
         # Convert to typed operations for executor
         from core.domain.llm_ops import validate_operation
@@ -976,7 +1062,7 @@ async def assistant_suggest_for_task(
         )
         save_thread_context(context_thread_id, thread_context)
 
-        return operations, result, input_messages, surfaces
+        return operations, result, input_messages, validated_surfaces
 
     # Execute pipeline with thread lock if thread_id is present
     if thread_id:
