@@ -32,7 +32,7 @@ export default defineConfig({
     alias: {
       react: path.resolve(__dirname, "./node_modules/react"),
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
-      "@ygt-assistant/ui": path.resolve(__dirname, "../shared-ui/src"),
+      "@lucid-work/ui": path.resolve(__dirname, "../shared-ui/src"),
       // Resolve shared-ui dependencies from web/node_modules
       clsx: path.resolve(__dirname, "./node_modules/clsx"),
       zustand: path.resolve(__dirname, "./src/test-utils/zustandShim.ts"),

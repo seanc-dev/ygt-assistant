@@ -1,4 +1,4 @@
-import { Button } from "@ygt-assistant/ui/primitives/Button";
+import { Button } from "@lucid-work/ui/primitives/Button";
 import {
   Document24Regular,
   Chat24Regular,

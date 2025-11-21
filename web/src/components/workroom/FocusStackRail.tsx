@@ -1,5 +1,5 @@
-import { Button } from "@ygt-assistant/ui/primitives/Button";
-import { Text } from "@ygt-assistant/ui";
+import { Button } from "@lucid-work/ui/primitives/Button";
+import { Text } from "@lucid-work/ui";
 import { useFocusContextStore } from "../../state/focusContextStore";
 
 export function FocusStackRail() {

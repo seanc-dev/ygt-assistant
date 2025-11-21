@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Panel, Text } from "@ygt-assistant/ui";
+import { Panel, Text } from "@lucid-work/ui";
 
 type ToastProps = {
   message: string;

@@ -8,7 +8,7 @@ import {
   Panel,
   Stack,
   Text,
-} from "@ygt-assistant/ui";
+} from "@lucid-work/ui";
 import { Layout } from "../../components/Layout";
 import LiveModeBanner from "../../components/LiveModeBanner";
 import { Toast } from "../../components/Toast";

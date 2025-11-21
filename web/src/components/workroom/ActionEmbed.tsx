@@ -11,7 +11,7 @@ import {
 } from "@fluentui/react-icons";
 import type { ActionEmbed, ActionEmbedKind } from "../../lib/actionEmbeds";
 import { workroomApi } from "../../lib/workroomApi";
-import { Button } from "@ygt-assistant/ui/primitives/Button";
+import { Button } from "@lucid-work/ui/primitives/Button";
 
 interface ActionEmbedProps {
   embed: ActionEmbed;

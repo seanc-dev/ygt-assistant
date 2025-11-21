@@ -1,4 +1,4 @@
-# Codebase Overview
+# LucidWork Codebase Overview
 
 ## 🏗️ Architecture
 

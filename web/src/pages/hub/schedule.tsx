@@ -1,4 +1,4 @@
-import { Stack, Heading, Text, Panel, Button } from "@ygt-assistant/ui";
+import { Stack, Heading, Text, Panel, Button } from "@lucid-work/ui";
 import { Layout } from "../../components/Layout";
 import { useToday, useSettings } from "../../hooks/useHubData";
 import { Schedule } from "../../components/hub/Schedule";

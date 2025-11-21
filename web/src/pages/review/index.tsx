@@ -7,7 +7,7 @@ import {
   Panel,
   Stack,
   Text,
-} from "@ygt-assistant/ui";
+} from "@lucid-work/ui";
 import { useRouter } from "next/router";
 import { api } from "../../lib/api";
 import { Layout } from "../../components/Layout";

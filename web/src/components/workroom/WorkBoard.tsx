@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Text } from "@ygt-assistant/ui";
+import { Text } from "@lucid-work/ui";
 import { useFocusContextStore } from "../../state/focusContextStore";
 import type { FocusAnchor } from "../../lib/focusContext";
 import type { Task, TaskStatus } from "../../hooks/useWorkroomStore";
@@ -59,7 +59,7 @@ export function WorkBoard({ boardType, anchor }: WorkBoardProps) {
     }
   };
 
-  const onCardClick = (task: BoardTask) => {
+  const onCardClick = (task: Task) => {
     const surfaceKind =
       boardType === "portfolio" && anchor.id === "my_work"
         ? "my_work"

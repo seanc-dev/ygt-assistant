@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Heading, Panel, Stack, Text, Button, useTheme, type ThemePreference } from "@ygt-assistant/ui";
+import { Heading, Panel, Stack, Text, Button, useTheme, type ThemePreference } from "@lucid-work/ui";
 import { Layout } from "../../components/Layout";
 import { api } from "../../lib/api";
 import { SettingsForm } from "../../components/SettingsForm";

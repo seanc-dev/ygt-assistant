@@ -22,8 +22,8 @@
       }
     ],
     "paths": {
-      "@ygt-assistant/ui": ["node_modules/@ygt-assistant/ui/src"],
-      "@ygt-assistant/ui/*": ["node_modules/@ygt-assistant/ui/src/*"]
+      "@lucid-work/ui": ["../shared-ui/src"],
+      "@lucid-work/ui/*": ["../shared-ui/src/*"]
     }
   },
   "include": [

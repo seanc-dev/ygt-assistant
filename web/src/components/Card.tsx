@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Panel, type PanelProps } from "@ygt-assistant/ui";
+import { Panel, type PanelProps } from "@lucid-work/ui";
 
 type CardProps = PanelProps & {
   children?: ReactNode;

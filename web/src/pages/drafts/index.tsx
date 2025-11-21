@@ -7,7 +7,7 @@ import {
   Panel,
   Stack,
   Text,
-} from "@ygt-assistant/ui";
+} from "@lucid-work/ui";
 import { Layout } from "../../components/Layout";
 import { Field } from "../../components/Form/Field";
 import { Textarea } from "../../components/Form/Textarea";

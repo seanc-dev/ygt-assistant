@@ -1,4 +1,4 @@
-import { Panel, Stack, Heading } from "@ygt-assistant/ui";
+import { Panel, Stack, Heading } from "@lucid-work/ui";
 import { useWorkloadSummary } from "../../hooks/useWorkloadSummary";
 import { CapacityBar } from "./workload/CapacityBar";
 import { ActiveFocus } from "./workload/ActiveFocus";

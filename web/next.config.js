@@ -11,7 +11,7 @@ const normalizedAdminApiBase = ADMIN_API_BASE.replace(/\/+$/, "");
 
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["@ygt-assistant/ui"],
+  transpilePackages: ["@lucid-work/ui"],
   // Ensure Next.js treats this folder as the root to avoid mixed lockfile/module resolution
   outputFileTracingRoot: __dirname,
   experimental: {
@@ -30,19 +30,19 @@ const nextConfig = {
     config.resolve = config.resolve || {};
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
-      react: path.resolve(__dirname, "node_modules/react"),
-      "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
+      react: path.resolve(__dirname, "../node_modules/react"),
+      "react-dom": path.resolve(__dirname, "../node_modules/react-dom"),
       "react/jsx-runtime": path.resolve(
         __dirname,
-        "node_modules/react/jsx-runtime.js"
+        "../node_modules/react/jsx-runtime.js"
       ),
       "react/jsx-dev-runtime": path.resolve(
         __dirname,
-        "node_modules/react/jsx-dev-runtime.js"
+        "../node_modules/react/jsx-dev-runtime.js"
       ),
-      // Explicit alias for @ygt-assistant/ui to ensure proper resolution
+      // Explicit alias for @lucid-work/ui to ensure proper resolution
       // Use node_modules symlink path so it resolves within project boundary
-      "@ygt-assistant/ui": path.resolve(__dirname, "node_modules/@ygt-assistant/ui/src"),
+      "@lucid-work/ui": path.resolve(__dirname, "../node_modules/@lucid-work/ui/src"),
     };
     
     // Ensure shared-ui TypeScript files are transpiled

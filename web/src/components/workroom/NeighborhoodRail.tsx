@@ -1,4 +1,4 @@
-import { Text } from "@ygt-assistant/ui";
+import { Text } from "@lucid-work/ui";
 import { useMemo } from "react";
 import { useFocusContextStore } from "../../state/focusContextStore";
 import type { FocusAnchorType } from "../../lib/focusContext";
@@ -60,7 +60,7 @@ export function NeighborhoodRail() {
           {renderItems("Related tasks", neighborhood?.tasks, "task")}
           {renderItems("Related events", neighborhood?.events, "event")}
           {renderItems("Related docs", neighborhood?.docs)}
-          {renderItems("Related inbox items", neighborhood?.queueItems)}
+          {renderItems("Related inbox items", neighborhood?.queueItems?.map(item => ({ id: item.id, title: item.subject })))}
         </div>
       ) : (
         <Text variant="caption" className="text-xs text-slate-500">

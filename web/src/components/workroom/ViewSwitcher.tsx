@@ -1,4 +1,4 @@
-import { Button } from "@ygt-assistant/ui/primitives/Button";
+import { Button } from "@lucid-work/ui/primitives/Button";
 import type { PrimaryView } from "../../hooks/useWorkroomStore";
 
 interface ViewSwitcherProps {

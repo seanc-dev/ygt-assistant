@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@ygt-assistant/ui/primitives/Button";
-import { Text } from "@ygt-assistant/ui";
+import { Button } from "@lucid-work/ui/primitives/Button";
+import { Text } from "@lucid-work/ui";
 import { ChevronLeft24Regular } from "@fluentui/react-icons";
 import { useFocusContextStore } from "../../state/focusContextStore";
 import type { FocusContext, FocusMode } from "../../lib/focusContext";
@@ -109,7 +109,7 @@ export function WorkroomAnchorBar() {
             return (
               <Button
                 key={mode}
-                size="xs"
+                size="sm"
                 variant={isActive ? "solid" : "ghost"}
                 onClick={() => handleModeChange(mode)}
                 className={`rounded-full px-3 text-xs ${
