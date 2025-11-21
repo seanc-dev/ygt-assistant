@@ -1,10 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { vi } from "vitest";
-import handler from "./context-space";
+import handler from "@/pages/api/workroom/context-space";
 import {
   mockContextSpaceByAnchor,
   resetMockContextSpaceStore,
-} from "../../../data/mockWorkroomData";
+} from "@/data/mockWorkroomData";
 
 type MockResponse = NextApiResponse & {
   statusCode: number;

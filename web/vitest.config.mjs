@@ -36,6 +36,9 @@ export default defineConfig({
       // Resolve shared-ui dependencies from web/node_modules
       clsx: path.resolve(__dirname, "./node_modules/clsx"),
       zustand: path.resolve(__dirname, "./src/test-utils/zustandShim.ts"),
+      // Allow importing from pages and data directories in tests
+      "@/pages": path.resolve(__dirname, "./src/pages"),
+      "@/data": path.resolve(__dirname, "./src/data"),
     },
   },
   optimizeDeps: {
