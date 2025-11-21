@@ -2,6 +2,84 @@ import type { FocusAnchor } from "../lib/focusContext";
 import type { Task, TaskStatus } from "../hooks/useWorkroomStore";
 import type { WorkroomContext, WorkroomNeighborhood } from "../lib/workroomContext";
 
+export type WorkroomContextSpace = {
+  summary: string | null;
+  highlights: string[];
+  questions: string[];
+};
+
+const defaultContextSpace: WorkroomContextSpace = {
+  summary: null,
+  highlights: [],
+  questions: [],
+};
+
+const initialContextSpaceByAnchor: Record<string, WorkroomContextSpace> = {
+  "task:task-1": {
+    summary: "Drafting new workroom UX with design alignment and acceptance criteria",
+    highlights: ["Sync with design", "Capture PRD updates"],
+    questions: ["Do we have sign-off on the UX flow?"],
+  },
+  "event:event-1": {
+    summary: "Design review for workroom improvements",
+    highlights: ["Share updated mockups"],
+    questions: ["Any blockers from engineering?"],
+  },
+};
+
+export const mockContextSpaceByAnchor: Record<string, WorkroomContextSpace> = {
+  ...initialContextSpaceByAnchor,
+};
+
+const sanitizeContextSpace = (input?: Partial<WorkroomContextSpace> | null) => {
+  const output: Partial<WorkroomContextSpace> = {};
+  if (input?.summary === null || typeof input?.summary === "string") {
+    output.summary = input.summary;
+  }
+  if (Array.isArray(input?.highlights)) {
+    output.highlights = input.highlights.filter((item): item is string => typeof item === "string");
+  }
+  if (Array.isArray(input?.questions)) {
+    output.questions = input.questions.filter((item): item is string => typeof item === "string");
+  }
+  return output;
+};
+
+const anchorKey = (anchor: FocusAnchor) => `${anchor.type}:${anchor.id || ""}`;
+
+export const resetMockContextSpaceStore = () => {
+  Object.keys(mockContextSpaceByAnchor).forEach((key) => delete mockContextSpaceByAnchor[key]);
+  Object.entries(initialContextSpaceByAnchor).forEach(([key, value]) => {
+    mockContextSpaceByAnchor[key] = { ...value };
+  });
+};
+
+export const getMockContextSpace = (anchor: FocusAnchor): WorkroomContextSpace & { anchor: FocusAnchor } => {
+  const stored = mockContextSpaceByAnchor[anchorKey(anchor)];
+  const sanitized = sanitizeContextSpace(stored);
+  return {
+    anchor,
+    summary: sanitized.summary ?? defaultContextSpace.summary,
+    highlights: sanitized.highlights ?? defaultContextSpace.highlights,
+    questions: sanitized.questions ?? defaultContextSpace.questions,
+  };
+};
+
+export const saveMockContextSpace = (
+  anchor: FocusAnchor,
+  input?: Partial<WorkroomContextSpace> | null
+): (WorkroomContextSpace & { anchor: FocusAnchor }) => {
+  const sanitized = sanitizeContextSpace(input);
+  const existing = mockContextSpaceByAnchor[anchorKey(anchor)] ?? defaultContextSpace;
+  const nextValue: WorkroomContextSpace = {
+    summary: sanitized.summary ?? existing.summary ?? defaultContextSpace.summary,
+    highlights: sanitized.highlights ?? existing.highlights ?? defaultContextSpace.highlights,
+    questions: sanitized.questions ?? existing.questions ?? defaultContextSpace.questions,
+  };
+  mockContextSpaceByAnchor[anchorKey(anchor)] = nextValue;
+  return { anchor, ...nextValue };
+};
+
 export type MockEvent = {
   id: string;
   title: string;
