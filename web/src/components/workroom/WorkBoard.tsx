@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Text } from "@lucid-work/ui";
+import { Text } from "@ygt-assistant/ui";
 import { useFocusContextStore } from "../../state/focusContextStore";
 import type { FocusAnchor } from "../../lib/focusContext";
 import type { Task, TaskStatus } from "../../hooks/useWorkroomStore";
