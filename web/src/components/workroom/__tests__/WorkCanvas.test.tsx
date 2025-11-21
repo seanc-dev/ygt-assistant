@@ -5,8 +5,33 @@ import { useFocusContextStore } from "../../../state/focusContextStore";
 import { useWorkroomContext } from "../../../hooks/useWorkroomContext";
 
 vi.mock("../../hub/AssistantChat", () => ({
-  AssistantChat: ({ actionId }: { actionId?: string }) => (
-    <div data-testid="assistant-chat">Chat {actionId}</div>
+  AssistantChat: ({
+    actionId,
+    surfaceRenderAllowed = true,
+    onSurfaceNavigateOverride,
+  }: {
+    actionId?: string;
+    surfaceRenderAllowed?: boolean;
+    onSurfaceNavigateOverride?: (nav: any) => void;
+  }) => (
+    <div data-testid="assistant-chat">
+      Chat {actionId}
+      <div data-testid="surfaces-flag">
+        {surfaceRenderAllowed ? "surfaces-on" : "surfaces-off"}
+      </div>
+      {onSurfaceNavigateOverride && (
+        <button
+          onClick={() =>
+            onSurfaceNavigateOverride({
+              destination: "workroom_task",
+              taskId: "nav-task",
+            })
+          }
+        >
+          Nav
+        </button>
+      )}
+    </div>
   ),
 }));
 
@@ -19,9 +44,17 @@ vi.mock("../../../hooks/useWorkroomContext", () => ({
 }));
 
 const mockedUseWorkroomContext = vi.mocked(useWorkroomContext);
+const baseStoreState = useFocusContextStore.getState();
 
 const resetStore = () => {
-  useFocusContextStore.setState({ current: undefined, stack: [] });
+  useFocusContextStore.setState({
+    current: undefined,
+    stack: [],
+    setFocusContext: baseStoreState.setFocusContext,
+    updateFocusMode: baseStoreState.updateFocusMode,
+    pushFocus: baseStoreState.pushFocus,
+    popFocus: baseStoreState.popFocus,
+  });
 };
 
 describe("WorkCanvas", () => {
@@ -49,6 +82,9 @@ describe("WorkCanvas", () => {
       render(<WorkCanvas />);
 
       expect(screen.getByTestId("assistant-chat")).toBeInTheDocument();
+      expect(screen.getByTestId("surfaces-flag").textContent).toContain(
+        "surfaces-off"
+      );
       expect(screen.getByText(/Planning surface: schedule and options/)).toBeInTheDocument();
       expect(screen.queryByText(/Focus next: prioritized actions/)).not.toBeInTheDocument();
       expect(screen.queryByText(/Activity timeline: history and outcomes/)).not.toBeInTheDocument();
@@ -63,6 +99,9 @@ describe("WorkCanvas", () => {
       render(<WorkCanvas />);
 
       expect(screen.getByTestId("assistant-chat")).toBeInTheDocument();
+      expect(screen.getByTestId("surfaces-flag").textContent).toContain(
+        "surfaces-on"
+      );
       expect(screen.getByText(/Focus next: prioritized actions will appear here/)).toBeInTheDocument();
       expect(screen.queryByText(/Planning surface: schedule and options/)).not.toBeInTheDocument();
       expect(screen.queryByText(/Activity timeline: history and outcomes/)).not.toBeInTheDocument();
@@ -77,9 +116,30 @@ describe("WorkCanvas", () => {
       render(<WorkCanvas />);
 
       expect(screen.getByTestId("assistant-chat")).toBeInTheDocument();
+      expect(screen.getByTestId("surfaces-flag").textContent).toContain(
+        "surfaces-off"
+      );
       expect(screen.getByText(/Activity timeline: history and outcomes/)).toBeInTheDocument();
       expect(screen.queryByText(/Planning surface: schedule and options/)).not.toBeInTheDocument();
       expect(screen.queryByText(/Focus next: prioritized actions/)).not.toBeInTheDocument();
+    });
+
+    it("routes surface navigation into focus context when provided", () => {
+      const pushFocus = vi.fn();
+      useFocusContextStore.setState({
+        current: { ...baseContext, mode: "execute" },
+        stack: [],
+        pushFocus,
+      });
+
+      render(<WorkCanvas />);
+
+      screen.getByText("Nav").click();
+
+      expect(pushFocus).toHaveBeenCalledWith(
+        { type: "task", id: "nav-task" },
+        { source: "direct" }
+      );
     });
   });
 
