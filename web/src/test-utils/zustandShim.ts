@@ -18,7 +18,7 @@ type StoreApi<T> = {
   subscribe: (listener: () => void) => () => void;
 };
 
-function createStore<T>(initializer: StateCreator<T>) {
+export function create<T>(initializer: StateCreator<T>) {
   let state: T;
   const listeners = new Set<() => void>();
 
@@ -58,24 +58,4 @@ function createStore<T>(initializer: StateCreator<T>) {
   };
 
   return useStore as any;
-}
-
-// Support curried form: create<State>()(initializer)
-// The initializer can be wrapped by middleware like persist, so we accept any function
-export function create<T>(): <F extends (...args: any[]) => T>(initializer: F) => ReturnType<typeof createStore<T>>;
-// Support direct form: create<State>(initializer)
-export function create<T>(initializer: StateCreator<T>): ReturnType<typeof createStore<T>>;
-// Implementation
-export function create<T>(initializer?: StateCreator<T> | ((...args: any[]) => T)) {
-  // Curried form: return a function that accepts the initializer
-  if (initializer === undefined) {
-    return <F extends (...args: any[]) => T>(fn: F) => {
-      // Middleware like persist may wrap the initializer, so we need to call it
-      // with the same signature as StateCreator
-      const wrappedInitializer = fn as StateCreator<T>;
-      return createStore<T>(wrappedInitializer);
-    };
-  }
-  // Direct form: call createStore immediately
-  return createStore<T>(initializer as StateCreator<T>);
 }

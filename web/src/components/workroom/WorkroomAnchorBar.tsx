@@ -109,7 +109,7 @@ export function WorkroomAnchorBar() {
             return (
               <Button
                 key={mode}
-                size="sm"
+                size="xs"
                 variant={isActive ? "solid" : "ghost"}
                 onClick={() => handleModeChange(mode)}
                 className={`rounded-full px-3 text-xs ${

@@ -59,7 +59,7 @@ export function WorkBoard({ boardType, anchor }: WorkBoardProps) {
     }
   };
 
-  const onCardClick = (task: Task) => {
+  const onCardClick = (task: BoardTask) => {
     const surfaceKind =
       boardType === "portfolio" && anchor.id === "my_work"
         ? "my_work"

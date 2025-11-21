@@ -5,10 +5,9 @@ import { WorkBoard } from "./WorkBoard";
 import { formatTimeWindow, statusLabelMap } from "../../data/mockWorkroomData";
 import { useWorkroomContext } from "../../hooks/useWorkroomContext";
 import type { WorkroomContextAnchor, WorkroomContext } from "../../lib/workroomContext";
-import type { SurfaceNavigateTo } from "../../lib/llm/surfaces";
 
 export function WorkCanvas() {
-  const { current, pushFocus } = useFocusContextStore();
+  const { current } = useFocusContextStore();
   const { workroomContext, loading, error } = useWorkroomContext();
 
   const chatContextId = useMemo(() => {
@@ -108,20 +107,6 @@ export function WorkCanvas() {
   const anchorDetail = resolveDetail(anchorForDisplay ?? headerAnchor, workroomContext);
   const headerNote = loading ? "Loading context..." : error ? "Context unavailable" : null;
 
-  const surfacesEnabled =
-    (current.anchor.type === "task" || current.anchor.type === "event") &&
-    current.mode === "execute";
-
-  const handleSurfaceNavigate = (nav: SurfaceNavigateTo) => {
-    if (nav.destination === "workroom_task") {
-      pushFocus({ type: "task", id: nav.taskId }, { source: "direct" });
-      return;
-    }
-    if (nav.destination === "calendar_event") {
-      pushFocus({ type: "event", id: nav.eventId }, { source: "direct" });
-    }
-  };
-
   return (
     <div className="flex h-full flex-col gap-4 p-4">
       <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-3">
@@ -157,9 +142,6 @@ export function WorkCanvas() {
           taskId={current.anchor.id}
           mode="workroom"
           shouldFocus={false}
-          surfaceRenderAllowed={surfacesEnabled}
-          onSurfaceNavigateOverride={handleSurfaceNavigate}
-          workroomContext={workroomContext}
         />
       </div>
 
