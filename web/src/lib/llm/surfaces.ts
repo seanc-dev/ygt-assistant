@@ -2,7 +2,8 @@ export type SurfaceKind =
   | "what_next_v1"
   | "today_schedule_v1"
   | "priority_list_v1"
-  | "triage_table_v1";
+  | "triage_table_v1"
+  | "context_add_v1";
 
 export type SurfaceNavigateTo =
   | { destination: "workroom_task"; taskId: string }
@@ -135,11 +136,31 @@ export type TriageTableV1Surface = SurfaceEnvelope<
   TriageTablePayload
 >;
 
+export type ContextAddItem = {
+  contextId: string;
+  label: string;
+  sourceType?: string;
+  summary?: string;
+  navigateTo?: SurfaceNavigateTo;
+  addOp?: string;
+};
+
+export type ContextAddPayload = {
+  headline?: string;
+  items: ContextAddItem[];
+};
+
+export type ContextAddV1Surface = SurfaceEnvelope<
+  "context_add_v1",
+  ContextAddPayload
+>;
+
 export type InteractiveSurface =
   | WhatNextV1Surface
   | TodayScheduleV1Surface
   | PriorityListV1Surface
-  | TriageTableV1Surface;
+  | TriageTableV1Surface
+  | ContextAddV1Surface;
 
 type UnknownRecord = Record<string, any>;
 
@@ -459,6 +480,37 @@ function parseTriageTablePayload(payload: unknown): TriageTablePayload | null {
   return { groups };
 }
 
+function parseContextAddPayload(payload: unknown): ContextAddPayload | null {
+  if (!isObject(payload) || !Array.isArray(payload.items)) {
+    return null;
+  }
+
+  const items = payload.items
+    .map((item: unknown) => {
+      if (!isObject(item) || typeof item.contextId !== "string" || typeof item.label !== "string") {
+        return undefined;
+      }
+      return {
+        contextId: item.contextId,
+        label: item.label,
+        sourceType: typeof item.sourceType === "string" ? item.sourceType : undefined,
+        summary: typeof item.summary === "string" ? item.summary : undefined,
+        navigateTo: parseNavigateTo(item.navigateTo),
+        addOp: typeof item.addOp === "string" ? item.addOp : undefined,
+      } as ContextAddItem;
+    })
+    .filter(Boolean) as ContextAddItem[];
+
+  if (!items.length) {
+    return null;
+  }
+
+  return {
+    headline: typeof payload.headline === "string" ? payload.headline : undefined,
+    items,
+  };
+}
+
 function normalizeSurface(
   raw: UnknownRecord
 ): InteractiveSurface | undefined {
@@ -494,6 +546,11 @@ function normalizeSurface(
       const payload = parseTriageTablePayload(raw.payload);
       if (!payload) return undefined;
       return { ...base, kind: "triage_table_v1", payload };
+    }
+    case "context_add_v1": {
+      const payload = parseContextAddPayload(raw.payload);
+      if (!payload) return undefined;
+      return { ...base, kind: "context_add_v1", payload };
     }
     default:
       return undefined;

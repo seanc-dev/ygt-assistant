@@ -6,6 +6,7 @@ This document walks through the specification line-by-line and explains how each
 - **Mode semantics & task headers**: See the WorkCanvas section for how Planning/Execution/Review surfaces render differently for task/event anchors and how headers expose status/time context.
 - **Neighborhood navigation**: The Rails section notes how `NeighborhoodRail` consumes focus neighborhoods (with mock fallback) and pushes new FocusContexts in-place.
 - **Canonical task status**: The WorkBoard section explains the `TaskStatus` binding and persistence via `workroomApi.updateTaskStatus` after drag-and-drop.
+- **Context awareness**: New chat tabs per anchor plus the contextual side panel make /workroom more inspectable while keeping chat scoped to each tab/thread.
 
 ## FocusContext types and store
 - **Type definitions**: `web/src/lib/focusContext.ts` declares `FocusAnchorType`, `FocusAnchor`, `FocusMode`, `FocusOriginSource`, `FocusOrigin`, `FocusNeighborhood`, and `FocusContext`, matching the requested shapes.
@@ -21,9 +22,10 @@ This document walks through the specification line-by-line and explains how each
 - **Dynamic origin labeling**: Origins from Hub, boards (including My Work), or direct entry render specific labels; board-derived contexts show “From: My work board” when applicable.
 
 ## WorkCanvas
-- **Context-driven rendering**: `web/src/components/workroom/WorkCanvas.tsx` routes portfolio/project anchors to the aggregate `WorkBoard` while showing per-mode emphasis text, and task/event anchors to AssistantChat surfaces keyed by `chatContextId` derived from the anchor type and id.
+- **Context-driven rendering**: `web/src/components/workroom/WorkCanvas.tsx` routes portfolio/project anchors to the aggregate `WorkBoard` while showing per-mode emphasis text, and task/event anchors to AssistantChat surfaces keyed by `chatContextId` derived from the anchor type/id **and the active chat tab** to keep threads separated.
 - **Mode semantics**: Task/event views now render mode-specific sections for Planning, Execution, and Review with dedicated placeholders for future surfaces, while boards keep visible and swap emphasis copy based on the current mode.
 - **Task/event header**: Task and event views present enriched header chips with title, status, priority (when available), and time/linking context derived from the focused anchor.
+- **Chat tabs**: WorkCanvas introduces light-weight per-anchor chat tabs (`ChatTabs`) so users can spawn additional workroom conversations ("Thread N") without losing the main chat state; tabs are keyed by `anchor.type`/`anchor.id` with automatic active-tab fallbacks.
 
 ## WorkBoard
 - **Aggregate board**: `web/src/components/workroom/WorkBoard.tsx` implements a Kanban with Backlog/Ready/Doing/Blocked/Done columns bound to the canonical `TaskStatus` shape.
@@ -33,6 +35,7 @@ This document walks through the specification line-by-line and explains how each
 ## Rails
 - **FocusStackRail**: `web/src/components/workroom/FocusStackRail.tsx` shows stack size and a button to return to the previous focus when available.
 - **NeighborhoodRail**: `web/src/components/workroom/NeighborhoodRail.tsx` reads real/neighborhood data (with mock fallback) to render related tasks/events/docs/queue items; clicking an item pushes a new focus without leaving the Workroom.
+- **ContextPanel**: `web/src/components/ContextPanel.tsx` now lives beside the rail in Workroom, exposing tabbed Focus/Notes/Neighborhood views with badges for status/priority/time plus locally persisted per-focus notes and neighborhood rollups.
 
 ## Hub → Workroom navigation
 - **Action cards**: `web/src/components/hub/ActionCard.tsx` uses `pushFocus` with origin `hub_surface` and navigates to `/workroom` to open the selected task.
@@ -41,6 +44,7 @@ This document walks through the specification line-by-line and explains how each
 
 ## AssistantChat scoping
 - **Stable context ids**: In `WorkCanvas`, the AssistantChat `actionId` combines anchor type and id (`"task:task-1"`, etc.), keeping chat history scoped per task/event focus.
+- **Surface coverage**: `AssistantSurfacesRenderer` now renders `context_add_v1` payloads (parsed in `web/src/lib/llm/surfaces.ts`) so the assistant can present context attachment suggestions alongside existing WhatNext/Priority/Schedule/Triage cards.
 
 ## Default experiences
 - **Direct entry**: Visiting `/workroom` without prior context loads the My Work board automatically.

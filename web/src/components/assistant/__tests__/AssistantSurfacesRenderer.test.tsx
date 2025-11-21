@@ -119,6 +119,24 @@ const triageSurface: InteractiveSurface = {
   },
 };
 
+const contextAddSurface: InteractiveSurface = {
+  surface_id: "s-context-add",
+  kind: "context_add_v1",
+  title: "Add context",
+  payload: {
+    headline: "Keep the thread grounded",
+    items: [
+      {
+        contextId: "doc-77",
+        label: "Roadmap notes",
+        sourceType: "doc",
+        summary: "Reference this before summarizing",
+        addOp: "[op v:1 type:\"add_context\" id:\"doc-77\"]",
+      },
+    ],
+  },
+};
+
 describe("AssistantSurfacesRenderer", () => {
   it("renders nothing when there are no surfaces", () => {
     const { container } = render(<AssistantSurfacesRenderer surfaces={[]} />);
@@ -128,7 +146,13 @@ describe("AssistantSurfacesRenderer", () => {
   it("renders supported surface kinds", () => {
     render(
       <AssistantSurfacesRenderer
-        surfaces={[whatNextSurface, scheduleSurface, prioritySurface, triageSurface]}
+        surfaces={[
+          whatNextSurface,
+          scheduleSurface,
+          prioritySurface,
+          triageSurface,
+          contextAddSurface,
+        ]}
       />
     );
 
@@ -136,6 +160,7 @@ describe("AssistantSurfacesRenderer", () => {
     expect(screen.getByText("Today")).toBeInTheDocument();
     expect(screen.getByText("Priorities")).toBeInTheDocument();
     expect(screen.getByText("Inbox triage")).toBeInTheDocument();
+    expect(screen.getByTestId("context-add-surface")).toBeInTheDocument();
   });
 
   it("invokes action handlers via child components", () => {
@@ -144,18 +169,23 @@ describe("AssistantSurfacesRenderer", () => {
 
     render(
       <AssistantSurfacesRenderer
-        surfaces={[whatNextSurface]}
+        surfaces={[whatNextSurface, contextAddSurface]}
         onInvokeOp={onInvokeOp}
         onNavigate={onNavigate}
       />
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Mark done" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add context" }));
     fireEvent.click(screen.getByRole("button", { name: "Open task" }));
 
     expect(onInvokeOp).toHaveBeenCalledWith(
       '[op v:1 type:"update_task_status" task_id:"task-123" status:"done"]',
       { confirm: undefined }
+    );
+    expect(onInvokeOp).toHaveBeenCalledWith(
+      '[op v:1 type:"add_context" id:"doc-77"]',
+      undefined
     );
     expect(onNavigate).toHaveBeenCalledWith({
       destination: "workroom_task",

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AssistantChat } from "../hub/AssistantChat";
 import { useFocusContextStore } from "../../state/focusContextStore";
 import { WorkBoard } from "./WorkBoard";
@@ -6,16 +6,84 @@ import { formatTimeWindow, statusLabelMap } from "../../data/mockWorkroomData";
 import { useWorkroomContext } from "../../hooks/useWorkroomContext";
 import type { WorkroomContextAnchor, WorkroomContext } from "../../lib/workroomContext";
 import type { SurfaceNavigateTo } from "../../lib/llm/surfaces";
+import { ChatTabs } from "./ChatTabs";
+import type { ChatMeta } from "../../hooks/useWorkroomStore";
 
 export function WorkCanvas() {
   const { current, pushFocus } = useFocusContextStore();
   const { workroomContext, loading, error } = useWorkroomContext();
 
+  const [tabState, setTabState] = useState<
+    Record<string, { chats: ChatMeta[]; activeChatId: string }>
+  >({});
+
+  const anchorKey = useMemo(() => {
+    if (!current) return "";
+    return `${current.anchor.type}:${current.anchor.id || "root"}`;
+  }, [current]);
+
+  useEffect(() => {
+    if (!current || tabState[anchorKey]) return;
+    const defaultChat: ChatMeta = {
+      id: `${anchorKey}:main`,
+      title: "Main chat",
+      lastMessageAt: new Date().toISOString(),
+    };
+    setTabState((prev) => ({
+      ...prev,
+      [anchorKey]: { chats: [defaultChat], activeChatId: defaultChat.id },
+    }));
+  }, [anchorKey, current, tabState]);
+
+  const activeState = anchorKey ? tabState[anchorKey] : undefined;
+  const activeChatId = activeState?.activeChatId;
+  const chatsForAnchor = activeState?.chats || [];
+
+  const updateTabsForAnchor = (updater: (state: { chats: ChatMeta[]; activeChatId: string }) => {
+    chats: ChatMeta[];
+    activeChatId: string;
+  }) => {
+    if (!anchorKey) return;
+    setTabState((prev) => {
+      const existing = prev[anchorKey];
+      if (!existing) return prev;
+      return { ...prev, [anchorKey]: updater(existing) };
+    });
+  };
+
+  const handleCreateChat = () => {
+    if (!activeState || !anchorKey) return;
+    const nextIndex = activeState.chats.length + 1;
+    const newChat: ChatMeta = {
+      id: `${anchorKey}:thread-${nextIndex}`,
+      title: `Thread ${nextIndex}`,
+      lastMessageAt: new Date().toISOString(),
+    };
+    updateTabsForAnchor((state) => ({
+      chats: [...state.chats, newChat],
+      activeChatId: newChat.id,
+    }));
+  };
+
+  const handleSelectChat = (chatId: string) => {
+    updateTabsForAnchor((state) => ({ ...state, activeChatId: chatId }));
+  };
+
+  const handleCloseChat = (chatId: string) => {
+    updateTabsForAnchor((state) => {
+      if (state.chats.length === 1) return state;
+      const remaining = state.chats.filter((chat) => chat.id !== chatId);
+      const nextActive = state.activeChatId === chatId ? remaining[0]?.id || "" : state.activeChatId;
+      return { chats: remaining, activeChatId: nextActive };
+    });
+  };
+
   const chatContextId = useMemo(() => {
     if (!current) return "";
     const anchorId = current.anchor.id || current.anchor.type;
-    return `${current.anchor.type}:${anchorId}`;
-  }, [current]);
+    const tabId = activeChatId || "main";
+    return `${current.anchor.type}:${anchorId}:${tabId}`;
+  }, [activeChatId, current]);
 
   if (!current) {
     return (
@@ -151,15 +219,24 @@ export function WorkCanvas() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <AssistantChat
-          actionId={chatContextId}
-          taskId={current.anchor.id}
-          mode="workroom"
-          shouldFocus={false}
-          surfaceRenderAllowed={surfacesEnabled}
-          onSurfaceNavigateOverride={handleSurfaceNavigate}
+      <div className="flex flex-1 flex-col gap-2 overflow-hidden">
+        <ChatTabs
+          chats={chatsForAnchor}
+          activeChatId={activeChatId || null}
+          onSelectChat={handleSelectChat}
+          onCloseChat={handleCloseChat}
+          onCreateChat={handleCreateChat}
         />
+        <div className="flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <AssistantChat
+            actionId={chatContextId}
+            taskId={current.anchor.id}
+            mode="workroom"
+            shouldFocus={false}
+            surfaceRenderAllowed={surfacesEnabled}
+            onSurfaceNavigateOverride={handleSurfaceNavigate}
+          />
+        </div>
       </div>
 
       {current.mode === "plan" && (

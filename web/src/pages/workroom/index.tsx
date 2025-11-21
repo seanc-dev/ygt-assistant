@@ -5,6 +5,7 @@ import { WorkCanvas } from "../../components/workroom/WorkCanvas";
 import { FocusStackRail } from "../../components/workroom/FocusStackRail";
 import { NeighborhoodRail } from "../../components/workroom/NeighborhoodRail";
 import { useFocusContextStore } from "../../state/focusContextStore";
+import { ContextPanel } from "../../components/ContextPanel";
 
 export default function WorkroomPage() {
   const { current, setFocusContext } = useFocusContextStore();
@@ -34,7 +35,10 @@ export default function WorkroomPage() {
             <WorkCanvas />
           </div>
           <div className="hidden lg:block">
-            <NeighborhoodRail />
+            <div className="flex h-full flex-col gap-4">
+              <ContextPanel />
+              <NeighborhoodRail />
+            </div>
           </div>
         </div>
       </div>

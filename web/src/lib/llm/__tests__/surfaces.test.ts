@@ -45,12 +45,30 @@ describe("parseInteractiveSurfaces", () => {
           ],
         },
       },
+      {
+        surface_id: "s-3",
+        kind: "context_add_v1",
+        title: "Attach context",
+        payload: {
+          headline: "Quick links",
+          items: [
+            {
+              contextId: "doc-123",
+              label: "Product brief",
+              sourceType: "doc",
+              summary: "Use this when writing the update",
+              addOp: "[op v:1 type:\"add_context\" id:\"doc-123\"]",
+            },
+          ],
+        },
+      },
     ];
 
     const surfaces = parseInteractiveSurfaces(raw);
-    expect(surfaces).toHaveLength(2);
+    expect(surfaces).toHaveLength(3);
     expect(surfaces[0].kind).toBe("what_next_v1");
     expect(surfaces[1].kind).toBe("priority_list_v1");
+    expect(surfaces[2].kind).toBe("context_add_v1");
   });
 
   it("drops unknown kinds and logs warning", () => {

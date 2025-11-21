@@ -93,6 +93,11 @@
   - Client-side validation
   - Optimistic save
 
+### 10. Workroom Context + Chat Tabs ✅
+- **Chat tabs**: WorkCanvas now seeds a per-focus "Main chat" tab with optional ad-hoc threads (Thread N) so assistant conversations stay scoped to the current anchor and chosen tab.
+- **Context panel**: A tabbed Focus/Notes/Neighborhood card (`ContextPanel`) sits beside Workroom, exposing anchor metadata chips, locally persisted notes, and neighborhood rollups.
+- **Context surfaces**: Interactive surface parsing/rendering now includes `context_add_v1` cards (via `web/src/lib/llm/surfaces.ts` and `AssistantSurfacesRenderer`) to show context suggestions with navigate/add controls.
+
 ## Tests Required
 
 ### tests/api/test_settings.py
