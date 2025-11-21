@@ -4,6 +4,10 @@ import {
   ChevronDown24Regular,
   Add24Regular,
   Link24Regular,
+  Note24Regular,
+  Lightbulb24Regular,
+  ShieldAdd24Regular,
+  DocumentAdd24Regular,
 } from "@fluentui/react-icons";
 import { api } from "../../lib/api";
 import { workroomApi } from "../../lib/workroomApi";
@@ -16,6 +20,13 @@ import { TokenOverlay } from "./assistantChat/TokenOverlay";
 import { ReferenceSearchPanel } from "./assistantChat/ReferenceSearchPanel";
 import { CreateTaskOpModal } from "./assistantChat/CreateTaskOpModal";
 import { useChatThread } from "./assistantChat/useChatThread";
+import {
+  applyContextCommand,
+  createEmptyContextSpace,
+  type ContextSpace,
+  type ContextCommandId,
+  type UpdateContextSpace,
+} from "./assistantChat/contextCommands";
 import {
   parseInteractiveSurfaces,
   type InteractiveSurface,
@@ -295,6 +306,11 @@ export function AssistantChat({
   const [suggestedTaskTitleResolved, setSuggestedTaskTitleResolved] = useState<
     string | null
   >(suggestedTaskTitle || null);
+  const [contextSpace, setContextSpace] = useState<ContextSpace>(
+    createEmptyContextSpace()
+  );
+  // Stored for future context-aware UI surfaces
+  void contextSpace;
   useEffect(() => {
     if (suggestedTaskTitle) {
       setSuggestedTaskTitleResolved(suggestedTaskTitle);
@@ -302,17 +318,47 @@ export function AssistantChat({
       setSuggestedTaskTitleResolved(null);
     }
   }, [suggestedTaskId, suggestedTaskTitle]);
+  useEffect(() => {
+    setContextSpace(createEmptyContextSpace());
+  }, [threadId]);
   const [isSlashMenuOpen, setSlashMenuOpen] = useState(false);
   const [slashMenuPosition, setSlashMenuPosition] = useState({
     top: 0,
     left: 0,
   });
+  const updateContextSpace = useCallback<UpdateContextSpace>((updater) => {
+    setContextSpace((current) => updater(current));
+  }, []);
   const forceCurrentProject = mode === "workroom";
   const appliedOps = operationsState.applied;
   const pendingOps = operationsState.pending;
   const hasErrors = operationsState.errors.length > 0;
   const slashCommands = useMemo<SlashCommand[]>(
     () => [
+      {
+        id: "note",
+        label: "/note",
+        icon: Note24Regular,
+        description: "Add a note to the context",
+      },
+      {
+        id: "decision",
+        label: "/decision",
+        icon: Lightbulb24Regular,
+        description: "Capture a decision in context",
+      },
+      {
+        id: "constraint",
+        label: "/constraint",
+        icon: ShieldAdd24Regular,
+        description: "Add a constraint to consider",
+      },
+      {
+        id: "doc",
+        label: "/doc",
+        icon: DocumentAdd24Regular,
+        description: "Attach a placeholder document",
+      },
       {
         id: "insert-task",
         label: "/insert task",
@@ -700,6 +746,18 @@ export function AssistantChat({
   const handleSlashCommandSelect = useCallback(
     async (command: SlashCommand) => {
       closeSlashMenu();
+
+      const handledContextCommand = applyContextCommand({
+        commandId: command.id as ContextCommandId,
+        inputValue: message,
+        updateContextSpace,
+      });
+
+      if (handledContextCommand) {
+        setMessage("");
+        return;
+      }
+
       try {
         const projectsList = await ensureProjectsIndex();
         if (command.id === "insert-task" || command.id === "create-task-op") {
@@ -718,7 +776,14 @@ export function AssistantChat({
         showInlineNotice("Failed to load workspace context. Try again.");
       }
     },
-    [closeSlashMenu, ensureProjectsIndex, openReferenceSearch, showInlineNotice]
+    [
+      closeSlashMenu,
+      ensureProjectsIndex,
+      message,
+      openReferenceSearch,
+      showInlineNotice,
+      updateContextSpace,
+    ]
   );
 
   const operationApi = useMemo<OperationApiGroup | null>(() => {
