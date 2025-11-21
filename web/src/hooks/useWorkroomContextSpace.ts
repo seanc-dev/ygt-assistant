@@ -48,7 +48,7 @@ export function useWorkroomContextSpace() {
 
     const params = buildUrlParams(anchor.type, anchorId);
 
-    fetch(`/api/workroom/context/space?${params}`, { signal: controller.signal })
+    fetch(`/api/workroom/context-space?${params}`, { signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) {
           const message = await res
@@ -93,7 +93,7 @@ export function useWorkroomContextSpace() {
 
       try {
         const params = buildUrlParams(anchor.type, anchorId);
-        const res = await fetch(`/api/workroom/context/space?${params}`, {
+        const res = await fetch(`/api/workroom/context-space?${params}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

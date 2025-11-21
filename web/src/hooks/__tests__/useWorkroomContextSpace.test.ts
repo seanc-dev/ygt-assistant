@@ -40,7 +40,7 @@ describe("useWorkroomContextSpace", () => {
     expect(result.current.loading).toBe(false);
     expect(result.current.error).toBeNull();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/workroom/context/space?anchorType=task&anchorId=t-1",
+      "/api/workroom/context-space?anchorType=task&anchorId=t-1",
       expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
   });
