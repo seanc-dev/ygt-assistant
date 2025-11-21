@@ -166,6 +166,12 @@ const mockProjects = [
   { id: "beta", name: "Project Beta" },
 ];
 
+const mockDocs = [
+  { id: "doc-1", title: "Product requirements" },
+  { id: "doc-2", title: "Sprint notes" },
+  { id: "doc-3", title: "User research" },
+];
+
 export const getMockTasks = () => mockTasks;
 
 export const updateMockTaskStatus = (taskId: string, status: TaskStatus) => {
@@ -209,7 +215,8 @@ const buildNeighborhoodForTask = (taskId: string): WorkroomNeighborhood => {
   const events = task?.linkedEventId
     ? mockEvents.filter((event) => event.id === task.linkedEventId).map(({ id, title, start, end }) => ({ id, title, start, end }))
     : mockEvents.slice(0, 1).map(({ id, title, start, end }) => ({ id, title, start, end }));
-  return { tasks, events, docs: [], queueItems: [] };
+  const docs = mockDocs.slice(0, 2);
+  return { tasks, events, docs, queueItems: [] };
 };
 
 const buildNeighborhoodForEvent = (eventId: string): WorkroomNeighborhood => {
@@ -221,7 +228,8 @@ const buildNeighborhoodForEvent = (eventId: string): WorkroomNeighborhood => {
     .filter((event) => event.id !== eventId)
     .slice(0, 2)
     .map(({ id, title, start, end }) => ({ id, title, start, end }));
-  return { tasks, events, docs: [], queueItems: [] };
+  const docs = mockDocs.slice(0, 1);
+  return { tasks, events, docs, queueItems: [] };
 };
 
 const buildNeighborhoodForProject = (projectId?: string): WorkroomNeighborhood => {
@@ -230,13 +238,14 @@ const buildNeighborhoodForProject = (projectId?: string): WorkroomNeighborhood =
     .slice(0, 5)
     .map(({ id, title, status }) => ({ id, title, status }));
   const events = mockEvents.slice(0, 2).map(({ id, title, start, end }) => ({ id, title, start, end }));
-  return { tasks, events, docs: [], queueItems: [] };
+  const docs = mockDocs.slice(0, 2);
+  return { tasks, events, docs, queueItems: [] };
 };
 
 const buildNeighborhoodForPortfolio = (): WorkroomNeighborhood => ({
   tasks: mockTasks.slice(0, 5).map(({ id, title, status }) => ({ id, title, status })),
   events: mockEvents.slice(0, 2).map(({ id, title, start, end }) => ({ id, title, start, end })),
-  docs: [{ id: "doc-1", title: "Product requirements" }],
+  docs: mockDocs,
   queueItems: [{ id: "queue-1", subject: "New request" }],
 });
 
