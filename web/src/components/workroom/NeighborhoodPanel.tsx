@@ -66,7 +66,10 @@ export function NeighborhoodPanel() {
       {renderItems("Related tasks", neighborhood?.tasks, "task")}
       {renderItems("Related events", neighborhood?.events, "event")}
       {renderItems("Related docs", neighborhood?.docs)}
-      {renderItems("Related inbox items", neighborhood?.queueItems)}
+      {renderItems(
+        "Related inbox items",
+        neighborhood?.queueItems?.map((item) => ({ id: item.id, title: item.subject }))
+      )}
     </div>
   );
 }
