@@ -262,6 +262,10 @@ def propose_ops_for_user(
     use_tools: bool = True,
     context_override: Optional[Dict[str, Any]] = None,
     contract_payload: Optional[Dict[str, Any]] = None,
+    assistant_mode: str = "default",
+    workroom_anchor: Optional[Dict[str, Any]] = None,
+    workroom_mode: Optional[str] = None,
+    surface_input: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """Propose LLM operations for a user based on their message(s) and context.
 
@@ -275,6 +279,10 @@ def propose_ops_for_user(
         use_tools: If True, use OpenAI function calling; else use JSON-only mode
         context_override: Precomputed context dict (skips redundant DB fetches)
         contract_payload: Structured token/context information from the caller
+        assistant_mode: Which assistant contract to apply (default|workroom)
+        workroom_anchor: Focus anchor details when assistant_mode="workroom"
+        workroom_mode: plan|execute|review to tune surface generation
+        surface_input: Dict of tasks/events/docs/queueItems to constrain surfaces
 
     Returns:
         List of operation dicts: [{"op": "...", "params": {...}}, ...]
@@ -541,7 +549,32 @@ Respond ONLY with JSON matching this schema:
     {{"op": "...", "params": {{...}}}},
     ...
   ]
-}}
+  }}
+ """
+
+        if assistant_mode == "workroom":
+            workroom_mode_label = (workroom_mode or "execute").lower()
+            surface_input_json = json.dumps(surface_input or {}, ensure_ascii=False)
+            anchor_json = json.dumps(workroom_anchor or {}, ensure_ascii=False)
+
+            system_prompt += f"""
+
+WORKROOM CONTEXT:
+- Anchor: {anchor_json}
+- Mode: {workroom_mode_label}
+- surface_input (only use these IDs in surfaces): {surface_input_json}
+
+Workroom surfaces contract:
+- You are assisting a user inside a Workroom view for a specific task or event.
+- Only reference IDs found in surface_input.tasks, surface_input.events, surface_input.docs, or surface_input.queueItems.
+- Only emit surfaces with known kinds: what_next_v1, today_schedule_v1, priority_list_v1, triage_table_v1.
+- Surfaces are optional. Return none if text and operations are sufficient.
+- If you emit surfaces, prefer at most 1-2 concise surfaces directly supporting the user's next step for the current anchor.
+
+Mode heuristics:
+- Execute mode: bias toward helpful surfaces like what_next_v1 and short priority_list_v1 items. Use today_schedule_v1 only when the user asks about scheduling or time-boxing is clearly relevant.
+- Plan mode: favor text and ops; only occasional priority_list_v1 for planning. Avoid today_schedule_v1 unless the user explicitly requests day planning.
+- Review mode: emphasize textual summaries and decisions. Use triage_table_v1 or brief priority lists sparingly; deprioritize surfaces overall.
 """
 
         # Build user message with context - aggregate multiple messages if provided
