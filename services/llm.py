@@ -262,10 +262,7 @@ def propose_ops_for_user(
     use_tools: bool = True,
     context_override: Optional[Dict[str, Any]] = None,
     contract_payload: Optional[Dict[str, Any]] = None,
-    assistant_mode: str = "default",
-    workroom_anchor: Optional[Dict[str, Any]] = None,
-    workroom_mode: Optional[str] = None,
-    surface_input: Optional[Dict[str, Any]] = None,
+    context_input: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """Propose LLM operations for a user based on their message(s) and context.
 
@@ -510,6 +507,11 @@ Each operation must have an "op" field and a "params" field.
 CRITICAL: Use semantic references (names, titles, "current project", "this task") instead of UUIDs or IDs.
 NEVER output UUIDs, IDs, or placeholders like "current_project_id". Use human-readable identifiers.
 
+Workroom context_input rules:
+- Use ONLY the projects, tasks, and actions listed in the provided context_input JSON. If the requested item is missing, ask the user to surface it instead of inventing a name.
+- The anchor task/project reflects the current Workroom focus. Prefer these anchors when the user says "this task" or "current project".
+- If any list is truncated (see the "truncated" counts), ask the user to pick from the visible items before proposing operations that rely on the omitted ones.
+
 PROJECT CONTEXT RULES:
 - The current project is {current_project_label}. Assume any task-related request refers to this project unless the user explicitly names a different one.
 - When the user confirms a task belongs to {current_project_label}, proceed with the requested operation.
@@ -552,30 +554,7 @@ Respond ONLY with JSON matching this schema:
   }}
  """
 
-        if assistant_mode == "workroom":
-            workroom_mode_label = (workroom_mode or "execute").lower()
-            surface_input_json = json.dumps(surface_input or {}, ensure_ascii=False)
-            anchor_json = json.dumps(workroom_anchor or {}, ensure_ascii=False)
 
-            system_prompt += f"""
-
-WORKROOM CONTEXT:
-- Anchor: {anchor_json}
-- Mode: {workroom_mode_label}
-- surface_input (only use these IDs in surfaces): {surface_input_json}
-
-Workroom surfaces contract:
-- You are assisting a user inside a Workroom view for a specific task or event.
-- Only reference IDs found in surface_input.tasks, surface_input.events, surface_input.docs, or surface_input.queueItems.
-- Only emit surfaces with known kinds: what_next_v1, today_schedule_v1, priority_list_v1, triage_table_v1.
-- Surfaces are optional. Return none if text and operations are sufficient.
-- If you emit surfaces, prefer at most 1-2 concise surfaces directly supporting the user's next step for the current anchor.
-
-Mode heuristics:
-- Execute mode: bias toward helpful surfaces like what_next_v1 and short priority_list_v1 items. Use today_schedule_v1 only when the user asks about scheduling or time-boxing is clearly relevant.
-- Plan mode: favor text and ops; only occasional priority_list_v1 for planning. Avoid today_schedule_v1 unless the user explicitly requests day planning.
-- Review mode: emphasize textual summaries and decisions. Use triage_table_v1 or brief priority lists sparingly; deprioritize surfaces overall.
-"""
 
         # Build user message with context - aggregate multiple messages if provided
         if len(input_messages) == 1:
@@ -640,6 +619,10 @@ Mode heuristics:
                 user_content += "\n\nStructured identity hints:\n" + "\n".join(
                     structured_lines
                 )
+
+        if context_input:
+            user_content += "\n\ncontext_input (WorkroomContextSpace):\n"
+            user_content += json.dumps(context_input, ensure_ascii=False, indent=2)
 
         user_content += f"""
 
