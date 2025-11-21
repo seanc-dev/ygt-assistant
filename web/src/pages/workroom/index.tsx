@@ -3,7 +3,10 @@ import { Layout } from "../../components/Layout";
 import { WorkroomAnchorBar } from "../../components/workroom/WorkroomAnchorBar";
 import { WorkCanvas } from "../../components/workroom/WorkCanvas";
 import { FocusStackRail } from "../../components/workroom/FocusStackRail";
-import { NeighborhoodRail } from "../../components/workroom/NeighborhoodRail";
+import { ContextTabs } from "../../components/workroom/ContextTabs";
+import { NeighborhoodPanel } from "../../components/workroom/NeighborhoodPanel";
+import { ContextPanel } from "../../components/ContextPanel";
+import { DocsPanel } from "../../components/workroom/DocsPanel";
 import { useFocusContextStore } from "../../state/focusContextStore";
 
 export default function WorkroomPage() {
@@ -26,7 +29,7 @@ export default function WorkroomPage() {
     <Layout>
       <div className="flex h-full flex-col gap-4">
         <WorkroomAnchorBar />
-        <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-[220px,1fr,260px]">
+        <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-[220px,minmax(0,1fr),320px]">
           <div className="hidden lg:block">
             <FocusStackRail />
           </div>
@@ -34,7 +37,11 @@ export default function WorkroomPage() {
             <WorkCanvas />
           </div>
           <div className="hidden lg:block">
-            <NeighborhoodRail />
+            <ContextTabs
+              neighborhood={<NeighborhoodPanel />}
+              context={<ContextPanel />}
+              docs={<DocsPanel />}
+            />
           </div>
         </div>
       </div>
