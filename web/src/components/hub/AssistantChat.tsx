@@ -30,6 +30,7 @@ import {
 import {
   parseInteractiveSurfaces,
   type InteractiveSurface,
+  type ContextAddEntry,
   type SurfaceNavigateTo,
 } from "../../lib/llm/surfaces";
 import type { WorkroomContext } from "../../lib/workroomContext";
@@ -1981,6 +1982,20 @@ export function AssistantChat({
     [onOpenWorkroom, onSurfaceNavigateOverride, showInlineNotice]
   );
 
+  const handleSurfaceContextUpdate = useCallback(
+    async (entries: ContextAddEntry[]) => {
+      if (!entries?.length) return;
+      try {
+        await workroomApi.updateContextSpace({ entries });
+        showInlineNotice("Context updated");
+      } catch (err) {
+        console.error("Failed to update context space", err);
+        showInlineNotice("Couldn't update context. Please try again.");
+      }
+    },
+    [showInlineNotice]
+  );
+
   const formatTimestamp = useCallback((ts: string) => {
     const date = new Date(ts);
     const now = new Date();
@@ -2036,6 +2051,8 @@ export function AssistantChat({
 
   // Memoize grouped messages to prevent recreation on every render
   const groupedMessages = useMemo(() => groupMessages(messages), [messages]);
+
+  const MAX_WORKROOM_SURFACES = 2;
 
   const latestAssistantSurfaces = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i -= 1) {
@@ -2146,19 +2163,21 @@ export function AssistantChat({
           : 0;
 
       const validatedSurfaces =
-        mode === "workroom"
-          ? filterSurfacesByWorkroomContext(
-              msg.surfaces as InteractiveSurface[] | undefined,
-              workroomContext ?? null
-            )
-          : msg.surfaces;
+        surfaceRenderAllowed && msg.surfaces
+          ? mode === "workroom"
+            ? filterSurfacesByWorkroomContext(
+                msg.surfaces as InteractiveSurface[] | undefined,
+                workroomContext ?? null
+              )?.slice(0, MAX_WORKROOM_SURFACES)
+            : msg.surfaces
+          : undefined;
 
       return {
         id: msg.id,
         role: msg.role,
         content: msg.content,
         embeds: msg.embeds,
-        surfaces: surfaceRenderAllowed ? validatedSurfaces : undefined,
+        surfaces: validatedSurfaces,
         marginTop,
         timestampLabel,
         showTimestamp,
@@ -2289,6 +2308,7 @@ export function AssistantChat({
               activeAssistantId={activeAssistantId}
               onInvokeSurfaceOp={handleSurfaceInvokeOp}
               onNavigateSurface={handleSurfaceNavigate}
+              onUpdateContextSpace={handleSurfaceContextUpdate}
             />
           )}
           <div ref={messagesEndRef} />

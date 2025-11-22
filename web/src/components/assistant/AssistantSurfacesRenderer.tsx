@@ -5,16 +5,20 @@ import type {
   TodayScheduleV1Surface,
   PriorityListV1Surface,
   TriageTableV1Surface,
+  ContextAddV1Surface,
+  ContextAddEntry,
 } from "../../lib/llm/surfaces";
 import { WhatNextSurface } from "./WhatNextSurface";
 import { TodayScheduleSurface } from "./TodayScheduleSurface";
 import { PriorityListSurface } from "./PriorityListSurface";
 import { TriageTableSurface } from "./TriageTableSurface";
+import { ContextAddSurface } from "./ContextAddSurface";
 
 export type AssistantSurfacesRendererProps = {
   surfaces?: InteractiveSurface[];
   onInvokeOp?: (opToken: string, options?: { confirm?: boolean }) => void;
   onNavigate?: (nav: SurfaceNavigateTo) => void;
+  onUpdateContextSpace?: (entries: ContextAddEntry[]) => Promise<void> | void;
 };
 
 /**
@@ -24,6 +28,7 @@ export function AssistantSurfacesRenderer({
   surfaces,
   onInvokeOp,
   onNavigate,
+  onUpdateContextSpace,
 }: AssistantSurfacesRendererProps) {
   const renderSurface = (surface: InteractiveSurface) => {
     switch (surface.kind) {
@@ -56,6 +61,14 @@ export function AssistantSurfacesRenderer({
           <TriageTableSurface
             surface={surface as TriageTableV1Surface}
             onInvokeOp={onInvokeOp}
+            onNavigate={onNavigate}
+          />
+        );
+      case "context_add_v1":
+        return (
+          <ContextAddSurface
+            surface={surface as ContextAddV1Surface}
+            onUpdateContextSpace={onUpdateContextSpace}
             onNavigate={onNavigate}
           />
         );

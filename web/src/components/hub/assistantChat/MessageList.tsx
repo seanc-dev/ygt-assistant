@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useState } from "react";
 import type { MutableRefObject } from "react";
 import { ArrowClockwise24Regular } from "@fluentui/react-icons";
-import type { SurfaceNavigateTo } from "../../../lib/llm/surfaces";
+import type { ContextAddEntry, SurfaceNavigateTo } from "../../../lib/llm/surfaces";
 import type { MessageView } from "./types";
 import { AssistantSurfacesRenderer } from "../../assistant/AssistantSurfacesRenderer";
 import { ActionEmbedComponent } from "../../workroom/ActionEmbed";
@@ -15,6 +15,7 @@ type MessageListProps = {
   activeAssistantId: string | null;
   onInvokeSurfaceOp?: (opToken: string, options?: { confirm?: boolean }) => void;
   onNavigateSurface?: (nav: SurfaceNavigateTo) => void;
+  onUpdateContextSpace?: (entries: ContextAddEntry[]) => Promise<void> | void;
 };
 
 export const MessageList = memo((props: MessageListProps) => {
@@ -27,6 +28,7 @@ export const MessageList = memo((props: MessageListProps) => {
     activeAssistantId,
     onInvokeSurfaceOp,
     onNavigateSurface,
+    onUpdateContextSpace,
   } = props;
 
   return (
@@ -46,6 +48,7 @@ export const MessageList = memo((props: MessageListProps) => {
             activeAssistantId={activeAssistantId}
             onInvokeSurfaceOp={onInvokeSurfaceOp}
             onNavigateSurface={onNavigateSurface}
+            onUpdateContextSpace={onUpdateContextSpace}
           />
         ))
       )}
@@ -79,6 +82,7 @@ type MessageItemProps = {
   activeAssistantId: string | null;
   onInvokeSurfaceOp?: (opToken: string, options?: { confirm?: boolean }) => void;
   onNavigateSurface?: (nav: SurfaceNavigateTo) => void;
+  onUpdateContextSpace?: (entries: ContextAddEntry[]) => Promise<void> | void;
 };
 
 const MessageItem = memo((props: MessageItemProps) => {
@@ -90,6 +94,7 @@ const MessageItem = memo((props: MessageItemProps) => {
     activeAssistantId,
     onInvokeSurfaceOp,
     onNavigateSurface,
+    onUpdateContextSpace,
   } = props;
 
   return (
@@ -157,6 +162,7 @@ const MessageItem = memo((props: MessageItemProps) => {
             surfaces={view.surfaces}
             onInvokeOp={onInvokeSurfaceOp}
             onNavigate={onNavigateSurface}
+            onUpdateContextSpace={onUpdateContextSpace}
           />
         </div>
       )}
@@ -205,7 +211,8 @@ function areMessageItemPropsEqual(
     prevProps.animatedRef === nextProps.animatedRef &&
     prevProps.activeAssistantId === nextProps.activeAssistantId &&
     prevProps.onInvokeSurfaceOp === nextProps.onInvokeSurfaceOp &&
-    prevProps.onNavigateSurface === nextProps.onNavigateSurface
+    prevProps.onNavigateSurface === nextProps.onNavigateSurface &&
+    prevProps.onUpdateContextSpace === nextProps.onUpdateContextSpace
   );
 }
 

@@ -1,6 +1,7 @@
 import { api } from "./api";
 import { buildApiUrl, logApiBaseOnce } from "./apiBase";
 import type { Task, Project, ChatMeta, TaskDoc } from "../hooks/useWorkroomStore";
+import type { ContextAddEntry } from "./llm/surfaces";
 import type { ActionEmbed } from "./actionEmbeds";
 
 logApiBaseOnce("workroomApi");
@@ -164,5 +165,11 @@ export const workroomApi = {
       signal: options.signal,
     });
   },
+
+  updateContextSpace: (data: { entries: ContextAddEntry[] }): Promise<{ ok: boolean }> =>
+    req("/api/workroom/context-space", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };
 

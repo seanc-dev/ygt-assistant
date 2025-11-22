@@ -38,6 +38,14 @@ const sanitizeContextSpaceInput = (input: unknown) => {
 };
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Handle POST with entries array (for workroomApi.updateContextSpace)
+  if (req.method === "POST" && Array.isArray(req.body?.entries)) {
+    const entries = req.body.entries;
+    res.status(200).json({ ok: true, added: entries.length });
+    return;
+  }
+
+  // Handle GET/POST with anchor-based queries (for useWorkroomContextSpace)
   const parsedAnchor = parseAnchor(req);
   if ("error" in parsedAnchor) {
     res.status(400).json({ error: parsedAnchor.error });

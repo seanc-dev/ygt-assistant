@@ -83,7 +83,10 @@ vi.mock("../../hub/assistantChat/MessageList", () => ({
     <div>
       {messageViews.map((view: any) => (
         <div key={view.id} data-testid={`message-${view.id}`}>
-          <span data-testid={`surfaces-${view.id}`}>
+          <span
+            data-testid={`surfaces-${view.id}`}
+            data-count={view.surfaces?.length ?? 0}
+          >
             {view.surfaces && view.surfaces.length > 0
               ? "has-surfaces"
               : "no-surfaces"}
@@ -203,6 +206,27 @@ describe("AssistantChat surfaces in workroom", () => {
     expect(screen.getByTestId("surfaces-assistant-1").textContent).toBe(
       "has-surfaces"
     );
+  });
+
+  it("caps surfaces rendered in workroom mode", () => {
+    useChatThreadMock.mockReturnValueOnce(
+      mockChatThreadResponse([
+        { surface_id: "s1", kind: "what_next_v1", title: "Next", payload: { primary: { headline: "Do this" } } },
+        { surface_id: "s2", kind: "priority_list_v1", title: "Priorities", payload: { items: [{ rank: 1, taskId: "t1", label: "Task" }] } },
+        { surface_id: "s3", kind: "triage_table_v1", title: "Inbox", payload: { groups: [{ groupId: "g", label: "g", items: [{ queueItemId: "q", source: "email", subject: "Subj", approveOp: "[op v:1 type:approve]", declineOp: "[op v:1 type:decline]" }] }] } },
+      ])
+    );
+
+    render(
+      <AssistantChat
+        actionId="task:123"
+        taskId="task-123"
+        mode="workroom"
+        surfaceRenderAllowed
+      />
+    );
+
+    expect(screen.getByTestId("surfaces-assistant-1").dataset.count).toBe("2");
   });
 
   it("invokes operation pipeline from surfaces", async () => {
