@@ -507,6 +507,50 @@ async def get_task(
     }
 
 
+@router.get("/api/workroom/tasks")
+async def get_all_tasks(
+    request: Request,
+    user_id: str = Depends(_get_user_id),
+) -> Dict[str, Any]:
+    """Get all tasks for the user (portfolio view)."""
+    tasks = workroom_repo.get_tasks(user_id)
+    # Transform to match frontend schema
+    threads = workroom_repo.get_threads(user_id)
+    transformed = []
+    for task in tasks:
+        task_threads = [t for t in threads if t.get("task_id") == task["id"]]
+        transformed.append(
+            {
+                "id": task["id"],
+                "projectId": task["project_id"],
+                "title": task["title"],
+                "status": task["status"],
+                "priority": task.get("importance"),
+                "due": task.get("due"),
+                "tags": [],
+                "doc": None,  # TODO: Add doc support
+                "chats": [
+                    {
+                        "id": t["id"],
+                        "title": t["title"],
+                        "pinned": False,
+                        "lastMessageAt": t.get("updated_at"),
+                    }
+                    for t in task_threads
+                ],
+                "unreadCount": 0,
+                "createdAt": task.get(
+                    "created_at", datetime.now(timezone.utc).isoformat()
+                ),
+                "updatedAt": task.get(
+                    "updated_at",
+                    task.get("created_at", datetime.now(timezone.utc).isoformat()),
+                ),
+            }
+        )
+    return {"ok": True, "tasks": transformed}
+
+
 @router.post("/api/workroom/tasks")
 async def create_task(
     body: Dict[str, Any],
