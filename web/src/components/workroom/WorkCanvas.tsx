@@ -1,15 +1,61 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { AssistantChat } from "../hub/AssistantChat";
 import { useFocusContextStore } from "../../state/focusContextStore";
 import { WorkBoard } from "./WorkBoard";
 import { formatTimeWindow, statusLabelMap } from "../../data/mockWorkroomData";
 import { useWorkroomContext } from "../../hooks/useWorkroomContext";
+import { workroomApi } from "../../lib/workroomApi";
 import type { WorkroomContextAnchor, WorkroomContext } from "../../lib/workroomContext";
 import type { SurfaceNavigateTo } from "../../lib/llm/surfaces";
 
 export function WorkCanvas() {
   const { current, pushFocus } = useFocusContextStore();
   const { workroomContext, loading, error } = useWorkroomContext();
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+
+  // Auto-select or create chat when focusing on a task
+  useEffect(() => {
+    const initTaskChat = async () => {
+      if (!current || current.anchor.type !== "task" || !current.anchor.id) {
+        setActiveThreadId(null);
+        return;
+      }
+
+      const taskId = current.anchor.id;
+      setIsChatLoading(true);
+
+      try {
+        // 1. Fetch task to get chats
+        const response = await workroomApi.getTask(taskId);
+        if (response.ok && response.task) {
+          const chats = response.task.chats || [];
+          
+          if (chats.length > 0) {
+            // 2a. Auto-select first chat
+            console.log("[WorkCanvas] Auto-selecting first chat:", chats[0].id);
+            setActiveThreadId(chats[0].id);
+          } else {
+            // 2b. Create default chat if none exist
+            console.log("[WorkCanvas] No chats found, creating default...");
+            const createRes = await workroomApi.createChat(taskId, {
+              title: "Main Chat",
+            });
+            if (createRes.ok) {
+              console.log("[WorkCanvas] Created default chat:", createRes.chat.id);
+              setActiveThreadId(createRes.chat.id);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[WorkCanvas] Failed to init task chat:", err);
+      } finally {
+        setIsChatLoading(false);
+      }
+    };
+
+    initTaskChat();
+  }, [current?.anchor.id, current?.anchor.type]);
 
   const chatContextId = useMemo(() => {
     if (!current) return "";
@@ -155,8 +201,9 @@ export function WorkCanvas() {
         <AssistantChat
           actionId={chatContextId}
           taskId={current.anchor.id}
+          threadId={activeThreadId}
           mode="workroom"
-          shouldFocus={false}
+          shouldFocus={!!activeThreadId}
           surfaceRenderAllowed={surfacesEnabled}
           onSurfaceNavigateOverride={handleSurfaceNavigate}
           workroomContext={workroomContext}

@@ -959,7 +959,7 @@ export function AssistantChat({
   // Bootstrap thread if needed (only if not provided and shouldFocus is true)
   // Note: ActionCard creates thread on expand, so this is mainly for edge cases
   useEffect(() => {
-    if (!threadId && actionId && shouldFocus) {
+    if (!threadId && !initialThreadId && actionId && shouldFocus) {
       const bootstrapThread = async () => {
         try {
           // Get action title from queue or use a default
@@ -984,7 +984,7 @@ export function AssistantChat({
       };
       bootstrapThread();
     }
-  }, [threadId, actionId, onThreadCreated, shouldFocus, summary]);
+  }, [threadId, initialThreadId, actionId, onThreadCreated, shouldFocus, summary]);
 
   // Adaptive polling: pause when tab hidden or thread inactive
   const shouldPoll = isTabVisible && isThreadActive;

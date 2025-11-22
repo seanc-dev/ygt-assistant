@@ -40,9 +40,6 @@ const nextConfig = {
         __dirname,
         "../node_modules/react/jsx-dev-runtime.js"
       ),
-      // Explicit alias for @lucid-work/ui to ensure proper resolution
-      // Use node_modules symlink path so it resolves within project boundary
-      "@lucid-work/ui": path.resolve(__dirname, "../node_modules/@lucid-work/ui/src"),
     };
     
     // Ensure shared-ui TypeScript files are transpiled
