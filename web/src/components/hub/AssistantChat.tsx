@@ -32,6 +32,7 @@ import {
   type InteractiveSurface,
   type ContextAddEntry,
   type SurfaceNavigateTo,
+  type SurfaceKind,
 } from "../../lib/llm/surfaces";
 import type { WorkroomContext } from "../../lib/workroomContext";
 import { filterSurfacesByWorkroomContext } from "../../lib/workroomSurfaceValidation";
@@ -79,6 +80,27 @@ type OperationsState = {
   pending: OperationRecord[];
   errors: OperationError[];
 };
+
+type AssistantChatMode = "workroom" | "default" | "hub_orientation";
+
+const HUB_ALLOWED_SURFACES: SurfaceKind[] = ["what_next_v1", "priority_list_v1"];
+const MAX_WORKROOM_SURFACES = 2;
+
+export const shouldAllowSurfaces = (
+  mode: AssistantChatMode,
+  surfaceRenderAllowed?: boolean
+) => surfaceRenderAllowed ?? mode !== "hub_orientation";
+
+export function filterSurfacesForMode(
+  surfaces: InteractiveSurface[] | undefined,
+  mode: AssistantChatMode
+): InteractiveSurface[] | undefined {
+  if (!surfaces) return undefined;
+  if (mode === "hub_orientation") {
+    return surfaces.filter((surface) => HUB_ALLOWED_SURFACES.includes(surface.kind)).slice(0, 1);
+  }
+  return surfaces;
+}
 
 type OperationApiGroup = {
   suggest: (body: { message?: string; thread_id?: string }) => Promise<any>;
@@ -173,7 +195,9 @@ const convertOpTokenToOperation = (token: string): SummaryOperation | null => {
   };
 };
 
-const extractTokensFromMessage = (text: string): ParsedTokenChip[] => {
+export const extractTokensFromMessage = (
+  text: string
+): ParsedTokenChip[] => {
   if (!text) {
     return [];
   }
@@ -231,7 +255,7 @@ type AssistantChatProps = {
   onThreadCreated?: (threadId: string) => void;
   onOpenWorkroom?: (threadId?: string) => void;
   shouldFocus?: boolean;
-  mode?: "workroom" | "default";
+  mode?: AssistantChatMode;
   onAddReference?: (ref: any) => void;
   onInputFocus?: () => void;
   trustMode?: "training_wheels" | "supervised" | "autonomous";
@@ -270,7 +294,7 @@ export function AssistantChat({
   onInputFocus,
   trustMode = "training_wheels",
   onOperationsUpdate,
-  surfaceRenderAllowed = true,
+  surfaceRenderAllowed,
   onSurfaceNavigateOverride,
   workroomContext = null,
 }: AssistantChatProps) {
@@ -292,6 +316,10 @@ export function AssistantChat({
     pending: [],
     errors: [],
   });
+  const allowSurfaces = useMemo(
+    () => shouldAllowSurfaces(mode, surfaceRenderAllowed),
+    [mode, surfaceRenderAllowed]
+  );
   const [projectOptions, setProjectOptions] = useState<ProjectOption[]>([]);
   const [projectIndexState, setProjectIndexState] = useState<
     "idle" | "loading" | "ready"
@@ -893,6 +921,23 @@ export function AssistantChat({
 
   const MIN_TYPING_DURATION = 500; // ms
   const ASSISTANT_START_DELAY_MS = 100; // ms
+
+  const applySurfaceFilters = useCallback(
+    (surfaces?: InteractiveSurface[] | null) => {
+      if (!surfaces || !Array.isArray(surfaces)) return undefined;
+      let scopedSurfaces = surfaces;
+      if (mode === "workroom") {
+        scopedSurfaces =
+          filterSurfacesByWorkroomContext(
+            surfaces,
+            workroomContext ?? null
+          )?.slice(0, MAX_WORKROOM_SURFACES) || [];
+      }
+      const gated = filterSurfacesForMode(scopedSurfaces, mode);
+      return gated && gated.length > 0 ? gated : undefined;
+    },
+    [mode, workroomContext]
+  );
 
   const syncSelectionFromEvent = useCallback(
     (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
@@ -1563,7 +1608,8 @@ export function AssistantChat({
                     const parsedSurfaces = parseInteractiveSurfaces(
                       suggestResponse.surfaces
                     );
-                    if (parsedSurfaces.length > 0) {
+                    const filteredSurfaces = applySurfaceFilters(parsedSurfaces);
+                    if (filteredSurfaces && filteredSurfaces.length > 0) {
                       // Create or update optimistic assistant message with surfaces
                       setMessages((prev) => {
                         // Find existing optimistic assistant message or create new one
@@ -1574,7 +1620,7 @@ export function AssistantChat({
                           // Update existing optimistic message with surfaces
                           return prev.map((msg) =>
                             msg.id === existingOptimistic.id
-                              ? { ...msg, surfaces: parsedSurfaces }
+                              ? { ...msg, surfaces: filteredSurfaces }
                               : msg
                           );
                         } else {
@@ -1582,7 +1628,7 @@ export function AssistantChat({
                           const optimisticMsg: Message = {
                             ...createAssistantMessage(""),
                             optimistic: true,
-                            surfaces: parsedSurfaces,
+                            surfaces: filteredSurfaces,
                           };
                           return [...prev, optimisticMsg];
                         }
@@ -2052,8 +2098,6 @@ export function AssistantChat({
   // Memoize grouped messages to prevent recreation on every render
   const groupedMessages = useMemo(() => groupMessages(messages), [messages]);
 
-  const MAX_WORKROOM_SURFACES = 2;
-
   const latestAssistantSurfaces = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i -= 1) {
       const candidate = messages[i];
@@ -2163,13 +2207,8 @@ export function AssistantChat({
           : 0;
 
       const validatedSurfaces =
-        surfaceRenderAllowed && msg.surfaces
-          ? mode === "workroom"
-            ? filterSurfacesByWorkroomContext(
-                msg.surfaces as InteractiveSurface[] | undefined,
-                workroomContext ?? null
-              )?.slice(0, MAX_WORKROOM_SURFACES)
-            : msg.surfaces
+        allowSurfaces && msg.surfaces
+          ? applySurfaceFilters(msg.surfaces as InteractiveSurface[] | undefined)
           : undefined;
 
       return {
@@ -2192,9 +2231,8 @@ export function AssistantChat({
     groupedMessages,
     formatTimestamp,
     activeAssistantId,
-    surfaceRenderAllowed,
-    mode,
-    workroomContext,
+    allowSurfaces,
+    applySurfaceFilters,
   ]);
 
   const containerStyle = useMemo(() => {

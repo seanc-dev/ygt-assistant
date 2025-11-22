@@ -94,8 +94,10 @@ const mockTasks: (Task & { linkedEventId?: string | null })[] = [
     title: "Draft new workroom UX",
     status: "doing",
     priority: "high",
+    priority_pin: true,
     due: new Date().toISOString(),
     tags: ["workroom", "ux"],
+    microNote: "Align with design before noon",
     chats: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -107,8 +109,10 @@ const mockTasks: (Task & { linkedEventId?: string | null })[] = [
     title: "Review Q2 roadmap",
     status: "backlog",
     priority: "medium",
-    due: new Date().toISOString(),
+    priority_pin: true,
+    due: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
     tags: ["roadmap"],
+    microNote: "Draft brief before leadership sync",
     chats: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -120,6 +124,7 @@ const mockTasks: (Task & { linkedEventId?: string | null })[] = [
     status: "ready",
     priority: "high",
     chats: [],
+    microNote: "Prep talking points",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     linkedEventId: "event-2",
@@ -131,6 +136,7 @@ const mockTasks: (Task & { linkedEventId?: string | null })[] = [
     status: "blocked",
     priority: "low",
     chats: [],
+    microNote: "Waiting on approvals",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -141,6 +147,7 @@ const mockTasks: (Task & { linkedEventId?: string | null })[] = [
     status: "done",
     priority: "medium",
     chats: [],
+    microNote: "Shipped last week",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -172,7 +179,31 @@ const mockDocs = [
   { id: "doc-3", title: "User research" },
 ];
 
+const mockQueueItems = [
+  { id: "queue-1", subject: "New request", source: "queue" },
+  { id: "queue-2", subject: "Bug triage", source: "queue" },
+];
+
+const mockMentions = [
+  { id: "mention-1", subject: "Design doc mention", source: "mentions" },
+];
+
+const mockDocUpdates = [
+  { id: "doc-update-1", subject: "PRD updated", source: "docs" },
+];
+
+const mockEmails = [
+  { id: "email-1", subject: "Status request", source: "email" },
+];
+
 export const getMockTasks = () => mockTasks;
+
+export const updateMockTask = (taskId: string, updates: Partial<Task>) => {
+  const idx = mockTasks.findIndex((task) => task.id === taskId);
+  if (idx >= 0) {
+    mockTasks[idx] = { ...mockTasks[idx], ...updates };
+  }
+};
 
 export const updateMockTaskStatus = (taskId: string, status: TaskStatus) => {
   const idx = mockTasks.findIndex((task) => task.id === taskId);
@@ -182,6 +213,10 @@ export const updateMockTaskStatus = (taskId: string, status: TaskStatus) => {
 };
 
 export const getMockEvents = () => mockEvents;
+export const getMockQueueItems = () => mockQueueItems;
+export const getMockMentions = () => mockMentions;
+export const getMockDocUpdates = () => mockDocUpdates;
+export const getMockEmails = () => mockEmails;
 
 export const statusLabelMap: Record<TaskStatus, string> = {
   backlog: "Backlog",
@@ -292,6 +327,22 @@ export const buildWorkroomContext = (anchor: FocusAnchor): WorkroomContext | nul
         type: "portfolio",
         id: "my_work",
         label: "My work",
+      };
+      return { anchor: anchorInfo, neighborhood: buildNeighborhoodForPortfolio() };
+    }
+    case "today": {
+      const anchorInfo: WorkroomContext["anchor"] = {
+        type: "portfolio",
+        id: anchor.id || "today",
+        label: "Today",
+      };
+      return { anchor: anchorInfo, neighborhood: buildNeighborhoodForPortfolio() };
+    }
+    case "triage": {
+      const anchorInfo: WorkroomContext["anchor"] = {
+        type: "portfolio",
+        id: anchor.id || "triage",
+        label: "Triage",
       };
       return { anchor: anchorInfo, neighborhood: buildNeighborhoodForPortfolio() };
     }

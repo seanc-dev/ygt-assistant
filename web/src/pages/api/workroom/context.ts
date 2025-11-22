@@ -12,8 +12,13 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return;
   }
 
-  const anchorId = anchorType === "portfolio" ? anchorIdInput || "my_work" : anchorIdInput;
-  if (!anchorId && anchorType !== "portfolio") {
+  const anchorId =
+    anchorType === "portfolio"
+      ? anchorIdInput || "my_work"
+      : anchorType === "today" || anchorType === "triage"
+        ? anchorIdInput || anchorType
+        : anchorIdInput;
+  if (!anchorId && anchorType !== "portfolio" && anchorType !== "today" && anchorType !== "triage") {
     res.status(400).json({ error: "anchorId is required" });
     return;
   }

@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import type { FocusAnchorType } from "../../../lib/focusContext";
 import { getMockContextSpace, saveMockContextSpace } from "../../../data/mockWorkroomData";
 
-const validAnchorTypes: FocusAnchorType[] = ["task", "event", "project", "portfolio"];
+const validAnchorTypes: FocusAnchorType[] = ["task", "event", "project", "portfolio", "today", "triage"];
 
 const parseAnchor = (req: NextApiRequest) => {
   const query = req.query ?? {};
@@ -13,8 +13,13 @@ const parseAnchor = (req: NextApiRequest) => {
     return { error: "anchorType is required" } as const;
   }
 
-  const anchorId = anchorType === "portfolio" ? anchorIdInput || "my_work" : anchorIdInput;
-  if (!anchorId && anchorType !== "portfolio") {
+  const anchorId =
+    anchorType === "portfolio"
+      ? anchorIdInput || "my_work"
+      : anchorType === "today" || anchorType === "triage"
+        ? anchorIdInput || anchorType
+        : anchorIdInput;
+  if (!anchorId && anchorType !== "portfolio" && anchorType !== "today" && anchorType !== "triage") {
     return { error: "anchorId is required" } as const;
   }
 

@@ -33,8 +33,10 @@ export interface Task {
   title: string;
   status: TaskStatus;
   priority?: string;
+  priority_pin?: boolean;
   due?: string;
   tags?: string[];
+  microNote?: string;
   doc?: TaskDoc;
   chats: ChatMeta[];
   unreadCount?: number;

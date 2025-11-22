@@ -30,8 +30,17 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      react: path.resolve(__dirname, "./node_modules/react"),
-      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
+      // Force a single React copy (tests were pulling both 19.1 and 19.2)
+      react: path.resolve(__dirname, "../node_modules/react"),
+      "react-dom": path.resolve(__dirname, "../node_modules/react-dom"),
+      "react/jsx-runtime": path.resolve(
+        __dirname,
+        "../node_modules/react/jsx-runtime.js"
+      ),
+      "react/jsx-dev-runtime": path.resolve(
+        __dirname,
+        "../node_modules/react/jsx-dev-runtime.js"
+      ),
       "@lucid-work/ui": path.resolve(__dirname, "../shared-ui/src"),
       // Keep old alias for backward compatibility during transition
       "@ygt-assistant/ui": path.resolve(__dirname, "../shared-ui/src"),
@@ -48,10 +57,16 @@ export default defineConfig({
       path.resolve(__dirname, "../node_modules"),
       "node_modules",
     ],
-    dedupe: ["react", "react-dom", "clsx"],
+    dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "clsx"],
   },
   optimizeDeps: {
-    include: ["react", "react-dom", "clsx"],
+    include: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "clsx",
+    ],
   },
 });
 
