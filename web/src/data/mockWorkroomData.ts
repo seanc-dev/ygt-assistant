@@ -450,6 +450,22 @@ export const buildWorkroomContext = (
         neighborhood: buildNeighborhoodForPortfolio(),
       };
     }
+    case "today": {
+      const anchorInfo: WorkroomContext["anchor"] = {
+        type: "portfolio",
+        id: anchor.id || "today",
+        label: "Today",
+      };
+      return { anchor: anchorInfo, neighborhood: buildNeighborhoodForPortfolio() };
+    }
+    case "triage": {
+      const anchorInfo: WorkroomContext["anchor"] = {
+        type: "portfolio",
+        id: anchor.id || "triage",
+        label: "Triage",
+      };
+      return { anchor: anchorInfo, neighborhood: buildNeighborhoodForPortfolio() };
+    }
     default:
       return null;
   }
