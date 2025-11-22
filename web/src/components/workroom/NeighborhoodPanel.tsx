@@ -1,4 +1,4 @@
-import { Text } from "@ygt-assistant/ui";
+import { Text } from "@lucid-work/ui";
 import { useMemo } from "react";
 import { useFocusContextStore } from "../../state/focusContextStore";
 import type { FocusAnchorType } from "../../lib/focusContext";

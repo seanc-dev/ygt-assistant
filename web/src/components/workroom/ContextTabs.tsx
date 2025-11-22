@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Text } from "@ygt-assistant/ui";
+import { Text } from "@lucid-work/ui";
 
 export type ContextTabId = "neighborhood" | "context" | "docs";
 

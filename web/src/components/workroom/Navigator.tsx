@@ -3,7 +3,7 @@ import {
   ChevronRight24Regular,
   ChevronDown24Regular,
 } from "@fluentui/react-icons";
-import { Text } from "@ygt-assistant/ui";
+import { Text } from "@lucid-work/ui";
 import { useWorkroomStore } from "../../hooks/useWorkroomStore";
 import type { Project, Task, TaskStatus } from "../../hooks/useWorkroomStore";
 

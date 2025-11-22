@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Text } from "@ygt-assistant/ui";
+import { Text } from "@lucid-work/ui";
 import { useFocusContextStore } from "../state/focusContextStore";
 import {
   type ContextEntryType,

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Stack, Text } from "@ygt-assistant/ui";
+import { Button, Stack, Text } from "@lucid-work/ui";
 import { api } from "../lib/api";
 
 interface Thread {

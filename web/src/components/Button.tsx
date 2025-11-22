@@ -1,7 +1,7 @@
 import {
   Button as PrimitiveButton,
   type ButtonProps as PrimitiveButtonProps,
-} from "@ygt-assistant/ui";
+} from "@lucid-work/ui";
 
 export type ButtonProps = PrimitiveButtonProps;
 

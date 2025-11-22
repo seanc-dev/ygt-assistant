@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Button, Stack, Text, Panel } from "@ygt-assistant/ui";
+import { Button, Stack, Text, Panel } from "@lucid-work/ui";
 
 interface UserSettings {
   work_hours: {

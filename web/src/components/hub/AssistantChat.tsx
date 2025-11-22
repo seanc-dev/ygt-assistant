@@ -2169,14 +2169,14 @@ export function AssistantChat({
         errorMessage: msg.errorMessage,
       } as MessageView;
     });
-    }, [
-      groupedMessages,
-      formatTimestamp,
-      activeAssistantId,
-      surfaceRenderAllowed,
-      mode,
-      workroomContext,
-    ]);
+  }, [
+    groupedMessages,
+    formatTimestamp,
+    activeAssistantId,
+    surfaceRenderAllowed,
+    mode,
+    workroomContext,
+  ]);
 
   const containerStyle = useMemo(() => {
     return { height: "100%", minHeight: 0 };

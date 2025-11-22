@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Text, Button } from "@ygt-assistant/ui";
+import { Text, Button } from "@lucid-work/ui";
 
 interface Project {
   id: string;

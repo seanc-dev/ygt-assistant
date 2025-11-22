@@ -32,14 +32,23 @@ export default defineConfig({
     alias: {
       react: path.resolve(__dirname, "./node_modules/react"),
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
+      "@lucid-work/ui": path.resolve(__dirname, "../shared-ui/src"),
+      // Keep old alias for backward compatibility during transition
       "@ygt-assistant/ui": path.resolve(__dirname, "../shared-ui/src"),
-      // Resolve shared-ui dependencies from web/node_modules
-      clsx: path.resolve(__dirname, "./node_modules/clsx"),
       zustand: path.resolve(__dirname, "./src/test-utils/zustandShim.ts"),
       // Allow importing from pages and data directories in tests
       "@/pages": path.resolve(__dirname, "./src/pages"),
       "@/data": path.resolve(__dirname, "./src/data"),
     },
+    // Ensure node_modules resolution works for shared-ui files
+    // Look in both web and root node_modules for workspace dependencies
+    // This allows clsx and other shared-ui deps to be resolved correctly
+    modules: [
+      path.resolve(__dirname, "./node_modules"),
+      path.resolve(__dirname, "../node_modules"),
+      "node_modules",
+    ],
+    dedupe: ["react", "react-dom", "clsx"],
   },
   optimizeDeps: {
     include: ["react", "react-dom", "clsx"],

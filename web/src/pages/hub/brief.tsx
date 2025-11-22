@@ -1,4 +1,4 @@
-import { Stack, Heading, Text, Panel, Button } from "@ygt-assistant/ui";
+import { Stack, Heading, Text, Panel, Button } from "@lucid-work/ui";
 import { Layout } from "../../components/Layout";
 import { useSummary } from "../../hooks/useHubData";
 import { useState } from "react";

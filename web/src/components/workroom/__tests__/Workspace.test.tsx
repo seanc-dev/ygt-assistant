@@ -94,7 +94,7 @@ vi.mock("../ContextPane", () => ({
   ),
 }));
 
-vi.mock("@ygt-assistant/ui/primitives/Button", () => ({
+vi.mock("@lucid-work/ui/primitives/Button", () => ({
   __esModule: true,
   Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
 }));

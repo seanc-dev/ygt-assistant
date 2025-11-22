@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Text } from "@ygt-assistant/ui";
+import { Text } from "@lucid-work/ui";
 import {
   Document24Regular,
   Mail24Regular,

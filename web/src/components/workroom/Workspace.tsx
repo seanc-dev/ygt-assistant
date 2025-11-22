@@ -6,7 +6,7 @@ import { ActivityList } from "./ActivityList";
 import { useWorkroomStore } from "../../hooks/useWorkroomStore";
 import { workroomApi } from "../../lib/workroomApi";
 import type { Task, ChatMeta, View } from "../../hooks/useWorkroomStore";
-import { Text } from "@ygt-assistant/ui";
+import { Text } from "@lucid-work/ui";
 import {
   Link24Regular,
   Add24Regular,

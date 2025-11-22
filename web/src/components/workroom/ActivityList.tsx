@@ -1,4 +1,4 @@
-import { Text } from "@ygt-assistant/ui";
+import { Text } from "@lucid-work/ui";
 
 interface ActivityListProps {
   taskId: string;

@@ -3,7 +3,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useEffect, useCallback, useRef } from "react";
 import { workroomApi } from "../../lib/workroomApi";
-import { Button } from "@ygt-assistant/ui/primitives/Button";
+import { Button } from "@lucid-work/ui/primitives/Button";
 import {
   TextHeader124Regular,
   TextHeader224Regular,

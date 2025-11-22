@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Panel, Stack, Text, Badge, Heading } from "@ygt-assistant/ui";
+import { Panel, Stack, Text, Badge, Heading } from "@lucid-work/ui";
 import { useProfile, useSettings, useSummary, useWhatNextSurface } from "../../hooks/useHubData";
 import { parseInteractiveSurfaces } from "../../lib/llm/surfaces";
 import { AssistantSurfacesRenderer } from "../assistant/AssistantSurfacesRenderer";

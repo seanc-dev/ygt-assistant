@@ -1,5 +1,5 @@
 import React from "react";
-import { Panel, Text } from "@ygt-assistant/ui";
+import { Panel, Text } from "@lucid-work/ui";
 
 export default function LiveModeBanner() {
   const live =

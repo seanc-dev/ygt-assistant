@@ -6,8 +6,8 @@ import {
   useRef,
   createRef,
 } from "react";
-import { Panel, Stack, Text, Heading } from "@ygt-assistant/ui";
-import { Button } from "@ygt-assistant/ui/primitives/Button";
+import { Panel, Stack, Text, Heading } from "@lucid-work/ui";
+import { Button } from "@lucid-work/ui/primitives/Button";
 import { useQueue, useSettings } from "../../hooks/useHubData";
 import { ActionCard } from "./ActionCard";
 import { QueueSection } from "./QueueSection";

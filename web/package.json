@@ -1,5 +1,5 @@
 {
-  "name": "ygt-admin-ui",
+  "name": "lucid-work-web",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
@@ -15,7 +15,7 @@
     "@tiptap/extension-placeholder": "^2.1.13",
     "@tiptap/react": "^2.1.13",
     "@tiptap/starter-kit": "^2.1.13",
-    "@ygt-assistant/ui": "file:../shared-ui",
+    "@lucid-work/ui": "file:../shared-ui",
     "clsx": "^2.1.1",
     "next": "15.5.3",
     "react": "19.1.0",

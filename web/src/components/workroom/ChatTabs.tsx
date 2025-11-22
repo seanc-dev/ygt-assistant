@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "@ygt-assistant/ui/primitives/Button";
+import { Button } from "@lucid-work/ui/primitives/Button";
 import { Dismiss24Regular, Pin24Regular } from "@fluentui/react-icons";
 import type { ChatMeta } from "../../hooks/useWorkroomStore";
 
