@@ -1,6 +1,9 @@
 import type { FocusAnchor } from "../lib/focusContext";
 import type { Task, TaskStatus } from "../hooks/useWorkroomStore";
-import type { WorkroomContext, WorkroomNeighborhood } from "../lib/workroomContext";
+import type {
+  WorkroomContext,
+  WorkroomNeighborhood,
+} from "../lib/workroomContext";
 
 export type WorkroomContextSpace = {
   summary: string | null;
@@ -16,7 +19,8 @@ const defaultContextSpace: WorkroomContextSpace = {
 
 const initialContextSpaceByAnchor: Record<string, WorkroomContextSpace> = {
   "task:task-1": {
-    summary: "Drafting new workroom UX with design alignment and acceptance criteria",
+    summary:
+      "Drafting new workroom UX with design alignment and acceptance criteria",
     highlights: ["Sync with design", "Capture PRD updates"],
     questions: ["Do we have sign-off on the UX flow?"],
   },
@@ -37,10 +41,14 @@ const sanitizeContextSpace = (input?: Partial<WorkroomContextSpace> | null) => {
     output.summary = input.summary;
   }
   if (Array.isArray(input?.highlights)) {
-    output.highlights = input.highlights.filter((item): item is string => typeof item === "string");
+    output.highlights = input.highlights.filter(
+      (item): item is string => typeof item === "string"
+    );
   }
   if (Array.isArray(input?.questions)) {
-    output.questions = input.questions.filter((item): item is string => typeof item === "string");
+    output.questions = input.questions.filter(
+      (item): item is string => typeof item === "string"
+    );
   }
   return output;
 };
@@ -48,13 +56,17 @@ const sanitizeContextSpace = (input?: Partial<WorkroomContextSpace> | null) => {
 const anchorKey = (anchor: FocusAnchor) => `${anchor.type}:${anchor.id || ""}`;
 
 export const resetMockContextSpaceStore = () => {
-  Object.keys(mockContextSpaceByAnchor).forEach((key) => delete mockContextSpaceByAnchor[key]);
+  Object.keys(mockContextSpaceByAnchor).forEach(
+    (key) => delete mockContextSpaceByAnchor[key]
+  );
   Object.entries(initialContextSpaceByAnchor).forEach(([key, value]) => {
     mockContextSpaceByAnchor[key] = { ...value };
   });
 };
 
-export const getMockContextSpace = (anchor: FocusAnchor): WorkroomContextSpace & { anchor: FocusAnchor } => {
+export const getMockContextSpace = (
+  anchor: FocusAnchor
+): WorkroomContextSpace & { anchor: FocusAnchor } => {
   const stored = mockContextSpaceByAnchor[anchorKey(anchor)];
   const sanitized = sanitizeContextSpace(stored);
   return {
@@ -68,13 +80,21 @@ export const getMockContextSpace = (anchor: FocusAnchor): WorkroomContextSpace &
 export const saveMockContextSpace = (
   anchor: FocusAnchor,
   input?: Partial<WorkroomContextSpace> | null
-): (WorkroomContextSpace & { anchor: FocusAnchor }) => {
+): WorkroomContextSpace & { anchor: FocusAnchor } => {
   const sanitized = sanitizeContextSpace(input);
-  const existing = mockContextSpaceByAnchor[anchorKey(anchor)] ?? defaultContextSpace;
+  const existing =
+    mockContextSpaceByAnchor[anchorKey(anchor)] ?? defaultContextSpace;
   const nextValue: WorkroomContextSpace = {
-    summary: sanitized.summary ?? existing.summary ?? defaultContextSpace.summary,
-    highlights: sanitized.highlights ?? existing.highlights ?? defaultContextSpace.highlights,
-    questions: sanitized.questions ?? existing.questions ?? defaultContextSpace.questions,
+    summary:
+      sanitized.summary ?? existing.summary ?? defaultContextSpace.summary,
+    highlights:
+      sanitized.highlights ??
+      existing.highlights ??
+      defaultContextSpace.highlights,
+    questions:
+      sanitized.questions ??
+      existing.questions ??
+      defaultContextSpace.questions,
   };
   mockContextSpaceByAnchor[anchorKey(anchor)] = nextValue;
   return { anchor, ...nextValue };
@@ -196,7 +216,50 @@ const mockEmails = [
   { id: "email-1", subject: "Status request", source: "email" },
 ];
 
-export const getMockTasks = () => mockTasks;
+// Mock Chats
+export const mockChats = [
+  {
+    id: "chat-1",
+    taskId: "task-1",
+    title: "UX Discussion",
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    updatedAt: new Date().toISOString(),
+    messageCount: 3,
+  },
+];
+
+export const mockMessages = [
+  {
+    id: "msg-1",
+    threadId: "chat-1",
+    role: "user",
+    content: "Can we review the new workroom layout?",
+    ts: new Date(Date.now() - 3600000).toISOString(),
+  },
+  {
+    id: "msg-2",
+    threadId: "chat-1",
+    role: "assistant",
+    content:
+      "I've analyzed the current layout. The main focus area seems a bit cluttered. Shall we simplify the sidebar?",
+    ts: new Date(Date.now() - 3500000).toISOString(),
+  },
+  {
+    id: "msg-3",
+    threadId: "chat-1",
+    role: "user",
+    content: "Yes, let's try moving the context panel to the right.",
+    ts: new Date(Date.now() - 3400000).toISOString(),
+  },
+];
+
+export const getMockTasks = () => {
+  // Attach mock chats to tasks
+  return mockTasks.map((task) => ({
+    ...task,
+    chats: mockChats.filter((c) => c.taskId === task.id),
+  }));
+};
 
 export const updateMockTask = (taskId: string, updates: Partial<Task>) => {
   const idx = mockTasks.findIndex((task) => task.id === taskId);
@@ -236,8 +299,13 @@ export const formatTimeWindow = (start?: string, end?: string) => {
     month: "short",
     day: "numeric",
   });
-  const startLabel = startDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  const endLabel = endDate ? endDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
+  const startLabel = startDate.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const endLabel = endDate
+    ? endDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+    : "";
   return `${dayLabel} · ${startLabel}${endLabel ? `–${endLabel}` : ""}`;
 };
 
@@ -248,8 +316,12 @@ const buildNeighborhoodForTask = (taskId: string): WorkroomNeighborhood => {
     .map(({ id, title, status }) => ({ id, title, status }));
   const task = mockTasks.find((t) => t.id === taskId);
   const events = task?.linkedEventId
-    ? mockEvents.filter((event) => event.id === task.linkedEventId).map(({ id, title, start, end }) => ({ id, title, start, end }))
-    : mockEvents.slice(0, 1).map(({ id, title, start, end }) => ({ id, title, start, end }));
+    ? mockEvents
+        .filter((event) => event.id === task.linkedEventId)
+        .map(({ id, title, start, end }) => ({ id, title, start, end }))
+    : mockEvents
+        .slice(0, 1)
+        .map(({ id, title, start, end }) => ({ id, title, start, end }));
   const docs = mockDocs.slice(0, 2);
   return { tasks, events, docs, queueItems: [] };
 };
@@ -267,24 +339,34 @@ const buildNeighborhoodForEvent = (eventId: string): WorkroomNeighborhood => {
   return { tasks, events, docs, queueItems: [] };
 };
 
-const buildNeighborhoodForProject = (projectId?: string): WorkroomNeighborhood => {
+const buildNeighborhoodForProject = (
+  projectId?: string
+): WorkroomNeighborhood => {
   const tasks = mockTasks
     .filter((task) => (projectId ? task.projectId === projectId : true))
     .slice(0, 5)
     .map(({ id, title, status }) => ({ id, title, status }));
-  const events = mockEvents.slice(0, 2).map(({ id, title, start, end }) => ({ id, title, start, end }));
+  const events = mockEvents
+    .slice(0, 2)
+    .map(({ id, title, start, end }) => ({ id, title, start, end }));
   const docs = mockDocs.slice(0, 2);
   return { tasks, events, docs, queueItems: [] };
 };
 
 const buildNeighborhoodForPortfolio = (): WorkroomNeighborhood => ({
-  tasks: mockTasks.slice(0, 5).map(({ id, title, status }) => ({ id, title, status })),
-  events: mockEvents.slice(0, 2).map(({ id, title, start, end }) => ({ id, title, start, end })),
+  tasks: mockTasks
+    .slice(0, 5)
+    .map(({ id, title, status }) => ({ id, title, status })),
+  events: mockEvents
+    .slice(0, 2)
+    .map(({ id, title, start, end }) => ({ id, title, start, end })),
   docs: mockDocs,
   queueItems: [{ id: "queue-1", subject: "New request" }],
 });
 
-export const buildWorkroomContext = (anchor: FocusAnchor): WorkroomContext | null => {
+export const buildWorkroomContext = (
+  anchor: FocusAnchor
+): WorkroomContext | null => {
   switch (anchor.type) {
     case "task": {
       if (!anchor.id) return null;
@@ -297,12 +379,17 @@ export const buildWorkroomContext = (anchor: FocusAnchor): WorkroomContext | nul
         priority: task?.priority,
         linkedEventId: task?.linkedEventId ?? null,
       };
-      return { anchor: anchorInfo, neighborhood: buildNeighborhoodForTask(anchor.id) };
+      return {
+        anchor: anchorInfo,
+        neighborhood: buildNeighborhoodForTask(anchor.id),
+      };
     }
     case "event": {
       if (!anchor.id) return null;
       const event = mockEvents.find((e) => e.id === anchor.id);
-      const linkedTasks = mockTasks.filter((t) => t.linkedEventId === anchor.id).map((t) => t.id);
+      const linkedTasks = mockTasks
+        .filter((t) => t.linkedEventId === anchor.id)
+        .map((t) => t.id);
       const anchorInfo: WorkroomContext["anchor"] = {
         type: "event",
         id: anchor.id,
@@ -311,16 +398,24 @@ export const buildWorkroomContext = (anchor: FocusAnchor): WorkroomContext | nul
         end: event?.end,
         linkedTaskIds: linkedTasks,
       };
-      return { anchor: anchorInfo, neighborhood: buildNeighborhoodForEvent(anchor.id) };
+      return {
+        anchor: anchorInfo,
+        neighborhood: buildNeighborhoodForEvent(anchor.id),
+      };
     }
     case "project": {
-      const project = anchor.id ? mockProjects.find((p) => p.id === anchor.id) : undefined;
+      const project = anchor.id
+        ? mockProjects.find((p) => p.id === anchor.id)
+        : undefined;
       const anchorInfo: WorkroomContext["anchor"] = {
         type: "project",
         id: anchor.id || "unknown",
         name: project?.name || anchor.id || "Project",
       };
-      return { anchor: anchorInfo, neighborhood: buildNeighborhoodForProject(anchor.id) };
+      return {
+        anchor: anchorInfo,
+        neighborhood: buildNeighborhoodForProject(anchor.id),
+      };
     }
     case "portfolio": {
       const anchorInfo: WorkroomContext["anchor"] = {
@@ -328,7 +423,32 @@ export const buildWorkroomContext = (anchor: FocusAnchor): WorkroomContext | nul
         id: "my_work",
         label: "My work",
       };
-      return { anchor: anchorInfo, neighborhood: buildNeighborhoodForPortfolio() };
+      return {
+        anchor: anchorInfo,
+        neighborhood: buildNeighborhoodForPortfolio(),
+      };
+    }
+    case "today": {
+      const anchorInfo: WorkroomContext["anchor"] = {
+        type: "portfolio",
+        id: anchor.id || "today",
+        label: "Today",
+      };
+      return {
+        anchor: anchorInfo,
+        neighborhood: buildNeighborhoodForPortfolio(),
+      };
+    }
+    case "triage": {
+      const anchorInfo: WorkroomContext["anchor"] = {
+        type: "portfolio",
+        id: anchor.id || "triage",
+        label: "Triage",
+      };
+      return {
+        anchor: anchorInfo,
+        neighborhood: buildNeighborhoodForPortfolio(),
+      };
     }
     case "today": {
       const anchorInfo: WorkroomContext["anchor"] = {
