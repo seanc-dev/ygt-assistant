@@ -172,6 +172,23 @@ const mockDocs = [
   { id: "doc-3", title: "User research" },
 ];
 
+const mockQueueItems = [
+  { id: "queue-1", subject: "New request", source: "queue" },
+  { id: "queue-2", subject: "Bug triage", source: "queue" },
+];
+
+const mockMentions = [
+  { id: "mention-1", subject: "Design doc mention", source: "mentions" },
+];
+
+const mockDocUpdates = [
+  { id: "doc-update-1", subject: "PRD updated", source: "docs" },
+];
+
+const mockEmails = [
+  { id: "email-1", subject: "Status request", source: "email" },
+];
+
 // Mock Chats
 export const mockChats = [
   {
@@ -210,10 +227,17 @@ export const mockMessages = [
 
 export const getMockTasks = () => {
   // Attach mock chats to tasks
-  return mockTasks.map(task => ({
+  return mockTasks.map((task) => ({
     ...task,
-    chats: mockChats.filter(c => c.taskId === task.id)
+    chats: mockChats.filter((c) => c.taskId === task.id),
   }));
+};
+
+export const updateMockTask = (taskId: string, updates: Partial<Task>) => {
+  const idx = mockTasks.findIndex((task) => task.id === taskId);
+  if (idx >= 0) {
+    mockTasks[idx] = { ...mockTasks[idx], ...updates };
+  }
 };
 
 export const updateMockTaskStatus = (taskId: string, status: TaskStatus) => {
@@ -224,6 +248,10 @@ export const updateMockTaskStatus = (taskId: string, status: TaskStatus) => {
 };
 
 export const getMockEvents = () => mockEvents;
+export const getMockQueueItems = () => mockQueueItems;
+export const getMockMentions = () => mockMentions;
+export const getMockDocUpdates = () => mockDocUpdates;
+export const getMockEmails = () => mockEmails;
 
 export const statusLabelMap: Record<TaskStatus, string> = {
   backlog: "Backlog",
