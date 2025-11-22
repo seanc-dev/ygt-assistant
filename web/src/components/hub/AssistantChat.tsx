@@ -19,6 +19,7 @@ import { useChatThread } from "./assistantChat/useChatThread";
 import {
   parseInteractiveSurfaces,
   type InteractiveSurface,
+  type ContextAddEntry,
   type SurfaceNavigateTo,
 } from "../../lib/llm/surfaces";
 import type {
@@ -1912,6 +1913,20 @@ export function AssistantChat({
     [onOpenWorkroom, onSurfaceNavigateOverride, showInlineNotice]
   );
 
+  const handleSurfaceContextUpdate = useCallback(
+    async (entries: ContextAddEntry[]) => {
+      if (!entries?.length) return;
+      try {
+        await workroomApi.updateContextSpace({ entries });
+        showInlineNotice("Context updated");
+      } catch (err) {
+        console.error("Failed to update context space", err);
+        showInlineNotice("Couldn't update context. Please try again.");
+      }
+    },
+    [showInlineNotice]
+  );
+
   const formatTimestamp = useCallback((ts: string) => {
     const date = new Date(ts);
     const now = new Date();
@@ -1967,6 +1982,8 @@ export function AssistantChat({
 
   // Memoize grouped messages to prevent recreation on every render
   const groupedMessages = useMemo(() => groupMessages(messages), [messages]);
+
+  const MAX_WORKROOM_SURFACES = 2;
 
   const latestAssistantSurfaces = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i -= 1) {
@@ -2076,12 +2093,19 @@ export function AssistantChat({
           ? ASSISTANT_START_DELAY_MS
           : 0;
 
+      const surfacesForView =
+        surfaceRenderAllowed && msg.surfaces
+          ? mode === "workroom"
+            ? msg.surfaces.slice(0, MAX_WORKROOM_SURFACES)
+            : msg.surfaces
+          : undefined;
+
       return {
         id: msg.id,
         role: msg.role,
         content: msg.content,
         embeds: msg.embeds,
-        surfaces: surfaceRenderAllowed ? msg.surfaces : undefined,
+        surfaces: surfacesForView,
         marginTop,
         timestampLabel,
         showTimestamp,
@@ -2097,6 +2121,7 @@ export function AssistantChat({
     formatTimestamp,
     activeAssistantId,
     surfaceRenderAllowed,
+    mode,
   ]);
 
   const containerStyle = useMemo(() => {
@@ -2210,6 +2235,7 @@ export function AssistantChat({
               activeAssistantId={activeAssistantId}
               onInvokeSurfaceOp={handleSurfaceInvokeOp}
               onNavigateSurface={handleSurfaceNavigate}
+              onUpdateContextSpace={handleSurfaceContextUpdate}
             />
           )}
           <div ref={messagesEndRef} />

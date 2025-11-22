@@ -3,6 +3,7 @@ import {
   parseInteractiveSurfaces,
   SurfaceOpTrigger,
   clearSurfaceCache,
+  MAX_CONTEXT_ADD_ENTRIES,
 } from "../surfaces";
 
 describe("parseInteractiveSurfaces", () => {
@@ -82,9 +83,15 @@ describe("parseInteractiveSurfaces", () => {
         title: "Missing blocks",
         payload: {},
       },
+      {
+        surface_id: "s-3",
+        kind: "context_add_v1",
+        title: "Missing entries",
+        payload: {},
+      },
     ]);
     expect(surfaces).toHaveLength(0);
-    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledTimes(3);
   });
 
   it("memoizes parsed surfaces by surface_id and payload hash", () => {
@@ -192,6 +199,28 @@ describe("parseInteractiveSurfaces", () => {
     const surfaces2 = parseInteractiveSurfaces([raw]);
 
     expect(surfaces1).toHaveLength(0); // Missing surface_id is invalid
+  });
+
+  it("parses context_add_v1 surfaces with capped entries", () => {
+    const entries = Array.from({ length: MAX_CONTEXT_ADD_ENTRIES + 2 }, (_, idx) => ({
+      title: `Entry ${idx}`,
+      detail: `Detail ${idx}`,
+    }));
+
+    const surfaces = parseInteractiveSurfaces([
+      {
+        surface_id: "ctx-1",
+        kind: "context_add_v1",
+        title: "Add context",
+        payload: { entries },
+      },
+    ]);
+
+    expect(surfaces).toHaveLength(1);
+    const surface = surfaces[0];
+    expect(surface.kind).toBe("context_add_v1");
+    expect(surface.payload.entries).toHaveLength(MAX_CONTEXT_ADD_ENTRIES);
+    expect(surface.payload.entries[0]).toMatchObject({ title: "Entry 0", detail: "Detail 0" });
   });
 });
 

@@ -119,6 +119,26 @@ const triageSurface: InteractiveSurface = {
   },
 };
 
+const contextAddSurface: InteractiveSurface = {
+  surface_id: "s-context",
+  kind: "context_add_v1",
+  title: "Context add",
+  payload: {
+    entries: [
+      {
+        id: "task-99",
+        title: "Document decisions",
+        subtitle: "Task",
+        detail: "Mentioned in last message",
+      },
+      {
+        title: "Sprint notes",
+        source: "Slack",
+      },
+    ],
+  },
+};
+
 describe("AssistantSurfacesRenderer", () => {
   it("renders nothing when there are no surfaces", () => {
     const { container } = render(<AssistantSurfacesRenderer surfaces={[]} />);
@@ -128,7 +148,13 @@ describe("AssistantSurfacesRenderer", () => {
   it("renders supported surface kinds", () => {
     render(
       <AssistantSurfacesRenderer
-        surfaces={[whatNextSurface, scheduleSurface, prioritySurface, triageSurface]}
+        surfaces={[
+          whatNextSurface,
+          scheduleSurface,
+          prioritySurface,
+          triageSurface,
+          contextAddSurface,
+        ]}
       />
     );
 
@@ -136,6 +162,7 @@ describe("AssistantSurfacesRenderer", () => {
     expect(screen.getByText("Today")).toBeInTheDocument();
     expect(screen.getByText("Priorities")).toBeInTheDocument();
     expect(screen.getByText("Inbox triage")).toBeInTheDocument();
+    expect(screen.getByText("Context add")).toBeInTheDocument();
   });
 
   it("invokes action handlers via child components", () => {
@@ -168,6 +195,25 @@ describe("AssistantSurfacesRenderer", () => {
       <AssistantSurfacesRenderer surfaces={[whatNextSurface, prioritySurface]} />
     );
     expect(container).toMatchSnapshot();
+  });
+
+  it("handles context add actions", () => {
+    const onUpdateContextSpace = vi.fn();
+
+    render(
+      <AssistantSurfacesRenderer
+        surfaces={[contextAddSurface]}
+        onUpdateContextSpace={onUpdateContextSpace}
+      />
+    );
+
+    screen.getByTestId("context-add-0").click();
+    expect(onUpdateContextSpace).toHaveBeenCalledWith([
+      expect.objectContaining({ id: "task-99", title: "Document decisions" }),
+    ]);
+
+    screen.getByTestId("context-add-all").click();
+    expect(onUpdateContextSpace).toHaveBeenCalledWith(contextAddSurface.payload.entries);
   });
 });
 
