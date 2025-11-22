@@ -11,7 +11,11 @@ const buildFallbackContext = (anchor: FocusAnchor): WorkroomContext => ({
         ? { type: "event", id: anchor.id || "unknown", title: anchor.id || "Event" }
         : anchor.type === "project"
           ? { type: "project", id: anchor.id || "unknown", name: anchor.id || "Project" }
-          : { type: "portfolio", id: "my_work", label: "My work" },
+          : anchor.type === "today"
+            ? { type: "portfolio", id: anchor.id || "today", label: "Today" }
+            : anchor.type === "triage"
+              ? { type: "portfolio", id: anchor.id || "triage", label: "Triage" }
+              : { type: "portfolio", id: anchor.id || "my_work", label: "My work" },
   neighborhood: {},
 });
 
@@ -36,7 +40,15 @@ export function useWorkroomContext() {
     requestRef.current = requestId;
     const controller = new AbortController();
 
-    const anchorId = anchor.id ?? (anchor.type === "portfolio" ? "my_work" : undefined);
+    const anchorId =
+      anchor.id ||
+      (anchor.type === "portfolio"
+        ? "my_work"
+        : anchor.type === "today"
+          ? "today"
+          : anchor.type === "triage"
+            ? "triage"
+            : undefined);
     if (!anchorId) {
       setWorkroomContext(buildFallbackContext(anchor));
       setLoading(false);
