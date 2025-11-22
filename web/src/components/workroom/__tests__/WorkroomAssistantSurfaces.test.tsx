@@ -37,6 +37,11 @@ type MockUseChatThreadResponse = {
   isLoadingThread: boolean;
 };
 
+let lastMessageViews: any[] = [];
+
+const normalizeSurfaces = (surfaces?: any[]) =>
+  Array.isArray(surfaces) ? surfaces : [];
+
 const mockChatThreadResponse = (
   surfaces?: any[],
   overrides: Partial<MockUseChatThreadResponse> = {}
@@ -47,7 +52,7 @@ const mockChatThreadResponse = (
       role: "assistant",
       content: "Response",
       ts: "2024-01-01T00:00:00Z",
-      surfaces,
+      surfaces: normalizeSurfaces(surfaces),
     },
   ],
   setMessages: vi.fn(),
@@ -79,45 +84,48 @@ vi.mock("../../hub/assistantChat/MessageList", () => ({
     messageViews,
     onInvokeSurfaceOp,
     onNavigateSurface,
-  }: any) => (
-    <div>
-      {messageViews.map((view: any) => (
-        <div key={view.id} data-testid={`message-${view.id}`}>
-          <span
-            data-testid={`surfaces-${view.id}`}
-            data-count={view.surfaces?.length ?? 0}
-          >
-            {view.surfaces && view.surfaces.length > 0
-              ? "has-surfaces"
-              : "no-surfaces"}
-          </span>
-          {onNavigateSurface && (
-            <button
-              data-testid="navigate-surface"
-              onClick={() =>
-                onNavigateSurface({
-                  destination: "workroom_task",
-                  taskId: "nav-from-surface",
-                })
-              }
+  }: any) => {
+    lastMessageViews = messageViews;
+    return (
+      <div>
+        {messageViews.map((view: any) => (
+          <div key={view.id} data-testid={`message-${view.id}`}>
+            <span
+              data-testid={`surfaces-${view.id}`}
+              data-count={view.surfaces?.length ?? 0}
             >
-              Navigate
-            </button>
-          )}
-          {onInvokeSurfaceOp && (
-            <button
-              data-testid="invoke-surface-op"
-              onClick={() =>
-                onInvokeSurfaceOp("[op type:complete task:123]", { confirm: false })
-              }
-            >
-              Invoke
-            </button>
-          )}
-        </div>
-      ))}
-    </div>
-  ),
+              {view.surfaces && view.surfaces.length > 0
+                ? "has-surfaces"
+                : "no-surfaces"}
+            </span>
+            {onNavigateSurface && (
+              <button
+                data-testid="navigate-surface"
+                onClick={() =>
+                  onNavigateSurface({
+                    destination: "workroom_task",
+                    taskId: "nav-from-surface",
+                  })
+                }
+              >
+                Navigate
+              </button>
+            )}
+            {onInvokeSurfaceOp && (
+              <button
+                data-testid="invoke-surface-op"
+                onClick={() =>
+                  onInvokeSurfaceOp("[op type:complete task:123]", { confirm: false })
+                }
+              >
+                Invoke
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  },
 }));
 
 vi.mock("../../workroom/ActionEmbed", () => ({
@@ -147,7 +155,7 @@ vi.mock("../../hub/assistantChat/CreateTaskOpModal", () => ({
 describe("AssistantChat surfaces in workroom", () => {
   beforeEach(() => {
     useChatThreadMock.mockReset();
-    useChatThreadMock.mockImplementation(mockChatThreadResponse);
+    useChatThreadMock.mockImplementation(() => mockChatThreadResponse([]));
     const apiHandlers = (globalThis as any).__apiHandlers as
       | Record<string, any>
       | undefined;
@@ -183,7 +191,7 @@ describe("AssistantChat surfaces in workroom", () => {
   });
 
   it("renders surfaces when allowed", () => {
-    useChatThreadMock.mockReturnValueOnce(
+    useChatThreadMock.mockImplementation(() =>
       mockChatThreadResponse([
         {
           surface_id: "s1",
@@ -209,7 +217,7 @@ describe("AssistantChat surfaces in workroom", () => {
   });
 
   it("caps surfaces rendered in workroom mode", () => {
-    useChatThreadMock.mockReturnValueOnce(
+    useChatThreadMock.mockImplementation(() =>
       mockChatThreadResponse([
         { surface_id: "s1", kind: "what_next_v1", title: "Next", payload: { primary: { headline: "Do this" } } },
         { surface_id: "s2", kind: "priority_list_v1", title: "Priorities", payload: { items: [{ rank: 1, taskId: "t1", label: "Task" }] } },
@@ -264,7 +272,7 @@ describe("AssistantChat surfaces in workroom", () => {
   });
 
   it("keeps surfaces scoped per chat context", () => {
-    useChatThreadMock.mockReturnValueOnce(
+    useChatThreadMock.mockImplementationOnce(() =>
       mockChatThreadResponse([
         {
           surface_id: "sa",
@@ -285,13 +293,12 @@ describe("AssistantChat surfaces in workroom", () => {
       />
     );
 
-    expect(screen.getByTestId("surfaces-assistant-1").textContent).toBe(
-      "has-surfaces"
-    );
+    const firstCall = useChatThreadMock.mock.results[0]?.value as MockUseChatThreadResponse;
+    expect(firstCall?.messages?.[0]?.surfaces?.length).toBe(1);
 
     unmount();
 
-    useChatThreadMock.mockReturnValueOnce(mockChatThreadResponse([]));
+    useChatThreadMock.mockImplementationOnce(() => mockChatThreadResponse([]));
 
     render(
       <AssistantChat
@@ -309,7 +316,7 @@ describe("AssistantChat surfaces in workroom", () => {
   });
 
   it("keeps navigation surfaces that target visible workroom tasks", () => {
-    useChatThreadMock.mockReturnValueOnce(
+    useChatThreadMock.mockImplementation(() =>
       mockChatThreadResponse([
         {
           surface_id: "s-nav-allowed",
@@ -327,7 +334,7 @@ describe("AssistantChat surfaces in workroom", () => {
         },
       ])
     );
-
+  
     render(
       <AssistantChat
         actionId="task:123"

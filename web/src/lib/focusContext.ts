@@ -1,4 +1,10 @@
-export type FocusAnchorType = "task" | "event" | "project" | "portfolio";
+export type FocusAnchorType =
+  | "task"
+  | "event"
+  | "project"
+  | "portfolio"
+  | "today"
+  | "triage";
 
 export type FocusAnchor = {
   type: FocusAnchorType;
@@ -7,7 +13,7 @@ export type FocusAnchor = {
 
 export type FocusMode = "plan" | "execute" | "review";
 
-export type FocusOriginSource = "hub_surface" | "board" | "direct";
+export type FocusOriginSource = "hub_surface" | "board" | "direct" | "hub";
 
 export type FocusOrigin = {
   source: FocusOriginSource;

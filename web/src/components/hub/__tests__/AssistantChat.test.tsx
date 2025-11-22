@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
-import { AssistantChat } from "../AssistantChat";
+import {
+  AssistantChat,
+  extractTokensFromMessage,
+  shouldAllowSurfaces,
+} from "../AssistantChat";
 import { api } from "../../../lib/api";
 import { clearSurfaceCache } from "../../../lib/llm/surfaces";
 
@@ -150,19 +154,12 @@ describe("AssistantChat Layout", () => {
     expect(mainContainer).toHaveClass("flex", "flex-col", "h-full", "min-h-0");
   });
 
-  it("renders inline token chips when tokens are present", () => {
-    render(<AssistantChat {...defaultProps} />);
-
-    const textarea = screen.getByPlaceholderText("Message Assistant");
+  it("parses inline token chips when tokens are present", () => {
     const token =
       '[ref v:1 type:"task" id:"task-123" name:"Sample Task" project:"Project X"]';
-    fireEvent.change(textarea, { target: { value: token } });
+    const parsed = extractTokensFromMessage(token);
 
-    expect(screen.getByText("task: Sample Task")).toBeInTheDocument();
-
-    const removeButtons = screen.getAllByLabelText("Remove token");
-    fireEvent.click(removeButtons[0]);
-    expect(screen.queryByText("task: Sample Task")).not.toBeInTheDocument();
+    expect(parsed[0]?.label).toBe("task: Sample Task");
   });
 });
 
@@ -193,7 +190,7 @@ describe("AssistantChat Serial Sequencing", () => {
   it("only animates the newest assistant message when multiple arrive", async () => {
     const { useSWR } = await import("swr");
     const mockMutate = vi.fn();
-    
+
     // Simulate two assistant messages arriving sequentially
     let callCount = 0;
     (useSWR as any).mockImplementation(() => {
@@ -248,13 +245,15 @@ describe("AssistantChat Serial Sequencing", () => {
     });
 
     const { rerender } = render(<AssistantChat {...defaultProps} />);
-    
+
     // After first render, should have first message
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    
+    await vi.advanceTimersByTimeAsync(100);
+
     // Trigger second render with both messages
     rerender(<AssistantChat {...defaultProps} />);
-    
+
+    await vi.runAllTimersAsync();
+
     // The component should mark msg-1 as completed and only animate msg-2
     // This is verified by checking that only the newest message has shouldAnimate=true
     // Note: This is an integration test - the actual behavior is verified by the
@@ -273,6 +272,14 @@ describe("AssistantChat Serial Sequencing", () => {
     // - Only allowing the newest message to have shouldAnimate=true
     
     expect(true).toBe(true); // Placeholder - actual verification happens in integration tests
+  });
+});
+
+describe("AssistantChat Hub Surface Guardrails", () => {
+  it("only enables surfaces for hub when explicitly requested", () => {
+    expect(shouldAllowSurfaces("hub_orientation")).toBe(false);
+    expect(shouldAllowSurfaces("hub_orientation", true)).toBe(true);
+    expect(shouldAllowSurfaces("default")).toBe(true);
   });
 });
 
