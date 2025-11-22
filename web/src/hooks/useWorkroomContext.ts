@@ -36,7 +36,9 @@ export function useWorkroomContext() {
     requestRef.current = requestId;
     const controller = new AbortController();
 
-    const anchorId = anchor.id ?? (anchor.type === "portfolio" ? "my_work" : undefined);
+    // Determine anchorId: use explicit id if present; for portfolio default to "my_work"; for other types (including "today" and "triage") use the anchor type as a fallback identifier.
+    const anchorId = anchor.id ?? (anchor.type === "portfolio" ? "my_work" : anchor.type);
+    // If still undefined (unlikely), fallback to a generic context.
     if (!anchorId) {
       setWorkroomContext(buildFallbackContext(anchor));
       setLoading(false);
