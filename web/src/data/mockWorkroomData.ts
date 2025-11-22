@@ -196,7 +196,49 @@ const mockEmails = [
   { id: "email-1", subject: "Status request", source: "email" },
 ];
 
-export const getMockTasks = () => mockTasks;
+// Mock Chats
+export const mockChats = [
+  {
+    id: "chat-1",
+    taskId: "task-1",
+    title: "UX Discussion",
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    updatedAt: new Date().toISOString(),
+    messageCount: 3,
+  },
+];
+
+export const mockMessages = [
+  {
+    id: "msg-1",
+    threadId: "chat-1",
+    role: "user",
+    content: "Can we review the new workroom layout?",
+    ts: new Date(Date.now() - 3600000).toISOString(),
+  },
+  {
+    id: "msg-2",
+    threadId: "chat-1",
+    role: "assistant",
+    content: "I've analyzed the current layout. The main focus area seems a bit cluttered. Shall we simplify the sidebar?",
+    ts: new Date(Date.now() - 3500000).toISOString(),
+  },
+  {
+    id: "msg-3",
+    threadId: "chat-1",
+    role: "user",
+    content: "Yes, let's try moving the context panel to the right.",
+    ts: new Date(Date.now() - 3400000).toISOString(),
+  },
+];
+
+export const getMockTasks = () => {
+  // Attach mock chats to tasks
+  return mockTasks.map(task => ({
+    ...task,
+    chats: mockChats.filter(c => c.taskId === task.id)
+  }));
+};
 
 export const updateMockTask = (taskId: string, updates: Partial<Task>) => {
   const idx = mockTasks.findIndex((task) => task.id === taskId);
