@@ -60,6 +60,9 @@ export const workroomApi = {
   getTasks: (projectId: string): Promise<{ ok: boolean; tasks: Task[] }> =>
     req(`/api/workroom/projects/${encodeURIComponent(projectId)}/tasks`),
 
+  getAllTasks: (): Promise<{ ok: boolean; tasks: Task[] }> =>
+    req("/api/workroom/tasks"),
+
   getTask: (taskId: string): Promise<{ ok: boolean; task: Task }> =>
     req(`/api/workroom/tasks/${encodeURIComponent(taskId)}`),
 

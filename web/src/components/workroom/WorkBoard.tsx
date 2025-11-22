@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Text } from "@lucid-work/ui";
 import { useFocusContextStore } from "../../state/focusContextStore";
 import type { FocusAnchor } from "../../lib/focusContext";
 import type { Task, TaskStatus } from "../../hooks/useWorkroomStore";
-import { getMockTasks, statusLabelMap, updateMockTaskStatus } from "../../data/mockWorkroomData";
+import { statusLabelMap } from "../../data/mockWorkroomData";
 import { workroomApi } from "../../lib/workroomApi";
 
 type BoardColumn = {
@@ -25,9 +25,32 @@ interface WorkBoardProps {
 }
 
 export function WorkBoard({ boardType, anchor }: WorkBoardProps) {
-  const [tasks, setTasks] = useState<Task[]>(getMockTasks());
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const { pushFocus } = useFocusContextStore();
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      setIsLoading(true);
+      try {
+        let res;
+        if (boardType === "project" && anchor.id) {
+          res = await workroomApi.getTasks(anchor.id);
+        } else {
+          res = await workroomApi.getAllTasks();
+        }
+        if (res.ok) {
+          setTasks(res.tasks);
+        }
+      } catch (err) {
+        console.error("Failed to load tasks:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchTasks();
+  }, [boardType, anchor.id]);
 
   const visibleTasks = useMemo(() => {
     if (boardType === "project" && anchor.id) {
@@ -49,7 +72,6 @@ export function WorkBoard({ boardType, anchor }: WorkBoardProps) {
     );
     try {
       await workroomApi.updateTaskStatus(taskId, status);
-      updateMockTaskStatus(taskId, status);
     } catch (err) {
       setTasks((prev) =>
         prev.map((task) => (task.id === taskId ? { ...task, status: previousStatus ?? task.status } : task))
